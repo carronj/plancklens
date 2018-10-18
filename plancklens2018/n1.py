@@ -31,8 +31,8 @@ def cli(cl):
     ret[np.where(cl != 0.)] = 1. / cl[np.where(cl != 0.)]
     return ret
 
-#FIXME:
 def get_defaultcls():
+    # FIXME:
     import jc_camb as camb
     cl_unl = camb.spectra_fromcambfile('./inputs/FFP10/FFP10_wdipole/FFP10_wdipole_lenspotentialCls.dat')
     cl_len = camb.spectra_fromcambfile('./inputs/FFP10/FFP10_wdipole/FFP10_wdipole_lensedCls.dat')
@@ -80,6 +80,7 @@ def get_est_derived(k, lmax):
     return ret
 
 
+#FIXME:
 class npdb():
     """
     a simple wrapper class to store np arrays in an sqlite3 database
@@ -112,7 +113,7 @@ class npdb():
         else:
             return data[0].flatten()
 
-
+#FIXME:
 def hash_check(hash1, hash2, ignore=['lib_dir'], keychain=[]):
     keys1 = hash1.keys()
     keys2 = hash2.keys()
@@ -824,7 +825,8 @@ class library_n1():
                     clpp = np.copy(cl_kind[:lmaxphi + 1], order='C')
                     ret = np.copy(np.array([0.]), order='C')
 
-                    if kA[0] == 'd' or kB[0] == 'd': #FIXME:
+                    if kA[0] == 'd' or kB[0] == 'd':
+                        #FIXME:
                         import lpipe as lp
                         cldtt = np.copy(lp.cldust_2013(4096)[:], order='C')
                         cldttfid = np.copy(lp.cldust_2013(4096)[:], order='C')

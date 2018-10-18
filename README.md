@@ -9,4 +9,5 @@ Planck 2018 CMB lensing pipeline
 * N1 file cleaning and readability
 * sims module for Planck dx12 (and custom sims ?)
 * Parameter files and example scripts
+* python 2 vs 3
 
