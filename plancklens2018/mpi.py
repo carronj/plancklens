@@ -8,7 +8,7 @@ try:
     barrier = MPI.COMM_WORLD.Barrier
     finalize = MPI.Finalize
     if verbose:
-        print('pbs.py : setup OK, rank %s in %s' % (rank, size))
+        print('mpi.py : setup OK, rank %s in %s' % (rank, size))
 except:
     rank = 0
     size = 1

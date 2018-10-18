@@ -9,7 +9,7 @@ import sys
 import hashlib
 
 def alm_copy(alm, lmax=None):
-    """ copies the healpy alm array, with the option to reduce its lmax """
+    """ Copies the healpy alm array, with the option to reduce its lmax """
     alm_lmax = int(np.floor(np.sqrt(2 * len(alm)) - 1))
     assert lmax <= alm_lmax, (lmax, alm_lmax)
     if (alm_lmax == lmax) or (lmax is None):
@@ -22,7 +22,7 @@ def alm_copy(alm, lmax=None):
     return ret
 
 def projectmap(hpmap, lcell_amin, Npts, lon=0., lat=-45. ):
-    """ Projects portion of healpix map onto square map """
+    """ Projects portion of healpix map onto square map. Returns projected map and projector for future calls """
     assert 0. <= lon <= 360. and -90. <= lat <= 90.,(lon,lat)
     _lon = lon if lon <= 180 else lon - 360
     lonra = (-lcell_amin * Npts / 60. / 2., lcell_amin / 60 * Npts / 2.)
@@ -32,8 +32,7 @@ def projectmap(hpmap, lcell_amin, Npts, lon=0., lat=-45. ):
     return P.projmap(hpmap, lambda x, y, z: hp.vec2pix(hp.npix2nside(len(hpmap)), x, y, z)), P
 
 def enumerate_progress(list, label=''):
-    # Taken boldly from Duncan Hanson lpipe :
-    #  e.g. : for i,v in enumerate_progress(list,label = 'calculating...')
+    """ Progress bar """
     t0 = time.time()
     ni = len(list)
     for i, v in enumerate(list):
@@ -52,11 +51,11 @@ def enumerate_progress(list, label=''):
     sys.stdout.flush()
 
 def clhash(cl, dtype=np.float16):
-    """ hash for generic cl. By default we avoid double precision checks since this might be machine dependent """
+    """ Hash for generic cl. By default we avoid double precision checks since this might be machine dependent """
     return hashlib.sha1(np.copy(cl.astype(dtype), order='C')).hexdigest()
 
 def mchash(cl):
-    """ hash for integer (e.g. sim indices) array where order does not matter """
+    """ Hash for integer (e.g. sim indices) array where order does not matter """
     return hashlib.sha1(np.copy(np.sort(cl), order='C')).hexdigest()
 
 def cli(cl):

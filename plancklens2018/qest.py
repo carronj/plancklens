@@ -231,7 +231,7 @@ class library:
         return -0.5 * hp.map2alm(tmap1, lmax=self.lmax_qlm['PS'],iter=0)
 
     def _get_sim_ntt(self, idx, swapped=False):
-        """ noise inhomogeneity estimator (same as PS but on deconvolved maps) """
+        """ Noise inhomogeneity estimator (same as point-source estimator but acting on beam-deconvolved maps) """
         #FIXME: sign consistent with Planck Lensing 2015, but couter-intuitive and should be fixed.
         f1 = self.f2map1 if not swapped else self.f2map2
         f2 = self.f2map2 if not swapped else self.f2map1
@@ -239,7 +239,7 @@ class library:
         return -0.5 * hp.map2alm(tmap1, lmax=self.lmax_qlm['T'],iter=0)
 
     def _get_sim_ftt(self, idx, swapped=False):
-        """ modulation estimator """
+        """ Modulation estimator """
         tmap1 = self.f2map1.get_irestmap(idx) if not swapped else self.f2map2.get_irestmap(idx)  # healpy map
         tmap1 *= (self.f2map2.get_tmap(idx) if not swapped else self.f2map1.get_tmap(idx))  # healpy map
         return hp.map2alm(tmap1, lmax=self.lmax_qlm['T'], iter = 0)
