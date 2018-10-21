@@ -39,9 +39,9 @@
 \JC{Document to be included with the pipeline release after submission of the revised L08.}
 
 Lensing and others quadratic estimators used in \cite{??} are all built multiplying in position space spin transforms of spin-weighted fields. We may write all of these in the form \begin{equation}\label{QE}
- _{\so + \to}\hat d(\hn) \equiv  \left(\sum_{\ell m}\: w^{\si}_\ell \:_{\si} \bar X_{\ell m} \:_\so Y_{\ell m}(\hn)\right)\left(\sum_{\ell m}\:w^{\ti}_\ell  \:_{\ti} \bar X_{\ell m} \:_\to Y_{\ell m}(\hn)\right)
+ _{\so + \to}\hat d(\hn) \equiv  \left(\sum_{\ell m}\: w^{\si\so}_\ell \:_{\si} \bar X_{\ell m} \:_\so Y_{\ell m}(\hn)\right)\left(\sum_{\ell m}\:w^{\ti\to}_\ell  \:_{\ti} \bar X_{\ell m} \:_\to Y_{\ell m}(\hn)\right)
 \end{equation}
-where $\si, \ti$ are input spins, $w_\ell^\si, w_\ell^{\ti}$ associated weights, and  $\so, \to$ outputs spins. The maps $_s \bar X_{lm}$ are the inverse variance filtered CMB maps,
+where $\si, \ti$ are input spins, $w_\ell^{\so\si}, w_\ell^{\ti}$ associated weights, and  $\so, \to$ outputs spins. The maps $_s \bar X_{lm}$ are the inverse variance filtered CMB maps,
 \begin{equation}
 	_0 \bar X_{\ell m} = -\bar T_{\ell m} , \quad _{\pm 2} \bar X_{\ell m} = -\left(\bar E_{\ell m} \pm i\bar B_{\ell m} \right).
 \end{equation}
@@ -54,26 +54,26 @@ We keep the discussion focussed on generic fields $\bar X$ of arbitrary spins in
 \subsection{Semi-analytical QE $N^{(0)}_L$ calculation}
 Q.E. noise (co)-variance can be evaluated very easily as was first demonstrated by Ref.~\cite{}. For two generic estimators as defined in Eq.~\eqref{QE}, we can jointly obtain their G and C co-variances with 4 one-dimensional integrals as we now describe.
 
-Let $s = (\si, \ti, w^{\si})$ collectively describes the in and out spins and weight function, and similarly for $t, u$ and $v$. Let the response function $\mathcal R^{st, uv}_L$ be defined as \JC{Change $\mathcal R $ to $N$ or similar}\JC{The exact def of $\bar C$ is not super clear, I think there are signs lying around, lets see}
+Let $s = (\si, \so, w^{\si\so})$ collectively describes the in and out spins and weight function, and similarly for $t, u$ and $v$. Let the response function $\mathcal R^{st, uv}_L$ be defined as \JC{Change $\mathcal R $ to $N$ or similar}
 \begin{equation}
-(-1)^{\to + \vo} \mathcal R_L^{st,uv} \equiv 2\pi  \int_{-1}^1 d \mu \:\xi^{st}(\mu)\:\xi^{uv}(\mu)\: d^L_{-\to - \vo, \so + \uo}(\mu) 
+(-1)^{\to + \vo + \ti + \vi} \mathcal R_L^{st,uv} \equiv 2\pi  \int_{-1}^1 d \mu \:\xi^{st}(\mu)\:\xi^{uv}(\mu)\: d^L_{-\to - \vo, \so + \uo}(\mu) 
 \end{equation}
 where $\xi$ are position-space correlation functions
 \begin{equation}
-\xi^{st}(\mu) \equiv  \sum_\ell \left(\frac{2\ell + 1}{4\pi}\right)w^\si_\ell w^\ti_\ell \bar C_\ell^{\si \ti} d^\ell_{-\to,\so}(\mu)\textrm{ with } \bar C_\ell^{\si \ti} \equiv \av{ _{\si}\bar X_{\ell m}\: _{\ti} \bar X^*_{\ell m} }
+\xi^{st}(\mu) \equiv  \sum_\ell \left(\frac{2\ell + 1}{4\pi}\right)w^{\si\so}_\ell w^{\ti\to}_\ell \bar C_\ell^{\si \ti} d^\ell_{-\to,\so}(\mu)\textrm{ with } \bar C_\ell^{\si \ti} \equiv \av{ _{\si}\bar X_{\ell m}\: _{\ti} \bar X^*_{\ell m} }
 \end{equation}
 and $d^\ell_{mm'}$ are Wigner small d-matrices.
 Then
 \begin{equation}
-	\av{G^{\so + \to}_{LM} G^{*, \uo + \vo}_{L M} } = \frac 12\left[ \left(\mathcal R^{su, tv}_L  + R^{sv, tu}_L\right) + (-1)^{\so + \to} \mathcal R^{-su, tv}_L + (-1)^{\uo + \vo}\mathcal R_L^{s-v, t-u}  \right]
+	\av{G^{\so + \to}_{LM} G^{*, \uo + \vo}_{L M} } = \frac 12\left[ (-1)^{\so + \to} \mathcal R^{-su, tv}_L + (-1)^{\uo + \vo} \mathcal R_L^{s-v, t-u}+\mathcal R^{su, tv}_L  + R^{sv, tu}_L \right]
 \end{equation}
 \begin{equation}
-	\av{C^{\so + \to}_{LM} C^{*, \uo + \vo}_{L M} } =- \frac 12\left[ \left(\mathcal R^{su, tv}_L  + R^{sv, tu}_L\right)  - (-1)^{\so + \to} \mathcal R^{-su, tv}_L -(-1)^{\uo + \vo} \mathcal R_L^{s-v, t-u} \right]
+	\av{C^{\so + \to}_{LM} C^{*, \uo + \vo}_{L M} } = \frac 12\left[ (-1)^{\so + \to} \mathcal R^{-su, tv}_L + (-1)^{\uo + \vo} \mathcal R_L^{s-v, t-u}-\mathcal R^{su, tv}_L  - R^{sv, tu}_L \right]
 \end{equation}
 \begin{equation}
 	\av{G^{\so + \to}_{LM} C^{*, \uo + \vo}_{L M} } =0
 \end{equation}
-\JC{TTTT checked OK. Second term sign looks a bit not symmetric but is factually correct I believe, after sign-weight of the weights functions and $\bar C$}
+\JC{TTTT checked OK. See below for $R$ symmetries and conventions}
 \paragraph{Sketchy derivation to cleanup}
 For this we need a result using the spin-weight spherical harmonic theorem.
 Define $\mathcal R^{st,uv}_L $ through
