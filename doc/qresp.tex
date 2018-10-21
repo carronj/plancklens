@@ -1,5 +1,7 @@
 \documentclass[reprint,prd, superscriptaddress, tightenlines, longbibliography, nofootinbib, eqsecnum, amsfonts, amsmath, floatfix, notitlepage, onecolumn]{revtex4-1}
 \usepackage{amsmath} 
+\usepackage{amssymb}
+
 \usepackage{color}
 \newcommand{\T}[0]{{\mathcal T}}
 \newcommand{\Xd}[0]{{X^{\rm dat}}}
@@ -15,13 +17,19 @@
 \newcommand{\uo}[0]{{u_{\rm o}}}
 \newcommand{\vo}[0]{{v_{\rm o}}}
 
+\newcommand{\sr}[0]{{s_{\rm r}}}
+\newcommand{\tr}[0]{{t_{\rm r}}}
+\newcommand{\ur}[0]{{u_{\rm r}}}
+\renewcommand{\vr}[0]{{v_{\rm r}}}
+
 \newcommand{\Ylm}[1]{\:_{#1}Y_{\ell m}}
 \newcommand{\Ylms}[1]{\:_{#1}Y^*_{\ell m}}
 \newcommand{\YLM}[1]{\:_{#1}Y_{L M}}
 \newcommand{\YLMs}[1]{\:_{#1}Y^*_{L M}}
 \newcommand{\av}[1]{\left\langle #1 \right\rangle}
 
-\newcommand{\JC}[1]{\color{red}#1\color{black}}
+\newcommand{\red}[1]{\color{red}#1 \color{black} }
+\newcommand{\JC}[1]{\color{red}JC: #1\color{black}}
 \newcommand{\hn}[0]{\boldsymbol{n}}
 \begin{document}
 	
@@ -46,7 +54,7 @@ We keep the discussion focussed on generic fields $\bar X$ of arbitrary spins in
 \subsection{Semi-analytical QE $N^{(0)}_L$ calculation}
 Q.E. noise (co)-variance can be evaluated very easily as was first demonstrated by Ref.~\cite{}. For two generic estimators as defined in Eq.~\eqref{QE}, we can jointly obtain their G and C co-variances with 4 one-dimensional integrals as we now describe.
 
-Let $s = (\si, \ti, w^{\si})$ collectively describes the in and out spins and weight function, and similarly for $t, u$ and $v$. Let the response function $\mathcal R^{st, uv}_L$ be defined as
+Let $s = (\si, \ti, w^{\si})$ collectively describes the in and out spins and weight function, and similarly for $t, u$ and $v$. Let the response function $\mathcal R^{st, uv}_L$ be defined as \JC{Change $\mathcal R $ to $N$ or similar}\JC{The exact def of $\bar C$ is not super clear, I think there are signs lying around, lets see}
 \begin{equation}
 (-1)^{\to + \vo} \mathcal R_L^{st,uv} \equiv 2\pi  \int_{-1}^1 d \mu \:\xi^{st}(\mu)\:\xi^{uv}(\mu)\: d^L_{-\to - \vo, \so + \uo}(\mu) 
 \end{equation}
@@ -57,21 +65,21 @@ where $\xi$ are position-space correlation functions
 and $d^\ell_{mm'}$ are Wigner small d-matrices.
 Then
 \begin{equation}
-	\av{G^{\so + \to}_{LM} G^{*, \uo + \vo}_{L M} } = \frac 14\left[ \left(\mathcal R^{su, tv}_L  + R^{sv, tu}_L\right)\left(1 + (-1)^{\si + \ti + \ui + \vi} \right)  + (-1)^{\si + \ti} \left(\mathcal R^{-su, tv}_L + \mathcal R_L^{-sv, tu} \right)(1 + (-1)^{\si + \ti + \ui + \vi}) \right]
+	\av{G^{\so + \to}_{LM} G^{*, \uo + \vo}_{L M} } = \frac 12\left[ \left(\mathcal R^{su, tv}_L  + R^{sv, tu}_L\right) + (-1)^{\so + \to} \mathcal R^{-su, tv}_L + (-1)^{\uo + \vo}\mathcal R_L^{s-v, t-u}  \right]
 \end{equation}
 \begin{equation}
-	\av{C^{\so + \to}_{LM} C^{*, \uo + \vo}_{L M} } =- \frac 14\left[ \left(\mathcal R^{su, tv}_L  + R^{sv, tu}_L\right)\left(1 + (-1)^{\si + \ti + \ui + \vi} \right)  - (-1)^{\si + \ti} \left(\mathcal R^{-su, tv}_L + \mathcal R_L^{-sv, tu} \right)(1 + (-1)^{\si + \ti + \ui + \vi}) \right]
+	\av{C^{\so + \to}_{LM} C^{*, \uo + \vo}_{L M} } =- \frac 12\left[ \left(\mathcal R^{su, tv}_L  + R^{sv, tu}_L\right)  - (-1)^{\so + \to} \mathcal R^{-su, tv}_L -(-1)^{\uo + \vo} \mathcal R_L^{s-v, t-u} \right]
 \end{equation}
 \begin{equation}
-	\av{G^{\so + \to}_{LM} C^{*, \uo + \vo}_{L M} } = \frac 1{4i}\left[ \left(\mathcal R^{su, tv}_L  + R^{sv, tu}_L\right)\left(1 - (-1)^{\si + \ti + \ui + \vi} \right)  +(-1)^{\si + \ti} \left(\mathcal R^{-su, tv}_L + \mathcal R_L^{-sv, tu} \right)(1 - (-1)^{\si + \ti + \ui + \vi}) \right]
+	\av{G^{\so + \to}_{LM} C^{*, \uo + \vo}_{L M} } =0
 \end{equation}
-\JC{I dont understand the resulting sign and GC spectrum for (the irrelevant case of) odd total input spin. Should nt that always be 1? TTTT checked OK}
+\JC{TTTT checked OK. Second term sign looks a bit not symmetric but is factually correct I believe, after sign-weight of the weights functions and $\bar C$}
 \paragraph{Sketchy derivation to cleanup}
 For this we need a result using the spin-weight spherical harmonic theorem.
 Define $\mathcal R^{st,uv}_L $ through
 \begin{equation}
 \begin{split}
-\mathcal R^{st,uv}(\hn, \hn') \equiv	& (-1)^{\to + \vo}\left(\sum_{\ell m}\: g^{\si}_\ell g^{\ti}_\ell C_\ell^{\si \ti} \Ylm \so(\hn)   \Ylms {-\to}  (\hn')\right) \left(\sum_{\ell m}\: g^{\ui}_\ell g^{\vi}_\ell C_\ell^{\ui \vi} \Ylm \uo(\hn)   \Ylms {-\vo} (\hn')\right) \\ &\equiv (-1)^{\to + \vo} \sum_{LM} \mathcal R^{stuv}_L  \YLM{\so + \uo}(\hn)   \YLMs {-\uo - \vo} (\hn')
+\mathcal R^{st,uv}(\hn, \hn') \equiv	& (-1)^{\to + \vo + \red{\ti + \vi} }\left(\sum_{\ell m}\: g^{\si}_\ell g^{\ti}_\ell C_\ell^{\si \ti} \Ylm \so(\hn)   \Ylms {-\to}  (\hn')\right) \left(\sum_{\ell m}\: g^{\ui}_\ell g^{\vi}_\ell C_\ell^{\ui \vi} \Ylm \uo(\hn)   \Ylms {-\vo} (\hn')\right) \\ &\equiv (-1)^{\to + \vo + \red{\ti + \vi}} \sum_{LM} \mathcal R^{stuv}_L  \YLM{\so + \uo}(\hn)   \YLMs {-\to - \vo} (\hn')
 \end{split}
 \end{equation}
 Then we can write
@@ -82,31 +90,36 @@ Then we can write
 \end{equation}
 Taking the harmonic transform, we get
 \begin{equation}
-	\av{ _{\so + \to}\hat d_{LM} \:_{\uo + \vo}\hat d_{L'M'}} = (-1)^M\delta_{M, -M'}\delta_{L,L'}\left(\mathcal R^{su, tv}_L + \mathcal R^{sv, tu}_L\right)
+	\av{ _{\so + \to}\hat d_{LM} \:_{\uo + \vo}\hat d_{L'M'}} = (-1)^M\delta_{M, -M'}\delta_{L,L'}\left(\mathcal R^{su, tv}_L + \mathcal R^{sv, tu}_L\right)\red{(-1)^{\uo + \vo}}
 \end{equation}
+\red{or
+\begin{equation}
+	\av{ _{\so + \to}\hat d_{LM} \:_{\uo + \vo}\hat d^*_{L'M'}} = \delta_{MM'}\delta_{LL'}\left(\mathcal R^{su, tv}_L + \mathcal R^{sv, tu}_L\right)
+\end{equation}}
+
 In general we have
 \begin{eqnarray*}
 		G^{s}_{LM} &= -\frac 12\left(\:_s d_{LM} + (-1)^s \:_{-s} d_{LM}\right) \quad (s \geq 0) \\
 		C^{s}_{LM} &=-\frac 1{2i} \left( \:_s d_{LM} - (-1)^s \:_{-s} d_{LM} \right) \quad (s \geq 0).
 \end{eqnarray*}
-The estimator for $_{-\so - \to}\hat d$ is the same as $_{\so + \to}\hat d$ with all spin signs flipped, and with an overall sign $(-1)^{\so + \si + \to + \ti}$. The out-spins part gets canceled by the sign $(-1)^s$ in the above equation.
+The estimator for $_{-\so - \to}\hat d$ is the same as $_{\so + \to}\hat d$ with all spin signs flipped, and with an overall sign $(-1)^{\so + \si + \to + \ti}$. The out-spins part gets canceled by the sign $(-1)^s$ in the above equation. \JC{No. better to request $w_\ell^{-\si, -\so} = (-1)^{\so + si}w_\ell^{\si,\so} $ so that $_{-\so - \to}\hat d = _{\so + \to}\hat d^*$? Thats what we do now}
 Hence,
 \begin{equation}
 \begin{split}
-			&(-1)^M\delta_{M, -M'}\delta_{L,L'}\av{G^{\so + \to}_{LM} G^{\uo + \vo}_{L'M'} }\cdot 4 =\mathcal R^{su, tv}_L + \mathcal R^{sv, tu}_L + (-1)^{\si + \ti}\left(\mathcal R^{-su, -tv}_L + \mathcal R_L^{-sv, -tu} \right) \\&+ (-1)^{\ui + \vi}\left(\mathcal R^{s-u, t-v}_L + \mathcal R_L^{s-v, t-u}\right) + (-1)^{\si + \ti + \ui + \vi}\left(\mathcal R^{-s-u, -t-v}_L + \mathcal R_L^{-s-v, -t-u}\right)\quad (\so + \to >= 0, \uo + \vo >= 0)
+			&\delta_{MM'}\delta_{LL'}\av{G^{\so + \to}_{LM} G^{*,\uo + \vo}_{L'M'} }\cdot 4 =\mathcal R^{su, tv}_L + \mathcal R^{sv, tu}_L + (-1)^{\si + \ti}\left(\mathcal R^{-su, -tv}_L + \mathcal R_L^{-sv, -tu} \right) \\&+ (-1)^{\ui + \vi}\left(\mathcal R^{s-u, t-v}_L + \mathcal R_L^{s-v, t-u}\right) + (-1)^{\si + \ti + \ui + \vi}\left(\mathcal R^{-s-u, -t-v}_L + \mathcal R_L^{-s-v, -t-u}\right)\quad (\so + \to >= 0, \uo + \vo >= 0)
 \end{split}
 \end{equation}
-Since $\mathcal R$ is invariant under the simultaneous sign-flip of all spins, we can also write this as:
+Since $\mathcal R$ is invariant under the simultaneous sign-flip of all spins \JC{Wrong, also with sign-weighted weights: $\bar C^{-s, -t} = (-1)^{s + t}C^{t,s} =  (-1)^{s + t}C^{s,t} (s,t \geq 0$, so $\mathcal R^{st, uv}$ takes a sign $(-1)^{\si + \ti + \ui + \vi}$ and this solves the problem}, we can also write this as:
 \begin{equation}
-	\av{G^{\so + \to}_{LM} G^{*, \uo + \vo}_{L M} } = \frac 14\left[ \left(\mathcal R^{su, tv}_L  + R^{sv, tu}_L\right)\left(1 + (-1)^{\si + \ti + \ui + \vi} \right)  + (-1)^{\si + \ti} \left(\mathcal R^{-su, tv}_L + \mathcal R_L^{-sv, tu} \right)(1 + (-1)^{\si + \ti + \ui + \vi}) \right]
+	\av{G^{\so + \to}_{LM} G^{*, \uo + \vo}_{L M} } = \red{\frac 12\left[ \left(\mathcal R^{su, tv}_L  + R^{sv, tu}_L\right) + (-1)^{\so + \to} \left(\mathcal R^{-su, tv}_L + \mathcal R_L^{-sv, tu} \right) \right]}
 \end{equation}
 \begin{equation}
-	\av{C^{\so + \to}_{LM} C^{*, \uo + \vo}_{L M} } =- \frac 14\left[ \left(\mathcal R^{su, tv}_L  + R^{sv, tu}_L\right)\left(1 + (-1)^{\si + \ti + \ui + \vi} \right)  - (-1)^{\si + \ti} \left(\mathcal R^{-su, tv}_L + \mathcal R_L^{-sv, tu} \right)(1 + (-1)^{\si + \ti + \ui + \vi}) \right]
+	\av{C^{\so + \to}_{LM} C^{*, \uo + \vo}_{L M} } =\red{- \frac 12\left[ \left(\mathcal R^{su, tv}_L  + R^{sv, tu}_L\right)  - (-1)^{\so + \to} \left(\mathcal R^{-su, tv}_L + \mathcal R_L^{-sv, tu} \right) \right]}
 \end{equation}
 \begin{equation}
-	\av{G^{\so + \to}_{LM} C^{*, \uo + \vo}_{L M} } = \frac 1{4i}\left[ \left(\mathcal R^{su, tv}_L  + R^{sv, tu}_L\right)\left(1 - (-1)^{\si + \ti + \ui + \vi} \right)  + (-1)^{\si + \ti} \left(\mathcal R^{-su, tv}_L + \mathcal R_L^{-sv, tu} \right)(1 - (-1)^{\si + \ti + \ui + \vi}) \right]
+	\av{G^{\so + \to}_{LM} C^{*, \uo + \vo}_{L M} } =\red{0}
 \end{equation}
-\color{red}{?}\color{black}
+\color{red}{Pfeew}\color{black}
 \subsection*{More details of $\mathcal R_L$}
 Recall the spin-weight addition theorem:
 \begin{equation}
@@ -114,11 +127,11 @@ Recall the spin-weight addition theorem:
 \end{equation}
 Hence 
 \begin{equation}
-	\mathcal R^{st,uv}(\hn, \hn') = (-1)^{\to + \vo} e^{-i \so \gamma -i \uo \gamma} \left(\sum_\ell \sqrt{\frac{2\ell + 1}{4\pi}} g^{\si}g^{\ti} C_\ell^{\si \ti} \:_{\so}Y_{\ell \to}(\beta ,\alpha)\right) \left(\sum_\ell \sqrt{\frac{2\ell + 1}{4\pi}} g^{\ui}g^{\vi} C_\ell^{\ui \vi} \:_{\uo}Y_{\ell \vo}(\beta ,\alpha)\right)
+	\mathcal R^{st,uv}(\hn, \hn') = (-1)^{\to + \vo + \red{\ti + \vi}} e^{-i \so \gamma -i \uo \gamma} \left(\sum_\ell \sqrt{\frac{2\ell + 1}{4\pi}} g^{\si}g^{\ti} C_\ell^{\si \ti} \:_{\so}Y_{\ell \to}(\beta ,\alpha)\right) \left(\sum_\ell \sqrt{\frac{2\ell + 1}{4\pi}} g^{\ui}g^{\vi} C_\ell^{\ui \vi} \:_{\uo}Y_{\ell \vo}(\beta ,\alpha)\right)
 \end{equation}
 The product of the brackets is a spin $\so + \uo$ function. Defining its spin weight coefficients as $\mathcal R_L$ we get the relation claimed above. What are these coefficients? 
 \begin{equation}
-	\mathcal R_L^{st,uv} \equiv(-1)^{\to + \vo} \sqrt{\frac {4\pi}{2\ell + 1}} \int d^2n \left(\sum_\ell \sqrt{\frac{2\ell + 1}{4\pi}} g^{\si}g^{\ti} C_\ell^{\si \ti} \:_{\so}Y_{\ell \to}(\hn)\right) \left(\sum_\ell \sqrt{\frac{2\ell + 1}{4\pi}} g^{\ui}g^{\vi} C_\ell^{\ui \vi} \:_{\uo}Y_{\ell \vo}(\hn)\right)\:_{\so + \uo}Y^*_{L,\to + \vo}(\hn) 
+	\mathcal R_L^{st,uv} \equiv(-1)^{\to + \vo+ \red{\ti + \vi}} \sqrt{\frac {4\pi}{2\ell + 1}} \int d^2n \left(\sum_\ell \sqrt{\frac{2\ell + 1}{4\pi}} g^{\si}g^{\ti} C_\ell^{\si \ti} \:_{\so}Y_{\ell \to}(\hn)\right) \left(\sum_\ell \sqrt{\frac{2\ell + 1}{4\pi}} g^{\ui}g^{\vi} C_\ell^{\ui \vi} \:_{\uo}Y_{\ell \vo}(\hn)\right)\:_{\so + \uo}Y^*_{L,\to + \vo}(\hn) 
 \end{equation}
 Using
 \begin{equation}
@@ -128,9 +141,45 @@ The above thing is invariant if all signs are flipped at the same time.
 we get
 \begin{equation}
 \boxed{
-(-1)^{\to + \vo} \mathcal R_L^{st,uv} \equiv 2\pi  \int_{-1}^1 d \mu \:\xi^{st}(\mu)\:\xi^{uv}(\mu)\: d^L_{-\to - \vo, \so + \uo}(\mu),\textrm{  with } \xi^{st}(\mu) \equiv  \sum_\ell \frac{2\ell + 1}{4\pi}g^\si_\ell g^\ti_\ell C_\ell^{\si \ti} d^\ell_{-\to,\so}(\mu)}
+(-1)^{\to + \vo+ \red{\ti + \vi}} \mathcal R_L^{st,uv} \equiv 2\pi  \int_{-1}^1 d \mu \:\xi^{st}(\mu)\:\xi^{uv}(\mu)\: d^L_{-\to - \vo, \so + \uo}(\mu),\textrm{  with } \xi^{st}(\mu) \equiv  \sum_\ell \frac{2\ell + 1}{4\pi}g^\si_\ell g^\ti_\ell C_\ell^{\si \ti} d^\ell_{-\to,\so}(\mu)}
  \end{equation}
+ \JC{Remember now the weights $w$ (or g...) changes $(-1)^{\si + \so}$ under sign flip of the two spins, and $\bar C^{st}$ takes a $(-1)^{s + t}$. So $\mathcal R^{-s-t, -u-v} = (-1)^{\si + \ti + \ui + \vi + \si + \so + \ti + \to + \ui + \uo + \vi + \vo } = (-1)^{\so + \to + \uo + \vo }\mathcal R^{st, uv}$ }
  \subsection{QE responses calculation}
- 
+ \JC{should define the response at the covariance matrix level...}
+ The covariance matrices is
+ \begin{equation}
+ 	\av{_sX(\hn)\:_tX^*(\hn')} =\av{_sX(\hn)\:_{-t}X(\hn')} = \sum_{\ell m} C^{s t}_\ell \Ylm s(\hn) \Ylms {t}(\hn')
+ \end{equation}
+ How does this responds to a source of anisotropy (with spin $r$), $_r\alpha(\hn)$? For all cases in this work, we can parametrize this as follows
+  \begin{equation}
+ 	\delta \av{_sX(\hn)\:_{t}X(\hn')} = \:_r\alpha(\hn')\sum_{\ell m}\: _rR^{st}_\ell \Ylm s(\hn) \Ylms {r - t}(\hn') + ( (-t, \hn') \leftrightarrow (s,\hn))
+ \end{equation}
+for some set of isotropic response functions $R_\ell$. What is the response to the estimator Eq.~\eqref{QE}?
+
+Examples include:
+\begin{itemize}
+	\item Lensing: The source of anisotropy is the spin-1 field $_1\alpha(\hn)$, with response
+	\begin{equation}
+		\delta _sX(\hn) =  \frac 12 \alpha_1 \eth _{s}X(\hn) + \frac 12 \alpha_{-1} \bar \eth \:_sX(\hn) 
+	\end{equation}
+	where $\eth$ and $\bar \eth$ are the spin lowering and spin raising operator \JC{check notation } respectively. From their action on the spin-weighted harmonics, the harmonic space responses are\JC{...}
+	\begin{equation}
+		s_r = s-1, s+ 1 \quad R^{s,s-1} = \JC{...}, R^{s,s+1} = \JC{...}
+	\end{equation}
+	\item Modulation estimator: The source is spin 0, with response
+	\begin{equation}
+	\delta _sX(\hn) = _0\alpha(\hn) _{s}X(\hn)	
+	\end{equation}
+	Hence,
+	\begin{equation}
+		s_r = s\quad, R_\ell^{ss} = 1
+	\end{equation}
+	\item Point source:
+	\begin{equation}
+	\delta _sX(\hn) = \:_0\alpha(\hn) \delta^D(\hn)
+	\end{equation}
+	\item Noise anisotropies:
+\end{itemize} 
+
 
 \end{document}
