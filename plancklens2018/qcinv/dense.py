@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import numpy  as np
 import os
+import numpy  as np
 import pickle as pk
 
 from . import util_alm
@@ -10,11 +10,7 @@ from . import util_alm
 
 class pre_op_dense_tt:
     def __init__(self, lmax, fwd_op, cache_fname=None):
-        # construct a low-l, low-nside dense preconditioner by brute force.
-        # order of operations is O(nside**2 lmax**3) ~ O(lmax**5), so doing
-        # by brute force is still comparable to matrix inversion, with
-        # benefit of being very simple to implement.
-
+        """ Constructs a low-l, low-nside dense preconditioner by brute force. """
         if (cache_fname is not None) and os.path.exists(cache_fname):
             [cache_lmax, cache_hashdict, cache_minv] = pk.load(open(cache_fname, 'r'))
             self.minv = cache_minv
@@ -85,7 +81,7 @@ class pre_op_dense_pp:
         # by brute force is still comparable to matrix inversion, with
         # benefit of being very simple to implement.
 
-        if (cache_fname != None) and (os.path.exists(cache_fname)):
+        if (cache_fname is not None) and os.path.exists(cache_fname):
             [cache_lmax, cache_hashdict, cache_minv] = pk.load(open(cache_fname, 'r'))
             self.minv = cache_minv
 

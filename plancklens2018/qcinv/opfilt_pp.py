@@ -2,7 +2,7 @@
 #
 # operations and filters for polarization only c^-1
 # S^{-1} (S^{-1} + Y^t N^{-1} Y)^{-1} Y^t N^{-1}
-
+#FIXME: s_cl hashdict
 import hashlib
 import numpy  as np
 import healpy as hp
@@ -11,8 +11,6 @@ from . import util_alm
 from . import template_removal
 from . import dense
 
-
-# ===
 
 def calc_prep(maps, s_cls, n_inv_filt):
     qmap, umap = np.copy(maps[0]), np.copy(maps[1])
@@ -108,13 +106,11 @@ def pre_op_dense(lmax, fwd_op, cache_fname=None):
 class alm_filter_sinv:
     def __init__(self, s_cls):
         lmax = s_cls.lmax
-        zs = np.zeros(lmax + 1)
-
         slmat = np.zeros((lmax + 1, 2, 2))  # matrix of EB correlations at each l.
-        slmat[:, 0, 0] = getattr(s_cls, 'clee', zs.copy())[:]
-        slmat[:, 0, 1] = getattr(s_cls, 'cleb', zs.copy())[:]
+        slmat[:, 0, 0] = s_cls.get('ee', np.zeros(lmax + 1))
+        slmat[:, 0, 1] = s_cls.get('eb', np.zeros(lmax + 1))
+        slmat[:, 1, 1] = s_cls.get('bb', np.zeros(lmax + 1))
         slmat[:, 1, 0] = slmat[:, 0, 1]
-        slmat[:, 1, 1] = getattr(s_cls, 'clbb', zs.copy())[:]
 
         slinv = np.zeros((lmax + 1, 2, 2))
         for l in range(0, lmax + 1):
@@ -144,8 +140,6 @@ class alm_filter_ninv(object):
                     for n in tn[1:]:
                         n_inv_prod = n_inv_prod * util.load_map(n[:])
                 self.n_inv.append(n_inv_prod)
-                # assert (np.std(self.n_inv[i][np.where(self.n_inv[i][:] != 0.0)]) / np.average(
-                #    self.n_inv[i][np.where(self.n_inv[i][:] != 0.0)]) < 1.e-7)
             else:
                 self.n_inv.append(util.load_map(n_inv[i]))
         n_inv = self.n_inv
@@ -231,14 +225,12 @@ class alm_filter_ninv(object):
 
         hp.almxfl(alm.elm, self.b_transf, inplace=True)
         hp.almxfl(alm.blm, self.b_transf, inplace=True)
-        #FIXME:
-        qmap, umap = hp.alm2map_spin((alm.elm, alm.blm), self.nside, 2, lmax)  # FIXME: hack! need a P-only sht in healpy.
+        qmap, umap = hp.alm2map_spin((alm.elm, alm.blm), self.nside, 2, lmax)
 
         self.apply_map([qmap, umap])  # applies N^{-1}
         npix = len(qmap)
 
-        ttlm, telm, tblm = hp.map2alm([qmap, qmap, umap], lmax=lmax, iter=0, use_weights=False, pol=True)
-        del ttlm
+        telm, tblm = hp.map2alm_spin([qmap, umap], 2, lmax=lmax)
         alm.elm[:] = telm * (npix / (4. * np.pi))
         alm.blm[:] = tblm * (npix / (4. * np.pi))
 
