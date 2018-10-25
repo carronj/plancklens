@@ -107,11 +107,11 @@ def rlm2alm(rlm):
         alm[m * (2 * lmax + 1 - m) / 2 + ls[m:]] = (rlm[l2s[m:] + 2 * m - 1] + 1.j * rlm[l2s[m:] + 2 * m + 0]) * ir2
     return alm
 
-
+#FIXME: Can I just do with np arrays?
 class eblm:
     def __init__(self, alm):
         [elm, blm] = alm
-        assert (len(elm) == len(blm))
+        assert len(elm) == len(blm), (len(elm), len(blm))
 
         self.lmax = nlm2lmax(len(elm))
 
@@ -127,21 +127,21 @@ class eblm:
                      alm_splice(self.blm, alm_hi.blm, lsplit)])
 
     def __add__(self, other):
-        assert (self.lmax == other.lmax)
+        assert self.lmax == other.lmax
         return eblm([self.elm + other.elm, self.blm + other.blm])
 
     def __sub__(self, other):
-        assert (self.lmax == other.lmax)
+        assert self.lmax == other.lmax
         return eblm([self.elm - other.elm, self.blm - other.blm])
 
     def __iadd__(self, other):
-        assert (self.lmax == other.lmax)
-        self.elm += other.elm;
+        assert self.lmax == other.lmax
+        self.elm += other.elm
         self.blm += other.blm
         return self
 
     def __isub__(self, other):
-        assert (self.lmax == other.lmax)
+        assert self.lmax == other.lmax
         self.elm -= other.elm
         self.blm -= other.blm
         return self
