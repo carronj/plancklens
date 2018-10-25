@@ -4,7 +4,6 @@ from __future__ import print_function
 #
 # operations and filters for temperature only c^-1
 # S^{-1} (S^{-1} + Y^t N^{-1} Y)^{-1} Y^t N^{-1}
-# TODO : could redefine units of ninv to avoid the npix / (4 pi everywhere)
 import hashlib
 import numpy  as np
 import healpy as hp
@@ -14,9 +13,7 @@ from . import util_alm
 from . import template_removal
 from . import dense
 
-#FIXME: turn s_cls. into s_cls[]
-# ===
-
+#FIXME: hashes
 def _cli(cl):
     ret = np.zeros_like(cl)
     ret[np.where(cl != 0.)] = 1. / cl[np.where(cl != 0.)]

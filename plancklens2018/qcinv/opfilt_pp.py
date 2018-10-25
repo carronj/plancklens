@@ -2,7 +2,7 @@
 #
 # operations and filters for polarization only c^-1
 # S^{-1} (S^{-1} + Y^t N^{-1} Y)^{-1} Y^t N^{-1}
-#FIXME: s_cl hashdict
+#FIXME: hashes
 import hashlib
 import numpy  as np
 import healpy as hp
