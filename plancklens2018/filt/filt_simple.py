@@ -1,3 +1,12 @@
+"""simple CMB filtering module.
+
+This module collects a couple of fast (non-iterative) filtering methods.
+
+Todo:
+    * Full-sky isotropic
+    * doc
+    * libaml missing
+"""
 from __future__ import print_function
 
 import healpy as hp
@@ -5,7 +14,6 @@ import numpy  as np
 import pickle as pk
 import os
 
-from libaml import apodize
 
 from plancklens2018 import mpi
 from plancklens2018 import utils
@@ -13,10 +21,20 @@ from plancklens2018 import utils
 #FIXME add fullsky
 
 class library_sepTP(object):
-    """ Template filtering library, where temperature and polarization are filtered independently """
+    """Template class for CMB inverse-variance and Wiener-filtering library.
+
+    This is suitable whenever the temperature and polarization maps are independently filtered.
+
+    Args:
+        lib_dir (str): directory where hashes and filtered maps will be cached.
+        sim_lib : simulation library instance. *sim_lib* must have *get_sim_tmap* and *get_sim_pmap* methods.
+
+    """
     def __init__(self, lib_dir, sim_lib, soltn_lib=None, cache=True):
-        self.sim_lib = sim_lib
+
+
         self.lib_dir = lib_dir
+        self.sim_lib = sim_lib
         self.soltn_lib = soltn_lib
         self.cache = cache
         fn_hash = os.path.join(lib_dir, 'filt_hash.pk')
@@ -49,23 +67,33 @@ class library_sepTP(object):
         return None, None
 
     def get_ftl(self):
+        """ Isotropic approximation to temperature inverse variance filtering  $$N_L$$.
+
+        Note:
+            bla $$ ( C_\\ell^{TT} + N^{TT}_\\ell / b^2_\\ell ) $$
+
+        """
         assert 0, 'override this'
 
     def get_fel(self):
+        """ Isotropic approximation to E-polarization inverse variance filtering.
+
+        This typically has the form $ 1 / \left( C_\ell^{\rm EE} + N^{\rm EE}_\ell / b^2_\ell \right) $
+
+        """
         assert 0, 'override this'
 
     def get_fbl(self):
+        """ Isotropic approximation to B-polarization inverse variance filtering.
+
+        $$ N_\\ell $$
+        """
         assert 0, 'override this'
 
     def get_tal(self, a):
         assert 0, 'override this'
 
     def get_sim_tlm(self, idx):
-        """
-        Apply inverse_variance filtering to a simulated map.
-        If the fits file map is not found it will generate the simulation from the sim_lib library instance.
-        Uses -1 for data.
-        """
         tfname = os.path.join(self.lib_dir, 'sim_%04d_tlm.fits'%idx if idx >= 0 else 'dat_tlm.fits')
         if not os.path.exists(tfname):
             tlm = self._apply_ivf_t(self.sim_lib.get_sim_tmap(idx), soltn=None if self.soltn_lib is None else self.soltn_lib.get_sol_tlm(idx))
@@ -99,7 +127,18 @@ class library_sepTP(object):
 class library_apo_sepTP(library_sepTP):
     """
     Library to perform inverse variance filtering on the sim_lib library using simple mask apo and isotropic filtering.
+
     Separate T and Pol. filtering.
+
+    Args:
+        lib_dir :
+        sim_lib :
+        masknoapo_path :
+        cl_len :
+        transf :
+        ftl (1d-array):
+        fel (1d-array):
+        fbl (1d-array):
     """
     def __init__(self, lib_dir, sim_lib, masknoapo_path, cl_len, transf, ftl, fel, fbl, cache=False):
         assert len(transf) >= np.max([len(ftl), len(fel), len(fbl)])
@@ -116,6 +155,8 @@ class library_apo_sepTP(library_sepTP):
 
         if mpi.rank == 0:
             if not os.path.exists(os.path.join(self.lib_dir, 'fmask.fits')):
+                #FIXME:
+                from libaml import apodize
                 apomask = apodize.apodize_mask(hp.read_map(masknoapo_path))
                 hp.write_map(os.path.join(self.lib_dir, 'fmask.fits'), apomask)
         mpi.barrier()

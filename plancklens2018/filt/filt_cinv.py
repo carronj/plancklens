@@ -1,4 +1,14 @@
+"""conjugate gradient solver CMB filtering module.
+
+Todo:
+    * tests
+    * cinv_p, cinv_t, cinv_t_vmap
+    * doc
+    * paths format
+"""
+
 from __future__ import print_function
+from __future__ import absolute_import
 
 import healpy as hp
 import numpy  as np
@@ -17,10 +27,9 @@ from plancklens2018.qcinv import multigrid, cd_solve
 #FIXME: paths def.
 
 class library_cinv_sepTP(filt_simple.library_sepTP):
-    """
-        Library to perform inverse variance filtering on the sim_lib library.
-        The lid_dir path is setup at instantiation and will contain the ivfs filtered map
-        as alm fits file.
+    """Library to perform inverse variance filtering on the sim_lib library.
+
+    The lib_dir path is setup at instantiation and will contain the ivfs filtered map as healpix alm fits files.
     """
 
     def __init__(self, lib_dir, sim_lib, cinv_t, cinv_p, soltn_lib=None):
@@ -33,7 +42,7 @@ class library_cinv_sepTP(filt_simple.library_sepTP):
             if not os.path.exists(fname_mask):
                 fmask = self.cinv_t.get_fmask()
                 assert np.all(fmask == self.cinv_p.get_fmask())
-                hp.write_map(fname_mask)
+                hp.write_map(fname_mask, fmask)
 
         mpi.barrier()
         utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'r')), self.hashdict())
@@ -167,7 +176,7 @@ class cinv_p_vmap(cinv):
                 'clbb': utils.clhash(self.cl.get('bb', np.array([0.]))),
                 'cleb': utils.clhash(self.cl.get('eb', np.array([0.]))),
                 'transf': utils.clhash(self.transf),
-                'ninv': self.ninv_hash(),
+                'ninv': self._ninv_hash(),
                 'marge_maps': self.marge_maps}
 
     def calc_nlevp(self):
@@ -214,7 +223,7 @@ class cinv_p_vmap(cinv):
         return fel, fbl
 
     def calc_tal(self):
-        return utils.cli(self.transf)
+        return utils.cli(self.transf[:self.lmax + 1])
 
     def calc_mask(self):
         """ returns the inverse mask map / max(inverse mask map) """
@@ -231,14 +240,14 @@ class cinv_p_vmap(cinv):
             # This changes the attributes of qcinv to the full mask.
         return n_inv / np.max(n_inv)
 
-    def apply_ivf(self, tmap, soltn=None):
-        assert len(tmap) == 2, (len(tmap))
+    def apply_ivf(self, pmap, soltn=None):
+        assert len(pmap) == 2, (len(pmap))
         assert soltn is None, 'not implemented'
         telm = np.zeros(util_alm.lmax2nlm(self.lmax), dtype=np.complex)
         tblm = np.zeros(util_alm.lmax2nlm(self.lmax), dtype=np.complex)
         talm = util_alm.eblm([telm, tblm])
 
-        self.chain.solve(talm, [tmap[0], tmap[1]])
+        self.chain.solve(talm, [pmap[0], pmap[1]])
 
         relm = util_alm.alm2rlm(talm.elm)
         rblm = util_alm.alm2rlm(talm.blm)
@@ -246,7 +255,7 @@ class cinv_p_vmap(cinv):
 
         return relm, rblm
 
-    def ninv_hash(self):
+    def _ninv_hash(self):
         ret = []
         if isinstance(self.ninv_vmaps[0], list):
             assert len(self.ninv_vmaps) == 3, len(self.ninv_vmaps)

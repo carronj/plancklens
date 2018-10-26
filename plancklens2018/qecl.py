@@ -12,8 +12,7 @@ from . import utils
 from . import sql
 
 class library(object):
-    """
-    Lensing estimator power spectra library.
+    """Lensing estimator power spectra library.
     """
     def __init__(self, lib_dir, qeA, qeB, mc_sims_mf, nhl_lib=None):
         """ qeA and qeB are two quadratic estimator instances. """

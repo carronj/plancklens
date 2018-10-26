@@ -1,9 +1,27 @@
+r"""CMB filtering utilities module.
+
+This module collects some convenience wrapper libraries useful for lensing biases calculations, such as $$\\hat N^{0}_L$$.
+
+Todo:
+    * Something else to do here ?
+
+"""
 import healpy as hp
 from plancklens2018 import utils
 
 class library_ftl:
+    """ Library of a-posteriori re-scaled filtered CMB maps.
+
+    Args:
+         ivfs : inverse filtering library instance.
+         lmax (int) : defines the new healpy alm array shape (identical for temperature and polarization)
+         lfilt_t (1d array): filtered temperature alms are rescaled by lfilt_t
+         lfilt_e (1d array): filtered E-polarization alms are rescaled by lfilt_e
+         lfilt_b (1d array): filtered B-polarization alms are rescaled by lfilt_b
+
+    Wraps the input filtering instance *(ivfs)* methods to keep the same interface.
+    """
     def __init__(self, ivfs, lmax, lfilt_t, lfilt_e, lfilt_b):
-        """ Library of re-weighted filtered maps.  lmax defines the new healpy alm array shape (identical for T E B) """
         assert len(lfilt_t) > lmax and len(lfilt_e) > lmax and len(lfilt_b) > lmax
         self.ivfs = ivfs
         self.lmax = lmax
@@ -53,8 +71,15 @@ class library_ftl:
 
 
 class library_shuffle:
+    """ A library of filtered sims with remapped indices.
+
+    Args:
+        ivfs : inverse filtering library instance.
+        idxs : Index idx of this new instance points to idxs[idx] of the input ivfs instance.
+
+    Wraps the input filtering instance *(ivfs)* methods to keep the same interface.
+    """
     def __init__(self, ivfs, idxs):
-        """ A library of filtered sims with remapped indices according to idxs[idx] in place of id """
         self.ivfs = ivfs
         self.idxs = idxs
 

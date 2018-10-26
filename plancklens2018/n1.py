@@ -7,11 +7,7 @@ import sympy
 import pickle as pk
 import sqlite3
 from scipy.interpolate import UnivariateSpline as spline
-
-try:
-    import weave
-except:
-    import scipy.weave as weave
+import weave
 
 #FIXME: a lot to clean in this file
 
@@ -32,7 +28,7 @@ def cli(cl):
     return ret
 
 def get_defaultcls():
-    # FIXME:
+    # FIXME: replace
     import jc_camb as camb
     cl_unl = camb.spectra_fromcambfile('./inputs/FFP10/FFP10_wdipole/FFP10_wdipole_lenspotentialCls.dat')
     cl_len = camb.spectra_fromcambfile('./inputs/FFP10/FFP10_wdipole/FFP10_wdipole_lensedCls.dat')
