@@ -10,8 +10,10 @@ from healpy import Alm
 from .util_alm import eblm
 
 def alm2rlm(alm):
-    """Converts a complex alm to 'real harmonic' coefficients rlm. """
-    lmax = Alm.getsize(alm.size)
+    """Converts a complex alm to 'real harmonic' coefficients rlm.
+
+     """
+    lmax = Alm.getlmax(alm.size)
     rlm = np.zeros((lmax + 1) ** 2)
 
     ls = np.arange(0, lmax + 1)
@@ -26,7 +28,9 @@ def alm2rlm(alm):
 
 
 def rlm2alm(rlm):
-    """ converts 'real harmonic' coefficients rlm to complex alm. """
+    """ converts 'real harmonic' coefficients rlm to complex alm.
+
+    """
     lmax = int(np.sqrt(len(rlm)) - 1)
     assert (lmax + 1) ** 2 == len(rlm)
 
