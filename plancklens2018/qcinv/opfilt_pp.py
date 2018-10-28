@@ -159,6 +159,7 @@ class alm_filter_ninv(object):
             assert len(n) == npix
             print("opfilt_pp: %s inverse noise map std dev / av = %.3e" % (S, std_av(n)))
 
+        self.templates_p = [] # Templates not implemented for polarization
         self.n_inv = n_inv
         self.b_transf = b_transf
 
@@ -178,7 +179,8 @@ class alm_filter_ninv(object):
             assert 0
 
     def hashdict(self):
-        return {'n_inv': [clhash(n) for n in self.n_inv], 'b_transf': clhash(self.b_transf)}
+        return {'n_inv': [clhash(n) for n in self.n_inv],
+                'b_transf': clhash(self.b_transf), 'templates_p':self.templates_p}
 
     def degrade(self, nside):
         if nside == self.nside:
