@@ -126,6 +126,7 @@ class alm_filter_ninv(object):
             modes_idx_i = np.concatenate(([range(0, t.nmodes) for t in templates]))
             print("   Building %s - %s template projection matrix" % (nmodes, nmodes))
             Pt_Nn1_P = np.zeros((nmodes, nmodes))
+            #FIXME: div by zero sometimes in progress bar here.
             for ir in range(0, nmodes):
                 if np.mod(ir, int(0.1 * nmodes)) == 0: print ("   filling TNiT: %4.1f" % (100. * ir / nmodes)), "%"
                 tmap = np.copy(n_inv)

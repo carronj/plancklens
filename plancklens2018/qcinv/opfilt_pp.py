@@ -32,7 +32,7 @@ def calc_prep(maps, s_cls, n_inv_filt):
 
 
 def apply_fini(alm, s_cls, n_inv_filt):
-    sfilt = alm_filter_sinv(s_cls)
+    sfilt = alm_filter_sinv(s_cls, alm.lmax)
     ret = sfilt.calc(alm)
     alm.elm[:] = ret.elm[:]
     alm.blm[:] = ret.blm[:]

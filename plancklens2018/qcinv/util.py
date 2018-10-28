@@ -36,7 +36,9 @@ class stopwatch:
 
 
 class jit:
-    # just-in-time instantiation wrapper class.
+    """ just-in-time instantiation wrapper class.
+
+    """
     def __init__(self, ctype, *cargs, **ckwds):
         self.__dict__['__jit_args'] = [ctype, cargs, ckwds]
         self.__dict__['__jit_obj'] = None

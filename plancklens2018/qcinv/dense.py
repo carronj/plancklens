@@ -112,6 +112,8 @@ class pre_op_dense_tt:
 
 class pre_op_dense_pp:
     """Missing doc. """
+    #FIXME: zero eigenvalues because of ell = 0 and 1 (?) and then they are set to unity.
+    #FIXME: better project on ell > 2 ?
     def __init__(self, lmax, fwd_op, cache_fname=None):
         if (cache_fname is not None) and os.path.exists(cache_fname):
             [cache_lmax, cache_hashdict, cache_minv] = pk.load(open(cache_fname, 'r'))
@@ -179,8 +181,7 @@ class pre_op_dense_pp:
 
     @staticmethod
     def hashdict(lmax, fwd_op):
-        return {'lmax': lmax,
-                'fwd_op': fwd_op.hashdict()}
+        return {'lmax': lmax, 'fwd_op': fwd_op.hashdict()}
 
     def __call__(self, talm):
         return self.calc(talm)
