@@ -162,25 +162,24 @@ class cinv_t(cinv):
         n_inv_filt = util.jit(opfilt_tt.alm_filter_ninv, ninv, transf[0:lmax + 1],
                         marge_monopole=marge_monopole, marge_dipole=marge_dipole, marge_maps=marge_maps)
         self.chain = util.jit(multigrid.multigrid_chain, opfilt_tt, chain_descr, cl, n_inv_filt)
-        #opfilt, chain_descr, s_cls, n_inv_filt, debug_log_prefix=None, plogdepth=0
         if mpi.rank == 0:
             if not os.path.exists(lib_dir):
                 os.makedirs(lib_dir)
 
-            if not os.path.exists(lib_dir + "/filt_hash.pk"):
-                pk.dump(self.hashdict(), open(lib_dir + "/filt_hash.pk", 'w'))
+            if not os.path.exists(os.path.join(lib_dir, "filt_hash.pk")):
+                pk.dump(self.hashdict(), open(os.path.join(lib_dir, "filt_hash.pk"), 'w'))
 
-            if not os.path.exists(self.lib_dir + "/ftl.dat"):
-                np.savetxt(self.lib_dir + "/ftl.dat", self._calc_ftl())
+            if not os.path.exists(os.path.join(self.lib_dir, "ftl.dat")):
+                np.savetxt(os.path.join(self.lib_dir, "ftl.dat"), self._calc_ftl())
 
-            if not os.path.exists(self.lib_dir + "/tal.dat"):
-                np.savetxt(self.lib_dir + "/tal.dat",  self._calc_tal())
+            if not os.path.exists(os.path.join(self.lib_dir, "tal.dat")):
+                np.savetxt(os.path.join(self.lib_dir, "tal.dat"),  self._calc_tal())
 
-            if not os.path.exists(self.lib_dir + "/fmask.fits.gz"):
-                hp.write_map(self.lib_dir + "/fmask.fits.gz", self._calc_mask())
+            if not os.path.exists(os.path.join(self.lib_dir, "fmask.fits.gz")):
+                hp.write_map(os.path.join(self.lib_dir, "fmask.fits.gz"), self._calc_mask())
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(lib_dir + "/filt_hash.pk", 'r')), self.hashdict())
+        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'r')), self.hashdict())
 
     def _ninv_hash(self):
         ret = []
@@ -229,7 +228,7 @@ class cinv_t(cinv):
 
     def apply_ivf(self, tmap, soltn=None):
         if soltn is None:
-            talm = np.zeros(util_alm.lmax2nlm(self.lmax), dtype=np.complex)
+            talm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
         else:
             talm = soltn.copy()
         self.chain.solve(talm, tmap)
@@ -237,8 +236,13 @@ class cinv_t(cinv):
 
 
 class cinv_p(cinv):
-    """Missing doc. """
-    def __init__(self, lib_dir, lmax, nside, cl, transf, ninv, marge_maps=(), pcf='default'):
+    """Missing doc.
+
+    Note:
+        This implementation does not support template projection.
+
+    """
+    def __init__(self, lib_dir, lmax, nside, cl, transf, ninv, pcf='default', chain_descr=None):
         assert lib_dir is not None and lmax >= 1024 and nside >= 512, (lib_dir, lmax, nside)
         super(cinv_p, self).__init__(lib_dir, lmax)
 
@@ -246,13 +250,13 @@ class cinv_p(cinv):
         self.cl = cl
         self.transf = transf
         self.ninv = ninv
-        self.marge_maps = marge_maps
 
         pcf = os.path.join(lib_dir, "dense.pk") if pcf == 'default' else None
-        chain_descr = [[2, ["split(dense(" + pcf + "), 32, diag_cl)"], 512, 256, 3, 0.0, cd_solve.tr_cg,cd_solve.cache_mem()],
-                       [1, ["split(stage(2),  512, diag_cl)"], 1024, 512, 3, 0.0, cd_solve.tr_cg, cd_solve.cache_mem()],
-                       [0, ["split(stage(1), 1024, diag_cl)"], lmax, nside, np.inf, 1.0e-5, cd_solve.tr_cg, cd_solve.cache_mem()]]
-        n_inv_filt = util.jit(opfilt_pp.alm_filter_ninv, ninv, transf[0:lmax + 1], marge_maps=marge_maps)
+        if chain_descr is None: chain_descr = \
+            [[2, ["split(dense(" + pcf + "), 32, diag_cl)"], 512, 256, 3, 0.0, cd_solve.tr_cg,cd_solve.cache_mem()],
+             [1, ["split(stage(2),  512, diag_cl)"], 1024, 512, 3, 0.0, cd_solve.tr_cg, cd_solve.cache_mem()],
+             [0, ["split(stage(1), 1024, diag_cl)"], lmax, nside, np.inf, 1.0e-5, cd_solve.tr_cg, cd_solve.cache_mem()]]
+        n_inv_filt = util.jit(opfilt_pp.alm_filter_ninv, ninv, transf[0:lmax + 1])
         self.chain = util.jit(multigrid.multigrid_chain, opfilt_pp, chain_descr, cl, n_inv_filt)
 
         if mpi.rank == 0:
@@ -263,15 +267,15 @@ class cinv_p(cinv):
                 pk.dump(self.hashdict(), open(os.path.join(lib_dir, "filt_hash.pk"), 'w'))
 
             if not os.path.exists(os.path.join(self.lib_dir, "fbl.dat")):
-                fel, fbl = self.calc_febl()
+                fel, fbl = self._calc_febl()
                 np.savetxt(os.path.join(self.lib_dir, "fel.dat"), fel)
                 np.savetxt(os.path.join(self.lib_dir, "fbl.dat"), fbl)
 
             if not os.path.exists(os.path.join(self.lib_dir, "tal.dat")):
-                np.savetxt(os.path.join(self.lib_dir, "tal.dat"), self.calc_tal())
+                np.savetxt(os.path.join(self.lib_dir, "tal.dat"), self._calc_tal())
 
             if not os.path.exists(os.path.join(self.lib_dir,  "fmask.fits.gz")):
-                hp.write_map(os.path.join(self.lib_dir,  "fmask.fits.gz"),  self.calc_mask())
+                hp.write_map(os.path.join(self.lib_dir,  "fmask.fits.gz"),  self._calc_mask())
 
         mpi.barrier()
         utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'r')), self.hashdict())
@@ -279,16 +283,28 @@ class cinv_p(cinv):
     def hashdict(self):
         return {'lmax': self.lmax,
                 'nside': self.nside,
-                'clee': utils.clhash(self.cl.get('ee', [0.])[:]),
-                'cleb': utils.clhash(self.cl.get('eb', [0.])[:]),
-                'clbb': utils.clhash(self.cl.get('bb', [0.])[:]),
+                'clee': utils.clhash(self.cl.get('ee', np.array([0.]))),
+                'cleb': utils.clhash(self.cl.get('eb', np.array([0.]))),
+                'clbb': utils.clhash(self.cl.get('bb', np.array([0.]))),
                 'transf':utils.clhash(self.transf),
-                'ninv': self._ninv_hash(),
-                'marge_maps': self.marge_maps}
+                'ninv': self._ninv_hash()}
 
-    def calc_febl(self):
-        assert (len(self.chain.n_inv_filt.n_inv) == 1)
-        assert (not hasattr(self.chain.s_cls, 'cleb'))
+
+    def apply_ivf(self, tmap, soltn=None):
+        if soltn is not None:
+            print("**** cinv_p::Discarding soltn in cinv_p")
+        assert len(tmap) == 2
+
+        telm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
+        tblm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
+        talm = util_alm.eblm([telm, tblm])
+
+        self.chain.solve(talm, [tmap[0], tmap[1]])
+
+        return talm.elm, talm.blm
+
+    def _calc_febl(self):
+        assert not 'eb' in self.chain.s_cls.keys()
 
         if len(self.chain.n_inv_filt.n_inv) == 1:
             ninv = self.chain.n_inv_filt.n_inv[0]
@@ -304,7 +320,7 @@ class cinv_p(cinv):
                 4. * np.pi / len(ninv[2]) / np.sum(ninv[2]) * len(np.where(ninv[2] != 0.0)[0])) * 180. * 60. / np.pi
 
 
-        print("lp::filt::cinv_p::calc_febl. noiseP_uk_arcmin = %.3f"%NlevP_uKamin)
+        print("cinv_p::noiseP_uk_arcmin = %.3f"%NlevP_uKamin)
 
         s_cls = self.chain.s_cls
         b_transf = self.chain.n_inv_filt.b_transf
@@ -316,28 +332,15 @@ class cinv_p(cinv):
 
         return fel, fbl
 
-    def calc_tal(self):
+    def _calc_tal(self):
         return utils.cli(self.transf)
 
-    def calc_mask(self):
+    def _calc_mask(self):
         mask = np.ones(hp.nside2npix(self.nside), dtype=float)
         for ninv in self.chain.n_inv_filt.n_inv:
             assert hp.npix2nside(len(ninv)) == self.nside
             mask *= (ninv > 0.)
         return mask
-
-    def apply_ivf(self, tmap, soltn=None):
-        if soltn is not None:
-            print("**** cinv_p::Discarding soltn in cinv_p")
-        assert len(tmap) == 2
-
-        telm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
-        tblm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
-        talm = util_alm.eblm([telm, tblm])
-
-        self.chain.solve(talm, [tmap[0], tmap[1]])
-
-        return talm.elm, talm.blm
 
     def _ninv_hash(self):
         ret = []

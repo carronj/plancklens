@@ -103,9 +103,10 @@ class alm_filter_ninv(object):
                 for n in n_inv[1:]:
                     n_inv_prod = n_inv_prod * util.load_map(n)
             n_inv = n_inv_prod
-            print("opfilt_tt: inverse noise map std dev / av = %.3e"%(np.std(n_inv[np.where(n_inv != 0.0)]) / np.average(n_inv[np.where(n_inv != 0.0)])))
         else:
             n_inv = util.load_map(n_inv)
+        print("opfilt_tt: inverse noise map std dev / av = %.3e" % (
+                    np.std(n_inv[np.where(n_inv != 0.0)]) / np.average(n_inv[np.where(n_inv != 0.0)])))
         templates = []
         templates_hash = []
         for tmap in [util.load_map(m) for m in marge_maps]:

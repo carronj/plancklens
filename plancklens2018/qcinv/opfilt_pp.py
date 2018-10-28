@@ -50,7 +50,8 @@ class dot_op:
 class fwd_op:
     """Missing doc. """
     def __init__(self, s_cls, n_inv_filt):
-        self.s_inv_filt = alm_filter_sinv(s_cls)
+        lmax = len(n_inv_filt.b_transf) - 1
+        self.s_inv_filt = alm_filter_sinv(s_cls, lmax)
         self.n_inv_filt = n_inv_filt
 
     def hashdict(self):
@@ -69,14 +70,13 @@ class fwd_op:
 class pre_op_diag:
     """Missing doc. """
     def __init__(self, s_cls, n_inv_filt):
-        s_inv_filt = alm_filter_sinv(s_cls)
+        lmax = len(n_inv_filt.b_transf) - 1
+        s_inv_filt = alm_filter_sinv(s_cls, lmax)
         assert ((s_inv_filt.lmax + 1) >= len(n_inv_filt.b_transf))
 
         ninv_fel, ninv_fbl = n_inv_filt.get_febl()
 
-        lmax = len(n_inv_filt.b_transf) - 1
-
-        flmat = s_inv_filt.slinv[0:lmax + 1, :, :]
+        flmat = s_inv_filt.slinv
         flmat[:, 0, 0] += ninv_fel[:lmax + 1]
         flmat[:, 1, 1] += ninv_fbl[:lmax + 1]
 
@@ -101,12 +101,11 @@ def pre_op_dense(lmax, fwd_op, cache_fname=None):
 
 class alm_filter_sinv:
     """Missing doc. """
-    def __init__(self, s_cls):
-        lmax = s_cls.lmax
+    def __init__(self, s_cls, lmax):
         slmat = np.zeros((lmax + 1, 2, 2), dtype=float)
-        slmat[:, 0, 0] = s_cls.get('ee', np.zeros(lmax + 1))
-        slmat[:, 0, 1] = s_cls.get('eb', np.zeros(lmax + 1))
-        slmat[:, 1, 1] = s_cls.get('bb', np.zeros(lmax + 1))
+        slmat[:, 0, 0] = s_cls.get('ee', np.zeros(lmax + 1))[:lmax + 1]
+        slmat[:, 0, 1] = s_cls.get('eb', np.zeros(lmax + 1))[:lmax + 1]
+        slmat[:, 1, 1] = s_cls.get('bb', np.zeros(lmax + 1))[:lmax + 1]
         slmat[:, 1, 0] = slmat[:, 0, 1]
 
         slinv = np.zeros((lmax + 1, 2, 2))
@@ -127,8 +126,13 @@ class alm_filter_sinv:
 
 
 class alm_filter_ninv(object):
-    """Missing doc."""
-    def __init__(self, n_inv, b_transf, marge_maps=()):
+    """Missing doc.
+
+    Note:
+        This implementation does not support template projection.
+
+     """
+    def __init__(self, n_inv, b_transf):
         self.n_inv = []
         for i, tn in enumerate(n_inv):
             if isinstance(tn, list):
@@ -143,55 +147,30 @@ class alm_filter_ninv(object):
 
         assert len(n_inv) in [1, 3], len(n_inv)
 
-        if len(n_inv) == 3:
-            assert len(marge_maps) == 0
-            # Did not check if the template calculation works for len(ninv) == 3.
+        def std_av(inoise_map):
+            if np.all(inoise_map == 0.):
+                return 0.
+            return np.std(n[np.where(inoise_map != 0.0)]) / np.average(n[np.where(inoise_map != 0.0)])
+
 
         npix = len(n_inv[0])
         nside = hp.npix2nside(npix)
-        for n in n_inv[1:]:
-            assert (len(n) == npix)
-
-        templates_p = []
-        templates_p_hash = []
-        for tmap in [util.load_map(m) for m in marge_maps]:
-            assert (npix == len(tmap))
-            templates_p.append(template_removal.template_map_p(tmap))
-            templates_p_hash.append(hashlib.sha1(tmap.view(np.uint8)).hexdigest())
-
-        if len(templates_p) != 0:
-            nmodes = np.sum([t.nmodes for t in templates_p])
-            modes_idx_t = np.concatenate(([t.nmodes * [int(im)] for im, t in enumerate(templates_p)]))
-            modes_idx_i = np.concatenate(([range(0, t.nmodes) for t in templates_p]))
-
-            Pt_Nn1_P = np.zeros((nmodes, nmodes))
-            for ir in range(0, nmodes):
-                tmap = np.copy(n_inv[0])
-                templates_p[modes_idx_t[ir]].apply_mode(tmap, int(modes_idx_i[ir]))
-
-                ic = 0
-                for tc in templates_p[0:modes_idx_t[ir] + 1]:
-                    Pt_Nn1_P[ir, ic:(ic + tc.nmodes)] = tc.dot(tmap)
-                    Pt_Nn1_P[ic:(ic + tc.nmodes), ir] = Pt_Nn1_P[ir, ic:(ic + tc.nmodes)]
-                    ic += tc.nmodes
-
-            self.Pt_Nn1_P_inv = np.linalg.inv(Pt_Nn1_P)
+        for n, S in zip(n_inv, ['Pol.' if len(n_inv) == 1 else 'QQ' , 'QU', 'UU']):
+            assert len(n) == npix
+            print("opfilt_pp: %s inverse noise map std dev / av = %.3e" % (S, std_av(n)))
 
         self.n_inv = n_inv
         self.b_transf = b_transf
-
-        self.templates_p = templates_p
-        self.templates_p_hash = templates_p_hash
 
         self.npix = npix
         self.nside = nside
 
     def get_febl(self):
-        if len(self.n_inv) == 1:  # TT, 1/2(QQ+UU)
+        if len(self.n_inv) == 1:
             n_inv_cl_p = np.sum(self.n_inv[0]) / (4.0 * np.pi) * self.b_transf ** 2
 
             return n_inv_cl_p, n_inv_cl_p
-        elif len(self.n_inv) == 3:  # TT, QQ, QU, UU
+        elif len(self.n_inv) == 3:
             n_inv_cl_p = np.sum(0.5 * (self.n_inv[0] + self.n_inv[2])) / (4.0 * np.pi) * self.b_transf ** 2
 
             return n_inv_cl_p, n_inv_cl_p
@@ -199,20 +178,13 @@ class alm_filter_ninv(object):
             assert 0
 
     def hashdict(self):
-        return {'n_inv': [clhash(n) for n in self.n_inv],
-                'b_transf': clhash(self.b_transf),
-                'templates_p_hash': self.templates_p_hash}
+        return {'n_inv': [clhash(n) for n in self.n_inv], 'b_transf': clhash(self.b_transf)}
 
     def degrade(self, nside):
         if nside == self.nside:
             return self
         else:
-            marge_maps_p = []
-            n_marge_maps_p = len(self.templates_p)
-            if n_marge_maps_p > 0:
-                marge_maps_p = [hp.ud_grade(ti.map, nside) for ti in self.templates_p[0:n_marge_maps_p]]
-
-            return alm_filter_ninv([hp.ud_grade(n, nside, power=-2) for n in self.n_inv], self.b_transf, marge_maps_p)
+            return alm_filter_ninv([hp.ud_grade(n, nside, power=-2) for n in self.n_inv], self.b_transf)
 
     def apply_alm(self, alm):
         lmax = alm.lmax
@@ -233,11 +205,7 @@ class alm_filter_ninv(object):
 
     def apply_map(self, amap):
         [qmap, umap] = amap
-
-        # applies N^{-1}
-        if False:
-            pass
-        elif len(self.n_inv) == 1:  # TT, QQ=UU
+        if len(self.n_inv) == 1:  # TT, QQ=UU
             qmap *= self.n_inv[0]
             umap *= self.n_inv[0]
         elif len(self.n_inv) == 3:  # TT, QQ, QU, UU
@@ -252,16 +220,3 @@ class alm_filter_ninv(object):
             del qmap_copy
         else:
             assert 0
-
-        if len(self.templates_p) != 0:
-            # FIXME :
-            coeffs = np.concatenate(([t.dot(tmap) for t in self.templates_p]))
-            coeffs = np.dot(self.Pt_Nn1_P_inv, coeffs)
-
-            pmodes = np.zeros(len(self.n_inv[0]))
-            im = 0
-            for t in self.templates_p:
-                t.accum(pmodes, coeffs[im:(im + t.nmodes)])
-                im += t.nmodes
-            pmodes *= self.n_inv[0]
-            tmap -= pmodes
