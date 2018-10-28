@@ -11,14 +11,13 @@ def alm_splice(alm_lo, alm_hi, lsplit):
     alm_lo_lmax = Alm.getlmax(len(alm_lo))
     alm_hi_lmax = Alm.getlmax(len(alm_hi))
 
-    assert (alm_lo_lmax >= lsplit)
-    assert (alm_hi_lmax >= lsplit)
+    assert alm_lo_lmax >= lsplit and alm_hi_lmax >= lsplit
 
-    ret = np.copy(alm_hi)
+    alm_re = np.copy(alm_hi)
     for m in range(0, lsplit + 1):
-        ret[(m * (2 * alm_hi_lmax + 1 - m) / 2 + m):(m * (2 * alm_hi_lmax + 1 - m) / 2 + lsplit + 1)] = alm_lo[(
-        m * (2 * alm_lo_lmax + 1 - m) / 2 + m):(m * (2 * alm_lo_lmax + 1 - m) / 2 + lsplit + 1)]
-    return ret
+        alm_re[(m * (2 * alm_hi_lmax + 1 - m) // 2 + m):(m * (2 * alm_hi_lmax + 1 - m) // 2 + lsplit + 1)] = \
+        alm_lo[(m * (2 * alm_lo_lmax + 1 - m) // 2 + m):(m * (2 * alm_lo_lmax + 1 - m) // 2 + lsplit + 1)]
+    return alm_re
 
 
 def alm_copy(alm, lmax=None):
@@ -35,7 +34,7 @@ def alm_copy(alm, lmax=None):
             alm[((m * (2 * lmox + 1 - m) // 2) + m):(m * (2 * lmox + 1 - m) // 2 + lmax + 1)]
     return ret
 
-#FIXME: Can I just do with np arrays?
+
 class eblm:
     def __init__(self, alm):
         [elm, blm] = alm

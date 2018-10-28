@@ -1,32 +1,31 @@
 import numpy  as np
 import healpy as hp
-import util_alm
 
 class template:
     def __init__(self):
         self.nmodes = 0
         assert 0
 
-    def apply(self, map, coeffs):
+    def apply(self, m, coeffs):
         # map -> map*[coeffs combination of templates]
         assert 0
 
-    def apply_mode(self, map, mode):
+    def apply_mode(self, m, mode):
         assert (mode < self.nmodes)
         assert (mode >= 0)
 
         tcoeffs = np.zeros(self.nmodes)
         tcoeffs[mode] = 1.0
-        self.apply(map, tcoeffs)
+        self.apply(m, tcoeffs)
 
-    def accum(self, map, coeffs):
+    def accum(self, m, coeffs):
         assert 0
 
-    def dot(self, map):
+    def dot(self, m):
         ret = []
 
         for i in range(0, self.nmodes):
-            tmap = np.copy(map)
+            tmap = np.copy(m)
             self.apply_mode(tmap, i)
             ret.append(np.sum(tmap))
 
@@ -34,38 +33,38 @@ class template:
 
 
 class template_map(template):
-    def __init__(self, map):
+    def __init__(self, m):
         self.nmodes = 1
-        self.map = map
+        self.map = m
 
-    def apply(self, map, coeffs):
+    def apply(self, m, coeffs):
         assert (len(coeffs) == self.nmodes)
 
-        map *= self.map * coeffs[0]
+        m *= self.map * coeffs[0]
 
-    def accum(self, map, coeffs):
+    def accum(self, m, coeffs):
         assert (len(coeffs) == self.nmodes)
 
-        map += self.map * coeffs[0]
+        m += self.map * coeffs[0]
 
-    def dot(self, map):
-        return [(self.map * map).sum()]
+    def dot(self, m):
+        return [(self.map * m).sum()]
 
 
 class template_monopole(template):
     def __init__(self):
         self.nmodes = 1
 
-    def apply(self, map, coeffs):
+    def apply(self, m, coeffs):
         assert (len(coeffs) == self.nmodes)
 
-        map *= coeffs[0]
+        m *= coeffs[0]
 
-    def accum(self, map, coeffs):
-        map += coeffs[0]
+    def accum(self, m, coeffs):
+        m += coeffs[0]
 
-    def dot(self, map):
-        return [np.sum(map)]
+    def dot(self, m):
+        return [np.sum(m)]
 
 
 class template_dipole(template):

@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 from __future__ import print_function
+from __future__ import division
 
 import os
 import numpy  as np
 import pickle as pk
-
 from healpy import Alm
+
 from .util_alm import eblm
 
 def alm2rlm(alm):
@@ -26,9 +27,8 @@ def alm2rlm(alm):
 
 def rlm2alm(rlm):
     """ converts 'real harmonic' coefficients rlm to complex alm. """
-
     lmax = int(np.sqrt(len(rlm)) - 1)
-    assert ((lmax + 1) ** 2 == len(rlm))
+    assert (lmax + 1) ** 2 == len(rlm)
 
     alm = np.zeros(Alm.getsize(lmax), dtype=np.complex)
 
@@ -38,7 +38,7 @@ def rlm2alm(rlm):
 
     alm[ls] = rlm[l2s]
     for m in range(1, lmax + 1):
-        alm[m * (2 * lmax + 1 - m) / 2 + ls[m:]] = (rlm[l2s[m:] + 2 * m - 1] + 1.j * rlm[l2s[m:] + 2 * m + 0]) * ir2
+        alm[m * (2 * lmax + 1 - m) // 2 + ls[m:]] = (rlm[l2s[m:] + 2 * m - 1] + 1.j * rlm[l2s[m:] + 2 * m + 0]) * ir2
     return alm
 
 

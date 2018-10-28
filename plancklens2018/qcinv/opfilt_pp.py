@@ -13,24 +13,22 @@ import healpy as hp
 from plancklens2018.utils import clhash
 
 from . import util
-from . import util_alm
+from .util_alm import eblm
 from . import template_removal
 from . import dense
 
 
 def calc_prep(maps, s_cls, n_inv_filt):
     qmap, umap = np.copy(maps[0]), np.copy(maps[1])
-    assert (len(qmap) == len(umap))
+    assert len(qmap) == len(umap)
     lmax = len(n_inv_filt.b_transf) - 1
     npix = len(qmap)
 
     n_inv_filt.apply_map([qmap, umap])
     elm, blm = hp.map2alm_spin([qmap, umap], 2, lmax=lmax)
-    elm *= npix / (4. * np.pi)
-    blm *= npix / (4. * np.pi)
-    hp.almxfl(elm, n_inv_filt.b_transf, inplace=True)
-    hp.almxfl(blm, n_inv_filt.b_transf, inplace=True)
-    return util_alm.eblm([elm, blm])
+    hp.almxfl(elm, n_inv_filt.b_transf * npix / (4. * np.pi), inplace=True)
+    hp.almxfl(blm, n_inv_filt.b_transf * npix / (4. * np.pi), inplace=True)
+    return eblm([elm, blm])
 
 
 def apply_fini(alm, s_cls, n_inv_filt):
@@ -79,8 +77,8 @@ class pre_op_diag:
         lmax = len(n_inv_filt.b_transf) - 1
 
         flmat = s_inv_filt.slinv[0:lmax + 1, :, :]
-        flmat[:lmax + 1, 0, 0] += ninv_fel[:lmax + 1]
-        flmat[:lmax + 1, 1, 1] += ninv_fbl[:lmax + 1]
+        flmat[:, 0, 0] += ninv_fel[:lmax + 1]
+        flmat[:, 1, 1] += ninv_fbl[:lmax + 1]
 
         for l in range(lmax + 1):
             flmat[l, :, :] = np.linalg.pinv(flmat[l, :, :].reshape((2, 2)))
@@ -94,7 +92,7 @@ class pre_op_diag:
         tmat = self.flmat
         relm = hp.almxfl(alm.elm, tmat[:, 0, 0], inplace=False) + hp.almxfl(alm.blm, tmat[:, 0, 1], inplace=False)
         rblm = hp.almxfl(alm.elm, tmat[:, 1, 0], inplace=False) + hp.almxfl(alm.blm, tmat[:, 1, 1], inplace=False)
-        return util_alm.eblm([relm, rblm])
+        return eblm([relm, rblm])
 
 
 def pre_op_dense(lmax, fwd_op, cache_fname=None):
@@ -105,7 +103,7 @@ class alm_filter_sinv:
     """Missing doc. """
     def __init__(self, s_cls):
         lmax = s_cls.lmax
-        slmat = np.zeros((lmax + 1, 2, 2))  # matrix of EB correlations at each l.
+        slmat = np.zeros((lmax + 1, 2, 2), dtype=float)
         slmat[:, 0, 0] = s_cls.get('ee', np.zeros(lmax + 1))
         slmat[:, 0, 1] = s_cls.get('eb', np.zeros(lmax + 1))
         slmat[:, 1, 1] = s_cls.get('bb', np.zeros(lmax + 1))
@@ -120,16 +118,16 @@ class alm_filter_sinv:
 
     def calc(self, alm):
         tmat = self.slinv
-
         relm = hp.almxfl(alm.elm, tmat[:, 0, 0], inplace=False) + hp.almxfl(alm.blm, tmat[:, 0, 1], inplace=False)
         rblm = hp.almxfl(alm.elm, tmat[:, 1, 0], inplace=False) + hp.almxfl(alm.blm, tmat[:, 1, 1], inplace=False)
-        return util_alm.eblm([relm, rblm])
+        return eblm([relm, rblm])
 
     def hashdict(self):
         return {'slinv': clhash(self.slinv.flatten())}
 
 
 class alm_filter_ninv(object):
+    """Missing doc."""
     def __init__(self, n_inv, b_transf, marge_maps=()):
         self.n_inv = []
         for i, tn in enumerate(n_inv):
@@ -143,7 +141,7 @@ class alm_filter_ninv(object):
                 self.n_inv.append(util.load_map(n_inv[i]))
         n_inv = self.n_inv
 
-        assert (len(n_inv) == 1) or len(n_inv) == 3, len(n_inv)
+        assert len(n_inv) in [1, 3], len(n_inv)
 
         if len(n_inv) == 3:
             assert len(marge_maps) == 0
@@ -189,9 +187,7 @@ class alm_filter_ninv(object):
         self.nside = nside
 
     def get_febl(self):
-        if False:
-            pass
-        elif len(self.n_inv) == 1:  # TT, 1/2(QQ+UU)
+        if len(self.n_inv) == 1:  # TT, 1/2(QQ+UU)
             n_inv_cl_p = np.sum(self.n_inv[0]) / (4.0 * np.pi) * self.b_transf ** 2
 
             return n_inv_cl_p, n_inv_cl_p
@@ -219,7 +215,6 @@ class alm_filter_ninv(object):
             return alm_filter_ninv([hp.ud_grade(n, nside, power=-2) for n in self.n_inv], self.b_transf, marge_maps_p)
 
     def apply_alm(self, alm):
-        # applies Y^T N^{-1} Y
         lmax = alm.lmax
 
         hp.almxfl(alm.elm, self.b_transf, inplace=True)
@@ -230,11 +225,11 @@ class alm_filter_ninv(object):
         npix = len(qmap)
 
         telm, tblm = hp.map2alm_spin([qmap, umap], 2, lmax=lmax)
-        alm.elm[:] = telm * (npix / (4. * np.pi))
-        alm.blm[:] = tblm * (npix / (4. * np.pi))
+        alm.elm[:] = telm
+        alm.blm[:] = tblm
 
-        hp.almxfl(alm.elm, self.b_transf, inplace=True)
-        hp.almxfl(alm.blm, self.b_transf, inplace=True)
+        hp.almxfl(alm.elm, self.b_transf * (npix / (4. * np.pi)), inplace=True)
+        hp.almxfl(alm.blm, self.b_transf * (npix / (4. * np.pi)), inplace=True)
 
     def apply_map(self, amap):
         [qmap, umap] = amap
