@@ -132,7 +132,7 @@ class cinv(object):
 class cinv_t(cinv):
     def __init__(self, lib_dir, lmax, nside, cl, transf, ninv,
                  marge_monopole=True, marge_dipole=True, marge_maps=(), pcf='default', chain_descr=None):
-        #FIXME: do I need the mask on disk? Dont think so
+        #FIXME: do I need the mask on disk? Probably yes
         """
 
         Args:
@@ -235,82 +235,61 @@ class cinv_t(cinv):
         self.chain.solve(talm, tmap)
         return talm
 
-class cinv_p_vmap(cinv):
-    def __init__(self, lib_dir, lmax, nside, cl, transf, mask_list, ninv_vmaps, marge_maps=(), pcf='default'):
-        assert lmax >= 1024 and nside >= 512, (lmax, nside)
-        assert not isinstance(mask_list[0], list)  # Same mask for QQ QU UU here
-        super(cinv_p_vmap, self).__init__(lib_dir, lmax)
+
+class cinv_p(cinv):
+    """Missing doc. """
+    def __init__(self, lib_dir, lmax, nside, cl, transf, ninv, marge_maps=(), pcf='default'):
+        assert lib_dir is not None and lmax >= 1024 and nside >= 512, (lib_dir, lmax, nside)
+        super(cinv_p, self).__init__(lib_dir, lmax)
 
         self.nside = nside
         self.cl = cl
         self.transf = transf
-        self.mask_list = mask_list
-        self.ninv_vmaps = ninv_vmaps
+        self.ninv = ninv
         self.marge_maps = marge_maps
 
-        pcf = lib_dir + "/dense.pk" if pcf == 'default' else None
-        chain_descr = [[2, ["split(dense(" + pcf + "), 32, diag_cl)"], 512, 256, 3, 0.0, cd_solve.tr_cg, cd_solve.cache_mem()],
+        pcf = os.path.join(lib_dir, "dense.pk") if pcf == 'default' else None
+        chain_descr = [[2, ["split(dense(" + pcf + "), 32, diag_cl)"], 512, 256, 3, 0.0, cd_solve.tr_cg,cd_solve.cache_mem()],
                        [1, ["split(stage(2),  512, diag_cl)"], 1024, 512, 3, 0.0, cd_solve.tr_cg, cd_solve.cache_mem()],
                        [0, ["split(stage(1), 1024, diag_cl)"], lmax, nside, np.inf, 1.0e-5, cd_solve.tr_cg, cd_solve.cache_mem()]]
-        n_inv_filt = util.jit(opfilt_pp.alm_filter_ninv, self.ninv_wmask(), transf[0:lmax + 1], marge_maps=marge_maps)
+        n_inv_filt = util.jit(opfilt_pp.alm_filter_ninv, ninv, transf[0:lmax + 1], marge_maps=marge_maps)
         self.chain = util.jit(multigrid.multigrid_chain, opfilt_pp, chain_descr, cl, n_inv_filt)
 
         if mpi.rank == 0:
             if not os.path.exists(lib_dir):
                 os.makedirs(lib_dir)
 
-            if not os.path.exists(lib_dir + "/filt_hash.pk"):
-                pk.dump(self.hashdict(), open(lib_dir + "/filt_hash.pk", 'w'))
+            if not os.path.exists(os.path.join(lib_dir, "filt_hash.pk")):
+                pk.dump(self.hashdict(), open(os.path.join(lib_dir, "filt_hash.pk"), 'w'))
 
-            if not os.path.exists(self.lib_dir + "/fbl.dat"):
+            if not os.path.exists(os.path.join(self.lib_dir, "fbl.dat")):
                 fel, fbl = self.calc_febl()
-                np.savetxt(self.lib_dir + "/fel.dat", fel)
-                np.savetxt(self.lib_dir + "/fbl.dat", fbl)
+                np.savetxt(os.path.join(self.lib_dir, "fel.dat"), fel)
+                np.savetxt(os.path.join(self.lib_dir, "fbl.dat"), fbl)
 
-            if not os.path.exists(self.lib_dir + "/tal.dat"):
-                np.savetxt(self.lib_dir + "/tal.dat", self.calc_tal())
+            if not os.path.exists(os.path.join(self.lib_dir, "tal.dat")):
+                np.savetxt(os.path.join(self.lib_dir, "tal.dat"), self.calc_tal())
 
-            if not os.path.exists(self.lib_dir + "/fmask.fits.gz"):
-                hp.write_map(self.lib_dir + "/fmask.fits.gz", self.calc_mask())
+            if not os.path.exists(os.path.join(self.lib_dir,  "fmask.fits.gz")):
+                hp.write_map(os.path.join(self.lib_dir,  "fmask.fits.gz"),  self.calc_mask())
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(lib_dir + "/filt_hash.pk", 'r')), self.hashdict())
-
-    def ninv_wmask(self):
-        if isinstance(self.ninv_vmaps[0], list):
-            assert len(self.ninv_vmaps) == 3, len(self.ninv_vmaps)  # QQ QU UU ninv maps
-            return [self.mask_list + vmaps for vmaps in self.ninv_vmaps]
-        else:
-            return [self.mask_list + self.ninv_vmaps]
+        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'r')), self.hashdict())
 
     def hashdict(self):
         return {'lmax': self.lmax,
                 'nside': self.nside,
-                'clee': utils.clhash(self.cl.get('ee', np.array([0.]))),
-                'clbb': utils.clhash(self.cl.get('bb', np.array([0.]))),
-                'cleb': utils.clhash(self.cl.get('eb', np.array([0.]))),
-                'transf': utils.clhash(self.transf),
+                'clee': utils.clhash(self.cl.get('ee', [0.])[:]),
+                'cleb': utils.clhash(self.cl.get('eb', [0.])[:]),
+                'clbb': utils.clhash(self.cl.get('bb', [0.])[:]),
+                'transf':utils.clhash(self.transf),
                 'ninv': self._ninv_hash(),
                 'marge_maps': self.marge_maps}
 
-    def calc_nlevp(self):
-        if len(self.chain.n_inv_filt.n_inv) == 1:
-            ninv = self.chain.n_inv_filt.n_inv[0]
-            npix = len(ninv)
-            noiseP_uK_arcmin = np.sqrt(
-                4. * np.pi / npix / np.sum(ninv[:]) * len(np.where(ninv != 0.0)[0])) * 180. * 60. / np.pi
-        else:
-            assert len(self.chain.n_inv_filt.n_inv) == 3
-            ninv = self.chain.n_inv_filt.n_inv
-            noiseP_uK_arcmin = 0.5 * np.sqrt(
-            4. * np.pi / len(ninv[0]) / np.sum(ninv[0]) * len(np.where(ninv[0] != 0.0)[0])) * 180. * 60. / np.pi
-            noiseP_uK_arcmin += 0.5 * np.sqrt(
-            4. * np.pi / len(ninv[2]) / np.sum(ninv[2]) * len(np.where(ninv[2] != 0.0)[0])) * 180. * 60. / np.pi
-        print("cinv_p_vmap::calc_febl. noiseP_uk_arcmin = %.2f"%noiseP_uK_arcmin)
-        return noiseP_uK_arcmin
-
     def calc_febl(self):
-        assert 'eb' not in self.chain.s_cls.keys()
+        assert (len(self.chain.n_inv_filt.n_inv) == 1)
+        assert (not hasattr(self.chain.s_cls, 'cleb'))
+
         if len(self.chain.n_inv_filt.n_inv) == 1:
             ninv = self.chain.n_inv_filt.n_inv[0]
             npix = len(ninv)
@@ -319,70 +298,52 @@ class cinv_p_vmap(cinv):
         else:
             assert len(self.chain.n_inv_filt.n_inv) == 3
             ninv = self.chain.n_inv_filt.n_inv
-            NlevP_uKamin = 0.5 * np.sqrt(
+            NlevP_uKamin= 0.5 * np.sqrt(
                 4. * np.pi / len(ninv[0]) / np.sum(ninv[0]) * len(np.where(ninv[0] != 0.0)[0])) * 180. * 60. / np.pi
             NlevP_uKamin += 0.5 * np.sqrt(
                 4. * np.pi / len(ninv[2]) / np.sum(ninv[2]) * len(np.where(ninv[2] != 0.0)[0])) * 180. * 60. / np.pi
-        print("cinv_p_vmap::calc_febl. noiseP_uk_arcmin = %.2f"%NlevP_uKamin)
+
+
+        print("lp::filt::cinv_p::calc_febl. noiseP_uk_arcmin = %.3f"%NlevP_uKamin)
 
         s_cls = self.chain.s_cls
-        b_transf = self.chain.n_inv_filt.b_transf[:self.lmax + 1]
+        b_transf = self.chain.n_inv_filt.b_transf
+        fel = 1.0 / (s_cls['ee'][:self.lmax + 1] + (NlevP_uKamin * np.pi / 180. / 60.) ** 2 / b_transf[0:self.lmax + 1] ** 2)
+        fbl = 1.0 / (s_cls['bb'][:self.lmax + 1] + (NlevP_uKamin * np.pi / 180. / 60.) ** 2 / b_transf[0:self.lmax + 1] ** 2)
 
-        fel = 1.0 / (s_cls['ee'][:self.lmax + 1] + (NlevP_uKamin * np.pi / 180. / 60.) ** 2 / b_transf ** 2)
-        fbl = 1.0 / (s_cls['bb'][:self.lmax + 1] + (NlevP_uKamin * np.pi / 180. / 60.) ** 2 / b_transf ** 2)
-
-        fel[:2] = 0.0
-        fbl[:2] = 0.0
+        fel[0:2] *= 0.0
+        fbl[0:2] *= 0.0
 
         return fel, fbl
 
     def calc_tal(self):
-        return utils.cli(self.transf[:self.lmax + 1])
+        return utils.cli(self.transf)
 
     def calc_mask(self):
-        n_inv = self.mask_list
-        if isinstance(n_inv, list):
-            n_inv_prod = util.load_map(n_inv[0])
-            if len(n_inv) > 1:
-                for n in n_inv[1:]:
-                    n_inv_prod = n_inv_prod * util.load_map(n)
-            n_inv = n_inv_prod
-        else:
-            n_inv = util.load_map(n_inv)
-        return n_inv / np.max(n_inv)
+        mask = np.ones(hp.nside2npix(self.nside), dtype=float)
+        for ninv in self.chain.n_inv_filt.n_inv:
+            assert hp.npix2nside(len(ninv)) == self.nside
+            mask *= (ninv > 0.)
+        return mask
 
-    def apply_ivf(self, pmap, soltn=None):
-        assert len(pmap) == 2, (len(pmap))
-        assert soltn is None, 'not implemented'
-        telm = np.zeros(util_alm.lmax2nlm(self.lmax), dtype=np.complex)
-        tblm = np.zeros(util_alm.lmax2nlm(self.lmax), dtype=np.complex)
+    def apply_ivf(self, tmap, soltn=None):
+        if soltn is not None:
+            print("**** cinv_p::Discarding soltn in cinv_p")
+        assert len(tmap) == 2
+
+        telm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
+        tblm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
         talm = util_alm.eblm([telm, tblm])
 
-        self.chain.solve(talm, [pmap[0], pmap[1]])
+        self.chain.solve(talm, [tmap[0], tmap[1]])
 
-        relm = util_alm.alm2rlm(talm.elm)
-        rblm = util_alm.alm2rlm(talm.blm)
-        del talm, telm, tblm
-
-        return relm, rblm
+        return talm.elm, talm.blm
 
     def _ninv_hash(self):
         ret = []
-        if isinstance(self.ninv_vmaps[0], list):
-            assert len(self.ninv_vmaps) == 3, len(self.ninv_vmaps)
-            for i in range(3):
-                for ninv_comp in self.mask_list + self.ninv_vmaps[i]:
-                    if isinstance(ninv_comp, np.ndarray) and ninv_comp.size > 1:
-                        # in order not to store full maps as hash.
-                        ret.append(utils.clhash(ninv_comp))
-                    else:
-                        ret.append(ninv_comp)
-            return [ret]
-        else:
-            for ninv_comp in self.mask_list + self.ninv_vmaps:
-                if isinstance(ninv_comp, np.ndarray) and ninv_comp.size > 1:
-                    # in order not to store full maps as hash.
-                    ret.append(utils.clhash(ninv_comp))
-                else:
-                    ret.append(ninv_comp)
-            return [ret]
+        for ninv_comp in self.ninv[0]:
+            if isinstance(ninv_comp, np.ndarray) and ninv_comp.size > 1:
+                ret.append(utils.clhash(ninv_comp))
+            else:
+                ret.append(ninv_comp)
+        return [ret]
