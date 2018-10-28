@@ -23,7 +23,7 @@ def alm_splice(alm_lo, alm_hi, lsplit):
 def alm_copy(alm, lmax=None):
     """Copies the alm array, with the option to reduce its lmax. """
     if hasattr(alm, 'alm_copy'):
-        return alm.alm_copy(alm, lmax=lmax)
+        return alm.alm_copy(lmax=lmax)
 
     lmox = Alm.getlmax(len(alm))
     assert (lmax <= lmox)
