@@ -2,20 +2,18 @@ from __future__ import print_function
 
 from scipy.special import gammaln
 import numpy as np
+import weave
 
 from . import gauleg
 
-try :
-    import weave
-except ImportError:
-    try :
-        from scipy import weave
-    except ImportError:
-        print("could not import weave")
 
 
 def get_xgwg(n, alpha, beta, MAXIT=10):
-    """(C) Copr. 1986 - 92 Numerical Recipes Software ?421.1 - 9."""
+    """ Gauss-Jacobi quadrature points and weights.
+
+    (C) Copr. 1986 - 92 Numerical Recipes Software ?421.1 - 9.
+
+    """
     header = ["<stdio.h>","<math.h>"]
     support_code = "#define EPS 3.0e-14 /* EPS is the relative precision. */"
     gaujac = """
@@ -88,7 +86,11 @@ def get_xgwg(n, alpha, beta, MAXIT=10):
 
 
 def get_Pn(N, x, alpha, beta, norm = False):
-    """ Jacobi Pol. up to order N at points x. norm to get orthonormal Poly. output N + 1,Nx shaped """
+    """ Jacobi Polynomial with parameters alpha, beta, up to order N (incl.) at points x.
+
+    Normalized to get orthonormal Poly. The output is (N + 1, Nx) shaped.
+
+    """
     x =  np.array(x)
     Pn = np.ones(x.size,dtype = float)
     if N == 0 : return Pn
@@ -110,16 +112,17 @@ def get_Pn(N, x, alpha, beta, norm = False):
     lnnorm += (alpha + beta + 1)*np.log(2.) - np.log(2 * np.arange(N + 1,dtype = float) + alpha + beta + 1)
     return res * np.outer(np.exp(-0.5 * lnnorm),np.ones(x.shape))
 
-def get_rspace(cl,cost,mp,m):
-    """ sum_l cl (2l + 1) / 4pi d^l_{m'm}(cost). Wigner corr. fct. """
+def get_rspace(cl, cost, mp, m):
+    """ Wigner corr. fct. $\\sum_l c_l (2l + 1) / 4\\pi d^l_{m'm}(\\cos \\theta)$ from its harmonic series. """
     return np.dot( get_wignerd(len(cl) - 1,cost,mp,m).transpose(),cl * (2 * np.arange(len(cl)) + 1)/(4. * np.pi))
 
 
 def get_wignerd(lmax, cost, mp, m):
-    """
-    Small Wigner d matrix d^l_{mp,m} for fixed mp,m, (assumed fairly small) up to lmax.
+    """ Small Wigner d matrix $d^l_{mp,m}$ for fixed mp,m, (assumed fairly small) up to lmax.
+
     Uses Jacobi Polynomial(a,b) representation. Integer spins only.
     a + b is  2 max(|m|,|mp|). For even spins, d^l_mp,m is a polynomial of degree l.
+
     """
     _k = - max(abs(m),abs(mp))
     lmin = -_k
@@ -150,9 +153,9 @@ def get_wignerd(lmax, cost, mp, m):
     return ret
 
 
-def wig2leg(cl,sp,s):
-    """ Converts a polarized wigner fct sum_l cl (2l + 1) / 4pi d^l_{s's}(cost) to its Legendre coefficient series """
-    assert sp % 2 == 0 and s % 2 == 0,'Have not checked exactness of GL integrals in this case'
+def wig2leg(cl, sp, s):
+    """ Converts a polarized wigner fct to its Legendre coefficient series. """
+    assert sp % 2 == 0 and s % 2 == 0,'Have not checked exactness of G-L integrals in this case'
     lmax = len(cl) - 1
     xg,wg = gauleg.get_xgwg(lmax + 1) # Have to integration pol of order 2 * lmax
     Pn = gauleg.get_Pn(lmax,xg)
