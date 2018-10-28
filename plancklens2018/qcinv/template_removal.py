@@ -89,33 +89,6 @@ class template_dipole(template):
         return alm_to_xyz(hp.map2alm(tmap, lmax=1, iter=0)) * npix / 3.
 
 
-class template_uptolmin(template):
-    """
-    Projects out all modes ell below and equal lmin.
-    """
-
-    def __init__(self, lmin):
-        self.lmin = lmin
-        self.nmodes = (lmin + 1) ** 2
-
-    def apply(self, tmap, coeffs):  # V
-        assert (len(coeffs) == self.nmodes)
-
-        nside = hp.npix2nside(len(tmap))
-        tmap *= hp.alm2map(util_alm.rlm2alm(coeffs), nside, lmax=self.lmin, verbose=False)
-
-    def accum(self, tmap, coeffs):
-        assert (len(coeffs) == self.nmodes)
-
-        nside = hp.npix2nside(len(tmap))
-        tmap += hp.alm2map(util_alm.rlm2alm(coeffs), nside, lmax=self.lmin, verbose=False)
-
-    def dot(self, tmap):  # V^t
-        npix = len(tmap)
-        return util_alm.alm2rlm(hp.map2alm(tmap, lmax=self.lmin, iter=0) * (npix / (4. * np.pi)))
-
-
-
 def xyz_to_alm(xyz):
     assert len(xyz) == 3
     alm = np.zeros(3, dtype=np.complex)

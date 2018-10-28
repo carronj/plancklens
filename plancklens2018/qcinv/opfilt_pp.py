@@ -1,11 +1,17 @@
-# opfilt_pp
-#
-# operations and filters for polarization only c^-1
-# S^{-1} (S^{-1} + Y^t N^{-1} Y)^{-1} Y^t N^{-1}
-#FIXME: hashes
+"""Pol-only Wiener and inverse variance filtering module.
+
+This module collects definitions for the polarization-only forward and pre-conditioners operations.
+There are three types of pre-conditioners: dense, diagonal in harmonic space, and multigrid stage.
+
+ $$ S^{-1} (S^{-1} + Y^t N^{-1} Y)^{-1} Y^t N^{-1}$$
+"""
+#FIXME: hashes, docs
 import hashlib
 import numpy  as np
 import healpy as hp
+
+from plancklens2018.utils import clhash
+
 from . import util
 from . import util_alm
 from . import template_removal
@@ -34,25 +40,17 @@ def apply_fini(alm, s_cls, n_inv_filt):
     alm.blm[:] = ret.blm[:]
 
 class dot_op:
-    def __init__(self, lmax=None):
-        self.lmax = lmax
+    def __init__(self):
+        pass
 
     def __call__(self, alm1, alm2):
-        lmax1 = alm1.lmax
-        lmax2 = alm2.lmax
-
-        if self.lmax is not None:
-            lmax = self.lmax
-        else:
-            assert lmax1 == lmax2
-            lmax = lmax1
-
-        tcl = util_alm.alm_cl_cross(alm1.elm, alm2.elm) + util_alm.alm_cl_cross(alm1.blm, alm2.blm)
-
-        return np.sum(tcl[2:] * (2. * np.arange(2, lmax + 1) + 1))
+        assert alm1.lmax == alm2.lmax
+        tcl = hp.alm2cl(alm1.elm, alm2.elm) + hp.alm2cl(alm1.blm, alm2.blm)
+        return np.sum(tcl[2:] * (2. * np.arange(2, alm1.lmax + 1) + 1))
 
 
 class fwd_op:
+    """Missing doc. """
     def __init__(self, s_cls, n_inv_filt):
         self.s_inv_filt = alm_filter_sinv(s_cls)
         self.n_inv_filt = n_inv_filt
@@ -70,10 +68,8 @@ class fwd_op:
         slm = self.s_inv_filt.calc(alm)
         return nlm + slm
 
-
-# ===
-
 class pre_op_diag:
+    """Missing doc. """
     def __init__(self, s_cls, n_inv_filt):
         s_inv_filt = alm_filter_sinv(s_cls)
         assert ((s_inv_filt.lmax + 1) >= len(n_inv_filt.b_transf))
@@ -83,11 +79,12 @@ class pre_op_diag:
         lmax = len(n_inv_filt.b_transf) - 1
 
         flmat = s_inv_filt.slinv[0:lmax + 1, :, :]
+        flmat[:lmax + 1, 0, 0] += ninv_fel[:lmax + 1]
+        flmat[:lmax + 1, 1, 1] += ninv_fbl[:lmax + 1]
 
         for l in range(lmax + 1):
-            flmat[l, 0, 0] += ninv_fel[l]
-            flmat[l, 1, 1] += ninv_fbl[l]
             flmat[l, :, :] = np.linalg.pinv(flmat[l, :, :].reshape((2, 2)))
+
         self.flmat = flmat
 
     def __call__(self, talm):
@@ -101,9 +98,11 @@ class pre_op_diag:
 
 
 def pre_op_dense(lmax, fwd_op, cache_fname=None):
+    """Missing doc. """
     return dense.pre_op_dense_pp(lmax, fwd_op, cache_fname=cache_fname)
 
 class alm_filter_sinv:
+    """Missing doc. """
     def __init__(self, s_cls):
         lmax = s_cls.lmax
         slmat = np.zeros((lmax + 1, 2, 2))  # matrix of EB correlations at each l.
@@ -127,18 +126,18 @@ class alm_filter_sinv:
         return util_alm.eblm([relm, rblm])
 
     def hashdict(self):
-        return {'slinv': hashlib.sha1(self.slinv.flatten().view(np.uint8)).hexdigest()}
+        return {'slinv': clhash(self.slinv.flatten())}
 
 
 class alm_filter_ninv(object):
-    def __init__(self, n_inv, b_transf, marge_maps=[]):
+    def __init__(self, n_inv, b_transf, marge_maps=()):
         self.n_inv = []
         for i, tn in enumerate(n_inv):
             if isinstance(tn, list):
-                n_inv_prod = util.load_map(tn[0][:])
-                if (len(tn) > 1):
+                n_inv_prod = util.load_map(tn[0])
+                if len(tn) > 1:
                     for n in tn[1:]:
-                        n_inv_prod = n_inv_prod * util.load_map(n[:])
+                        n_inv_prod = n_inv_prod * util.load_map(n)
                 self.n_inv.append(n_inv_prod)
             else:
                 self.n_inv.append(util.load_map(n_inv[i]))
@@ -155,7 +154,7 @@ class alm_filter_ninv(object):
         for n in n_inv[1:]:
             assert (len(n) == npix)
 
-        templates_p = [];
+        templates_p = []
         templates_p_hash = []
         for tmap in [util.load_map(m) for m in marge_maps]:
             assert (npix == len(tmap))
@@ -181,7 +180,7 @@ class alm_filter_ninv(object):
             self.Pt_Nn1_P_inv = np.linalg.inv(Pt_Nn1_P)
 
         self.n_inv = n_inv
-        self.b_transf = b_transf[:]
+        self.b_transf = b_transf
 
         self.templates_p = templates_p
         self.templates_p_hash = templates_p_hash
@@ -204,8 +203,8 @@ class alm_filter_ninv(object):
             assert 0
 
     def hashdict(self):
-        return {'n_inv': [hashlib.sha1(n.view(np.uint8)).hexdigest() for n in self.n_inv],
-                'b_transf': hashlib.sha1(self.b_transf.view(np.uint8)).hexdigest(),
+        return {'n_inv': [clhash(n) for n in self.n_inv],
+                'b_transf': clhash(self.b_transf),
                 'templates_p_hash': self.templates_p_hash}
 
     def degrade(self, nside):

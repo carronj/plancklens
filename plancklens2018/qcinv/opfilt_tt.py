@@ -1,68 +1,61 @@
+"""Temperature-only Wiener and inverse variance filtering module.
+
+This module collects definitions for the temperature-only forward and pre-conditioners operations.
+There are three types of pre-conditioners: dense, diagonal in harmonic space, and multigrid stage.
+
+ $$ S^{-1} (S^{-1} + Y^t N^{-1} Y)^{-1} Y^t N^{-1}$$
+"""
+#FIXME: docs
 from __future__ import absolute_import
 from __future__ import print_function
-# opfilt_tt
-#
-# operations and filters for temperature only c^-1
-# S^{-1} (S^{-1} + Y^t N^{-1} Y)^{-1} Y^t N^{-1}
+
 import hashlib
 import numpy  as np
 import healpy as hp
 
+from plancklens2018.utils import clhash
+
 from . import util
-from . import util_alm
 from . import template_removal
 from . import dense
 
-#FIXME: hashes
 def _cli(cl):
     ret = np.zeros_like(cl)
     ret[np.where(cl != 0.)] = 1. / cl[np.where(cl != 0.)]
     return ret
 
-def calc_prep(map, s_cls, n_inv_filt):
-    tmap = np.copy(map)
+def calc_prep(m, s_cls, n_inv_filt):
+    """Missing doc."""
+    tmap = np.copy(m)
     n_inv_filt.apply_map(tmap)
-
-    lmax = len(n_inv_filt.b_transf) - 1
-    npix = len(map)
-
-    alm = hp.map2alm(tmap, lmax=lmax, iter=0)
-    alm *= npix / (4. * np.pi)
-
-    hp.almxfl(alm, n_inv_filt.b_transf, inplace=True)
+    alm = hp.map2alm(tmap, lmax=len(n_inv_filt.b_transf) - 1, iter=0)
+    hp.almxfl(alm, n_inv_filt.b_transf * (len(m) / (4. * np.pi)), inplace=True)
     return alm
 
 
 def apply_fini(alm, s_cls, n_inv_filt):
     """ This final operation turns the Wiener-filtered CMB cg-solution to the inverse-variance filtered CMB.  """
-    hp.almxfl(alm, s_cls['tt'], inplace=True)
+    hp.almxfl(alm, _cli(s_cls['tt']), inplace=True)
 
 class dot_op:
-    """ Scalar product definitions for cg-inversion """
-    def __init__(self, lmax=None):
-        self.lmax = lmax
+    """ Scalar product definition for cg-inversion """
+    def __init__(self):
+        pass
 
     def __call__(self, alm1, alm2):
-        lmax1 = util_alm.nlm2lmax(len(alm1))
-        lmax2 = util_alm.nlm2lmax(len(alm2))
-        if self.lmax is not None:
-            lmax = self.lmax
-        else:
-            assert lmax1 == lmax2, (lmax1, lmax2)
-            lmax = lmax1
-
-        tcl = util_alm.alm_cl_cross(alm1, alm2)
-        return np.sum(tcl * (2. * np.arange(0, lmax + 1) + 1))
+        lmax1 = hp.Alm.getlmax(alm1.size)
+        assert lmax1 == hp.Alm.getlmax(alm2.size)
+        return np.sum(hp.alm2cl(alm1, alms2=alm2) * (2. * np.arange(0, lmax1 + 1) + 1))
 
 
 class fwd_op:
-    """ cg-inversion forward operation """
+    """Conjugate-gradient inversion forward operation definition. """
     def __init__(self, s_cls, n_inv_filt):
         self.cltt_inv = _cli(s_cls['tt'])
         self.n_inv_filt = n_inv_filt
 
     def hashdict(self):
-        return {'cltt_inv': hashlib.sha1(self.cltt_inv.view(np.uint8)).hexdigest(),
+        return {'cltt_inv': clhash(self.cltt_inv),
                 'n_inv_filt': self.n_inv_filt.hashdict()}
 
     def __call__(self, talm):
@@ -79,17 +72,15 @@ class fwd_op:
 
 class pre_op_diag:
     def __init__(self, s_cls, n_inv_filt):
-        """ diagonal pre-conditioner operation"""
+        """Harmonic space diagonal pre-conditioner operation. """
         cltt = s_cls['tt']
         assert len(cltt) >= len(n_inv_filt.b_transf)
         n_inv_cl = np.sum(n_inv_filt.n_inv) / (4.0 * np.pi)
-
         lmax = len(n_inv_filt.b_transf) - 1
         assert lmax <= (len(cltt) - 1)
 
         filt = _cli(cltt[:lmax + 1])
-        filt[np.where(n_inv_filt.b_transf[0:lmax + 1] != 0)] += n_inv_cl * n_inv_filt.b_transf[np.where(
-            n_inv_filt.b_transf[0:lmax + 1] != 0)] ** 2
+        filt += n_inv_cl * n_inv_filt.b_transf[:lmax + 1] ** 2
         self.filt = _cli(filt)
 
     def __call__(self, talm):
@@ -99,34 +90,23 @@ class pre_op_diag:
         return hp.almxfl(talm, self.filt)
 
 def pre_op_dense(lmax, fwd_op, cache_fname=None):
+    """Missing doc. """
     return dense.pre_op_dense_tt(lmax, fwd_op, cache_fname=cache_fname)
 
 class alm_filter_ninv(object):
+    """Missing doc. """
     def __init__(self, n_inv, b_transf, marge_monopole=False, marge_dipole=False, marge_uptolmin=-1, marge_maps=()):
-        """
-            turn the input 'ninv' into a actual inverse variance maps.
-            input 'n_inv' is a list of paths, or maps.
-            The attribute n_inv is then the product of the masks map in the paths. 
-            If several paths / maps are given they are all multiplied together.
-
-            For planck 2015 n_inv is typically a list with [ n_invt, paths_to_masks]
-            where n_invt is a scalar 3. / n_lev ** 2 (pixel variance)
-
-            marge_monopole and marge_dipole ignored if marge_uptolmin is set.
-        """
         if isinstance(n_inv, list):
             # The following line does nothing is if the first element of n_inv is not a string.
-            n_inv_prod = util.load_map(n_inv[0][:])
+            n_inv_prod = util.load_map(n_inv[0])
             if len(n_inv) > 1:
                 for n in n_inv[1:]:
-                    n_inv_prod = n_inv_prod * util.load_map(n[:])
+                    n_inv_prod = n_inv_prod * util.load_map(n)
             n_inv = n_inv_prod
-            print("std = ", np.std(n_inv[np.where(n_inv[:] != 0.0)]) / np.average(n_inv[np.where(n_inv[:] != 0.0)]))
-            # jcarron commented this :
-            # assert (np.std(n_inv[np.where(n_inv[:] != 0.0)]) / np.average(n_inv[np.where(n_inv[:] != 0.0)]) < 1.e-7)
+            print("opfilt_tt: inverse noise map std dev / av = %.3e"%(np.std(n_inv[np.where(n_inv != 0.0)]) / np.average(n_inv[np.where(n_inv != 0.0)])))
         else:
-            n_inv = util.load_map(n_inv[:])
-        templates = [];
+            n_inv = util.load_map(n_inv)
+        templates = []
         templates_hash = []
         for tmap in [util.load_map(m) for m in marge_maps]:
             assert (len(n_inv) == len(tmap))
@@ -160,7 +140,7 @@ class alm_filter_ninv(object):
             self.Pt_Nn1_P_inv = np.dot(np.dot(eigw, np.diag(eigv_inv)), np.transpose(eigw))
 
         self.n_inv = n_inv
-        self.b_transf = b_transf[:]
+        self.b_transf = b_transf
         self.npix = len(self.n_inv)
 
         self.marge_monopole = marge_monopole
@@ -170,14 +150,15 @@ class alm_filter_ninv(object):
         self.templates_hash = templates_hash
 
     def hashdict(self):
-        return {'n_inv': hashlib.sha1(self.n_inv.view(np.uint8)).hexdigest(),
-                'b_transf': hashlib.sha1(self.b_transf.view(np.uint8)).hexdigest(),
+        return {'n_inv': clhash(self.n_inv),
+                'b_transf': clhash(self.b_transf),
                 'marge_monopole': self.marge_monopole,
                 'marge_dipole': self.marge_dipole,
                 'templates_hash': self.templates_hash,
                 'marge_uptolmin': self.marge_uptolmin}
 
     def degrade(self, nside):
+        """Missing doc. """
         if nside == hp.npix2nside(len(self.n_inv)):
             return self
         else:
@@ -188,18 +169,17 @@ class alm_filter_ninv(object):
                         marge_uptolmin=self.marge_uptolmin, marge_maps=marge_maps)
 
     def apply_alm(self, alm):
-        # applies Y^T N^{-1} Y
+        """Missing doc. """
         npix = len(self.n_inv)
         hp.almxfl(alm, self.b_transf, inplace=True)
         tmap = hp.alm2map(alm, hp.npix2nside(npix), verbose=False)
         self.apply_map(tmap)
-        alm[:] = hp.map2alm(tmap, lmax=util_alm.nlm2lmax(len(alm)), iter=0)
-        alm[:] *= (npix / (4. * np.pi))
-        hp.almxfl(alm, self.b_transf, inplace=True)
+        alm[:] = hp.map2alm(tmap, lmax=hp.Alm.getlmax(alm.size), iter=0)
+        hp.almxfl(alm, self.b_transf  *  (npix / (4. * np.pi)), inplace=True)
 
 
     def apply_map(self, tmap):
-        # applies N^{-1}
+        """Missing doc. """
         tmap *= self.n_inv
         if len(self.templates) != 0:
             coeffs = np.concatenate(([t.dot(tmap) for t in self.templates]))

@@ -5,12 +5,46 @@ import os
 import numpy  as np
 import pickle as pk
 
-from . import util_alm
+from healpy import Alm
+from .util_alm import eblm
+
+def alm2rlm(alm):
+    """Converts a complex alm to 'real harmonic' coefficients rlm. """
+    lmax = Alm.getsize(alm.size)
+    rlm = np.zeros((lmax + 1) ** 2)
+
+    ls = np.arange(0, lmax + 1)
+    l2s = ls ** 2
+    rt2 = np.sqrt(2.)
+
+    rlm[l2s] = alm[ls].real
+    for m in range(1, lmax + 1):
+        rlm[l2s[m:] + 2 * m - 1] = alm[m * (2 * lmax + 1 - m) // 2 + ls[m:]].real * rt2
+        rlm[l2s[m:] + 2 * m + 0] = alm[m * (2 * lmax + 1 - m) // 2 + ls[m:]].imag * rt2
+    return rlm
+
+
+def rlm2alm(rlm):
+    """ converts 'real harmonic' coefficients rlm to complex alm. """
+
+    lmax = int(np.sqrt(len(rlm)) - 1)
+    assert ((lmax + 1) ** 2 == len(rlm))
+
+    alm = np.zeros(Alm.getsize(lmax), dtype=np.complex)
+
+    ls = np.arange(0, lmax + 1, dtype=np.int64)
+    l2s = ls ** 2
+    ir2 = 1.0 / np.sqrt(2.)
+
+    alm[ls] = rlm[l2s]
+    for m in range(1, lmax + 1):
+        alm[m * (2 * lmax + 1 - m) / 2 + ls[m:]] = (rlm[l2s[m:] + 2 * m - 1] + 1.j * rlm[l2s[m:] + 2 * m + 0]) * ir2
+    return alm
 
 
 class pre_op_dense_tt:
+    """Constructs a low-l, low-nside dense preconditioner by brute force. """
     def __init__(self, lmax, fwd_op, cache_fname=None):
-        """ Constructs a low-l, low-nside dense preconditioner by brute force. """
         if (cache_fname is not None) and os.path.exists(cache_fname):
             [cache_lmax, cache_hashdict, cache_minv] = pk.load(open(cache_fname, 'r'))
             self.minv = cache_minv
@@ -42,7 +76,7 @@ class pre_op_dense_tt:
         for i in np.arange(0, nrlm):
             if np.mod(i, int(0.1 * nrlm)) == 0: print ("   filling M: %4.1f" % (100. * i / nrlm)), "%"
             trlm[i] = 1.0
-            tmat[:, i] = util_alm.alm2rlm(fwd_op(util_alm.rlm2alm(trlm)))
+            tmat[:, i] = alm2rlm(fwd_op(rlm2alm(trlm)))
             trlm[i] = 0.0
 
         print("   inverting M...")
@@ -51,8 +85,6 @@ class pre_op_dense_tt:
         eigv_inv = 1.0 / eigv
 
         if ntmpl > 0:
-            # do nothing to the ntmpl eigenmodes
-            # with the lowest eigenvalues.
             print("     eigv[ntmpl-1] = ", eigv[ntmpl - 1])
             print("     eigv[ntmpl]   = ", eigv[ntmpl])
             eigv_inv[0:ntmpl] = 1.0
@@ -71,16 +103,12 @@ class pre_op_dense_tt:
         return self.calc(talm)
 
     def calc(self, talm):
-        return util_alm.rlm2alm(np.dot(self.minv, util_alm.alm2rlm(talm)))
+        return rlm2alm(np.dot(self.minv, alm2rlm(talm)))
 
 
 class pre_op_dense_pp:
+    """Missing doc. """
     def __init__(self, lmax, fwd_op, cache_fname=None):
-        # construct a low-l, low-nside dense preconditioner by brute force.
-        # order of operations is O(nside**2 lmax**3) ~ O(lmax**5), so doing
-        # by brute force is still comparable to matrix inversion, with
-        # benefit of being very simple to implement.
-
         if (cache_fname is not None) and os.path.exists(cache_fname):
             [cache_lmax, cache_hashdict, cache_minv] = pk.load(open(cache_fname, 'r'))
             self.minv = cache_minv
@@ -95,15 +123,15 @@ class pre_op_dense_pp:
     @staticmethod
     def alm2rlm(alm):
         rlm = np.zeros(2 * (alm.lmax + 1) ** 2)
-        rlm[0 * (alm.lmax + 1) ** 2:1 * (alm.lmax + 1) ** 2] = util_alm.alm2rlm(alm.elm)
-        rlm[1 * (alm.lmax + 1) ** 2:2 * (alm.lmax + 1) ** 2] = util_alm.alm2rlm(alm.blm)
+        rlm[0 * (alm.lmax + 1) ** 2:1 * (alm.lmax + 1) ** 2] = alm2rlm(alm.elm)
+        rlm[1 * (alm.lmax + 1) ** 2:2 * (alm.lmax + 1) ** 2] = alm2rlm(alm.blm)
         return rlm
 
     @staticmethod
     def rlm2alm(rlm):
         lmax = int(np.sqrt(len(rlm) / 2) - 1)
-        return util_alm.eblm([util_alm.rlm2alm(rlm[0 * (lmax + 1) ** 2:1 * (lmax + 1) ** 2]),
-                              util_alm.rlm2alm(rlm[1 * (lmax + 1) ** 2:2 * (lmax + 1) ** 2])])
+        return eblm([rlm2alm(rlm[0 * (lmax + 1) ** 2:1 * (lmax + 1) ** 2]),
+                     rlm2alm(rlm[1 * (lmax + 1) ** 2:2 * (lmax + 1) ** 2])])
 
     def compute_minv(self, lmax, fwd_op, cache_fname=None):
         if cache_fname is not None:
