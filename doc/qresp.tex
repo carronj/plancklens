@@ -78,7 +78,7 @@ Then
 \subsection{QE response calculation}
 Let the estimator respond to a source (with spin-weight $r$) as follows
 \begin{equation}
-	_{s}X(\hn) = \:_{r}\alpha(\hn) \left( \sum_{\ell m}\: _{s}R_\ell^{r s} \:_sX_{\ell m} \Ylm {s- r}(\hn)\right) + \:_{-r}\alpha(\hn) \left( \sum_{\ell m}\: _{s}R_\ell^{-r s} \:_sX_{\ell m} \Ylm {s + r}(\hn) \right)
+	_{s}X(\hn) = \:_{r}\alpha(\hn) \left( \sum_{\ell m}\: R_\ell^{r s} \:_sX_{\ell m} \Ylm {s- r}(\hn)\right) + \:_{-r}\alpha(\hn) \left( \sum_{\ell m}\: R_\ell^{-r s} \:_sX_{\ell m} \Ylm {s + r}(\hn) \right)
 \end{equation}
 for some harmonic space responses $R_\ell^{rs}$. Then the gradient and curl responses of estimator~\eqref{QE} are
 \begin{equation}\boxed{
@@ -88,13 +88,13 @@ for some harmonic space responses $R_\ell^{rs}$. Then the gradient and curl resp
 		\resp^{gc}_L &= 0 = \resp^{cg}_L, \\
 	\end{split}}
 \end{equation}
-with
+with \JC{FIX fals  in this ! There is actually $\bar X \bar X$ spectrum not XX !}
 \begin{equation}
-R_L^{st, r} = 2\pi \int_{-1}^1d\mu\:\Xi^{st, r}(\mu)\:\Xi^{t}(\mu) \:d^L_{r, \so + \to}(\mu)
+R_L^{st, r} = 2\pi \int_{-1}^1d\mu\:\Xi^{st, r}(\mu)\:\Xi^{t}(\mu) \:d^L_{-r, \so + \to}(\mu)
 \end{equation}
 where
 \begin{equation}
-	\Xi^{st, r}(\mu) = \sum_{l}\left(\frac{2\ell + 1}{4\pi}\right) C_\ell^{\si,-\ti} R^{r - \ti}_\ell w^{\si,\so}_\ell d^\ell_{\ti + r, \so}(\mu) \textrm{  and   } \Xi^{t}(\mu) = \sum_{l}\left(\frac{2\ell + 1}{4\pi}\right) w^{\ti,\to}_\ell d^\ell_{-\ti, \to}(\mu), \quad C_\ell^{\si, -\ti} \equiv = \av{_{\si}X_{\ell m}\: _{\ti}X^\dagger_{\ell m}}
+	\Xi^{st, r}(\mu) = \sum_{l}\left(\frac{2\ell + 1}{4\pi}\right) C_\ell^{\si,-\ti} R^{r - \ti}_\ell w^{\si,\so}_\ell d^\ell_{\ti - r, \so}(\mu) \textrm{  and   } \Xi^{t}(\mu) = \sum_{l}\left(\frac{2\ell + 1}{4\pi}\right) w^{\ti,\to}_\ell d^\ell_{-\ti, \to}(\mu), \red{wrong \quad C_\ell^{\si, \ti} \equiv  \av{_{\si}X_{\ell m}\: _{\ti}X^\dagger_{\ell m}} }
 \end{equation}
 \clearpage
 \newpage
