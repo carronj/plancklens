@@ -377,11 +377,11 @@ class lib_filt2map(object):
         return hp.alm2map_spin([Glm, np.zeros_like(Glm)], self.nside, 1, lmax)
 
     def get_tmap(self, idx, k=None):
-        """
+        """Real-space Wiener filtered tmap.
+
         \sum_{lm} MAP_talm _0 Ylm(n).
-        real-space Wiener filtered tmap.
         """
-        return hp.alm2map(self.ivfs.get_tmliklm(idx),self.nside)
+        return hp.alm2map(self.ivfs.get_sim_tmliklm(idx),self.nside)
 
     def get_gpmap(self, idx, spin, k=None, xfilt=None):
         """

@@ -13,6 +13,9 @@ import hashlib
 import numpy  as np
 import healpy as hp
 
+from healpy import alm2map, map2alm
+#: Exporting these two methods so that they can be easily customized / optimized.
+
 from plancklens2018.utils import clhash
 
 from . import util
@@ -28,7 +31,7 @@ def calc_prep(m, s_cls, n_inv_filt):
     """Missing doc."""
     tmap = np.copy(m)
     n_inv_filt.apply_map(tmap)
-    alm = hp.map2alm(tmap, lmax=len(n_inv_filt.b_transf) - 1, iter=0)
+    alm = map2alm(tmap, lmax=len(n_inv_filt.b_transf) - 1, iter=0)
     hp.almxfl(alm, n_inv_filt.b_transf * (len(m) / (4. * np.pi)), inplace=True)
     return alm
 
@@ -174,9 +177,9 @@ class alm_filter_ninv(object):
         """Missing doc. """
         npix = len(self.n_inv)
         hp.almxfl(alm, self.b_transf, inplace=True)
-        tmap = hp.alm2map(alm, hp.npix2nside(npix), verbose=False)
+        tmap = alm2map(alm, hp.npix2nside(npix), verbose=False)
         self.apply_map(tmap)
-        alm[:] = hp.map2alm(tmap, lmax=hp.Alm.getlmax(alm.size), iter=0)
+        alm[:] = map2alm(tmap, lmax=hp.Alm.getlmax(alm.size), iter=0)
         hp.almxfl(alm, self.b_transf  *  (npix / (4. * np.pi)), inplace=True)
 
 

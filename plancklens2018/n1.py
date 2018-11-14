@@ -9,8 +9,9 @@ All calculations are performed using the flat-sky approximation.
 """
 from __future__ import print_function
 
-import numpy as np
 import os
+
+import numpy as np
 import sympy
 import pickle as pk
 from scipy.interpolate import UnivariateSpline as spline

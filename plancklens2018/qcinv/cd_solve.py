@@ -1,3 +1,6 @@
+"""Flexible conjugate directions solver module.
+
+"""
 import numpy as np
 
 
@@ -30,16 +33,24 @@ class cache_mem(dict):
 
 
 def cd_solve(x, b, fwd_op, pre_ops, dot_op, criterion, tr, cache=cache_mem(), roundoff=25):
-    # customizable conjugate directions loop for x=[fwd_op]^{-1}b
-    # initial value of x is taken as guess
-    # fwd_op, pre_op(s) and dot_op must not modify their arguments!
-    #
-    # tr      = truncation / restart functions.
-    #           suggest:  Truncated Partial Restart (TPR)
-    #                     TR(i) = i - max(P, min( T, mod(i,R) ))
-    #           nb: must be monotonically increasing.
-    #              
-    # cache   = cacher for search objects.
+    """customizable conjugate directions loop for x=[fwd_op]^{-1}b.
+
+    Args:
+        x (array-like)              :Initial guess of linear problem  x =[fwd_op]^{-1}b.  Contains converged solution
+                                at the end (if successful).
+        b (array-like)              :Linear problem  x =[fwd_op]^{-1}b input data.
+        fwd_op (callable)           :Forward operation in x =[fwd_op]^{-1}b.
+        pre_ops (list of callables) :Pre-conditioners.
+        dot_op (callable)           :Scalar product for two vectors.
+        criterion (callable)        :Decides convergence.
+        tr                          :Truncation / restart functions. (e.g. use tr_cg for conjugate gradient)
+        cache (optional)            :Cacher for search objects. Defaults to cache in memory 'cache_mem' instance.
+        roundoff (int, optional)    :Recomputes residual by brute-force every *roundoff* iterations. Defaults to 25.
+
+    Note:
+        fwd_op, pre_op(s) and dot_op must not modify their arguments!
+
+    """
 
     n_pre_ops = len(pre_ops)
 
@@ -47,7 +58,7 @@ def cd_solve(x, b, fwd_op, pre_ops, dot_op, criterion, tr, cache=cache_mem(), ro
     searchdirs = [op(residual) for op in pre_ops]
 
     iter = 0
-    while criterion(iter, x, residual) == False:
+    while not criterion(iter, x, residual):
         searchfwds = [fwd_op(searchdir) for searchdir in searchdirs]
         deltas = [dot_op(searchdir, residual) for searchdir in searchdirs]
 
@@ -68,7 +79,7 @@ def cd_solve(x, b, fwd_op, pre_ops, dot_op, criterion, tr, cache=cache_mem(), ro
 
         # update residual
         iter += 1
-        if (np.mod(iter, roundoff) == 0):
+        if np.mod(iter, roundoff) == 0:
             residual = b - fwd_op(x)
         else:
             for (searchfwd, alpha) in zip(searchfwds, alphas):

@@ -1,10 +1,14 @@
+"""A little series of healpy alm arrays helper functions.
+
+"""
+
 import numpy as np
 from healpy import Alm
 #FIXME: / vs // in this file ?
 
 
 def alm_splice(alm_lo, alm_hi, lsplit):
-    """Returns an alm w/ lmax = lmax(alm_hi) which is alm_lo for (l <= lsplit) alm_hi for (l  > lsplit.) """
+    """Returns an alm with lmax = lmax(alm_hi) which is alm_lo for (l <= lsplit) alm_hi for (l  > lsplit.) """
     if hasattr(alm_lo, 'alm_splice'):
         return alm_lo.alm_splice(alm_hi, lsplit)
 

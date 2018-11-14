@@ -90,7 +90,7 @@ class template_dipole(template):
 
 def xyz_to_alm(xyz):
     assert len(xyz) == 3
-    alm = np.zeros(3, dtype=np.complex)
+    alm = np.zeros(3, dtype=complex)
     alm[1] = +xyz[2] * np.sqrt(4. * np.pi / 3.)
     alm[2] = (-xyz[0] + 1.j * xyz[1]) * np.sqrt(2. * np.pi / 3.)
     return alm

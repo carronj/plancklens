@@ -1,4 +1,6 @@
 from __future__ import print_function
+from __future__ import absolute_import
+
 
 import sqlite3
 import os
@@ -6,7 +8,9 @@ import os
 from . import mpi
 
 class npdb:
-    """ a simple wrapper class to store np arrays in an sqlite3 database """
+    """A simple wrapper class to store np arrays in an sqlite3 database.
+
+     """
     def __init__(self, fname, idtype="STRING"):
         if not os.path.exists(fname) and mpi.rank == 0:
             con = sqlite3.connect(fname, detect_types=sqlite3.PARSE_DECLTYPES, timeout=3600)

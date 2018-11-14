@@ -4,17 +4,24 @@ This module collects definitions for the polarization-only forward and pre-condi
 There are three types of pre-conditioners: dense, diagonal in harmonic space, and multigrid stage.
 
  $$ S^{-1} (S^{-1} + Y^t N^{-1} Y)^{-1} Y^t N^{-1}$$
+
+Todo:
+    * Why these calc functions?
+
 """
 #FIXME: hashes, docs
+
 import hashlib
 import numpy  as np
 import healpy as hp
+
+from healpy import alm2map_spin, map2alm_spin
+#: Exporting these two methods so that they can be easily customized / optimized.
 
 from plancklens2018.utils import clhash
 
 from . import util
 from .util_alm import eblm
-from . import template_removal
 from . import dense
 
 
@@ -25,7 +32,7 @@ def calc_prep(maps, s_cls, n_inv_filt):
     npix = len(qmap)
 
     n_inv_filt.apply_map([qmap, umap])
-    elm, blm = hp.map2alm_spin([qmap, umap], 2, lmax=lmax)
+    elm, blm = map2alm_spin([qmap, umap], 2, lmax=lmax)
     hp.almxfl(elm, n_inv_filt.b_transf * npix / (4. * np.pi), inplace=True)
     hp.almxfl(blm, n_inv_filt.b_transf * npix / (4. * np.pi), inplace=True)
     return eblm([elm, blm])
@@ -105,8 +112,8 @@ class alm_filter_sinv:
         slmat = np.zeros((lmax + 1, 2, 2), dtype=float)
         slmat[:, 0, 0] = s_cls.get('ee', np.zeros(lmax + 1))[:lmax + 1]
         slmat[:, 0, 1] = s_cls.get('eb', np.zeros(lmax + 1))[:lmax + 1]
+        slmat[:, 1, 0] = s_cls.get('eb', np.zeros(lmax + 1))[:lmax + 1]
         slmat[:, 1, 1] = s_cls.get('bb', np.zeros(lmax + 1))[:lmax + 1]
-        slmat[:, 1, 0] = slmat[:, 0, 1]
 
         slinv = np.zeros((lmax + 1, 2, 2))
         for l in range(0, lmax + 1):
@@ -193,12 +200,12 @@ class alm_filter_ninv(object):
 
         hp.almxfl(alm.elm, self.b_transf, inplace=True)
         hp.almxfl(alm.blm, self.b_transf, inplace=True)
-        qmap, umap = hp.alm2map_spin((alm.elm, alm.blm), self.nside, 2, lmax)
+        qmap, umap = alm2map_spin((alm.elm, alm.blm), self.nside, 2, lmax)
 
         self.apply_map([qmap, umap])  # applies N^{-1}
         npix = len(qmap)
 
-        telm, tblm = hp.map2alm_spin([qmap, umap], 2, lmax=lmax)
+        telm, tblm = map2alm_spin([qmap, umap], 2, lmax=lmax)
         alm.elm[:] = telm
         alm.blm[:] = tblm
 

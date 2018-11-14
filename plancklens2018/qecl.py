@@ -1,11 +1,10 @@
 from __future__ import print_function
 
+import os
 import healpy as hp
 import numpy as np
-import os
 import pickle as pk
 
-from libaml import cut_sky_cl
 
 from . import mpi
 from . import utils
@@ -13,6 +12,7 @@ from . import sql
 
 class library(object):
     """Lensing estimator power spectra library.
+
     """
     def __init__(self, lib_dir, qeA, qeB, mc_sims_mf, nhl_lib=None):
         """ qeA and qeB are two quadratic estimator instances. """
@@ -149,6 +149,8 @@ class library_MSC(library):
     """
 
     def __init__(self, lib_dir, qeA, qeB, mc_sims_mf, lmax_cl, apomask_path, nhl_lib=None):
+        # FIXME:
+        from libaml import cut_sky_cl
         mask = hp.read_map(apomask_path)
         self.nside = hp.npix2nside(mask.size)
         self.MSC = cut_sky_cl.MaskedSkyCoupling(lmax_cl, mask)
@@ -190,7 +192,9 @@ class library_MSC(library):
 
 class average:
     def __init__(self, lib_dir, qcls_lib):
-        """ qcl average library. Hashes only for qecl sim stats """
+        """Qcl average library. Hashes only for qecl sim stats
+
+        """
         self.lib_dir = lib_dir
         self.qclibs = qcls_lib
         hname = os.path.join(lib_dir, 'qeclav_hash.pk')

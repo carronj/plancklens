@@ -1,3 +1,6 @@
+# FIXME: zero eigenvalues message in opfilt_pp dense because of ell = 0 and 1, and then the eigv are set to unity.
+# FIXME: better project on ell > 2 ? It wont change anything
+
 from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
@@ -8,13 +11,16 @@ import pickle as pk
 from healpy import Alm
 
 from .util_alm import eblm
+from plancklens2018.utils import enumerate_progress
 
 def alm2rlm(alm):
     """Converts a complex alm to 'real harmonic' coefficients rlm.
 
+    This 'real harmonic' form is used for the dense matrix preconditioner tools.
+
      """
     lmax = Alm.getlmax(alm.size)
-    rlm = np.zeros((lmax + 1) ** 2)
+    rlm = np.zeros((lmax + 1) ** 2, dtype=float)
 
     ls = np.arange(0, lmax + 1)
     l2s = ls ** 2
@@ -28,15 +34,17 @@ def alm2rlm(alm):
 
 
 def rlm2alm(rlm):
-    """ converts 'real harmonic' coefficients rlm to complex alm.
+    """Converts 'real harmonic' coefficients rlm to complex alm.
+
+    Inverse of alm2rlm.
 
     """
     lmax = int(np.sqrt(len(rlm)) - 1)
     assert (lmax + 1) ** 2 == len(rlm)
 
-    alm = np.zeros(Alm.getsize(lmax), dtype=np.complex)
+    alm = np.zeros(Alm.getsize(lmax), dtype=complex)
+    ls = np.arange(0, lmax + 1, dtype=int)
 
-    ls = np.arange(0, lmax + 1, dtype=np.int64)
     l2s = ls ** 2
     ir2 = 1.0 / np.sqrt(2.)
 
@@ -77,8 +85,7 @@ class pre_op_dense_tt:
 
         if cache_fname is not None: print(" will cache minv in " + cache_fname)
 
-        for i in np.arange(0, nrlm):
-            if np.mod(i, int(0.1 * nrlm)) == 0: print ("   filling M: %4.1f" % (100. * i / nrlm)), "%"
+        for j, i in enumerate_progress(np.arange(0, nrlm), label= 'filling matrix'):
             trlm[i] = 1.0
             tmat[:, i] = alm2rlm(fwd_op(rlm2alm(trlm)))
             trlm[i] = 0.0
@@ -112,8 +119,6 @@ class pre_op_dense_tt:
 
 class pre_op_dense_pp:
     """Missing doc. """
-    #FIXME: zero eigenvalues because of ell = 0 and 1 (?) and then they are set to unity.
-    #FIXME: better project on ell > 2 ?
     def __init__(self, lmax, fwd_op, cache_fname=None):
         if (cache_fname is not None) and os.path.exists(cache_fname):
             [cache_lmax, cache_hashdict, cache_minv] = pk.load(open(cache_fname, 'r'))
@@ -128,7 +133,7 @@ class pre_op_dense_pp:
 
     @staticmethod
     def alm2rlm(alm):
-        rlm = np.zeros(2 * (alm.lmax + 1) ** 2)
+        rlm = np.zeros(2 * (alm.lmax + 1) ** 2, dtype=float)
         rlm[0 * (alm.lmax + 1) ** 2:1 * (alm.lmax + 1) ** 2] = alm2rlm(alm.elm)
         rlm[1 * (alm.lmax + 1) ** 2:2 * (alm.lmax + 1) ** 2] = alm2rlm(alm.blm)
         return rlm
@@ -156,8 +161,7 @@ class pre_op_dense_pp:
         print("     lmax  =", lmax)
         print("     ntmpl =", ntmpl)
 
-        for i in np.arange(0, nrlm):
-            if np.mod(i, int(0.1 * nrlm)) == 0: print ("   filling M: %4.1f" % (100. * i / nrlm)), "%"
+        for j, i in enumerate_progress(np.arange(0, nrlm), label= 'filling matrix'):
             trlm[i] = 1.0
             tmat[:, i] = self.alm2rlm(fwd_op(self.rlm2alm(trlm)))
             trlm[i] = 0.0
