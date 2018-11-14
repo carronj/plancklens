@@ -188,6 +188,7 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe):
 
     """
     #FIXME: works for ptt p_p p jtTP, but overall mignus sign w.r.t. PDF?
+    #FIXME: actually it doesnt, by 20% or so ??
     qes1 = get_qe_jtp(qe_key1, lmax_qe, cls_weights)
     qes2 = get_qe_jtp(qe_key2, lmax_qe, cls_weights)
     G_N0 = np.zeros(2 * lmax_qe + 1)
