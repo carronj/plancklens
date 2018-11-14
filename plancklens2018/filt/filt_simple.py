@@ -51,6 +51,9 @@ class library_sepTP(object):
     def hashdict(self):
         assert 0, 'override this'
 
+    def get_fmask(self):
+        assert 0, 'override this'
+
     def _apply_ivf_t(self, tmap, soltn=None):
         assert 0, 'override this'
 
@@ -183,7 +186,7 @@ class library_apo_sepTP(library_sepTP):
         return np.copy(self.fbl)
 
     def _apply_ivf_t(self, tmap, soltn=None):
-        alm = hp.map2alm(tmap * self.get_fmask(), lmax=self.lmax_fl)
+        alm = hp.map2alm(tmap * self.get_fmask(), lmax=self.lmax_fl, iter=0)
         return hp.almxfl(alm, self.get_ftl() * utils.cli(self.transf[:len(self.ftl)]))
 
     def _apply_ivf_p(self, pmap, soltn=None):
@@ -199,19 +202,23 @@ class library_fullsky_sepTP(library_sepTP):
         This uses independent T and Pol. filtering.
 
     """
-    def __init__(self, lib_dir, sim_lib, transf, cl_len, ftl, fel, fbl, cache=False):
+    def __init__(self, lib_dir, sim_lib, nside, transf, cl_len, ftl, fel, fbl, cache=False):
         self.sim_lib = sim_lib
         self.ftl = ftl
         self.fel = fel
         self.fbl = fbl
         self.lmax_fl = np.max([len(ftl), len(fel), len(fbl)]) - 1
         self.transf = transf
+        self.nside = nside
         super(library_fullsky_sepTP, self).__init__(lib_dir, sim_lib, cl_len, cache=cache)
 
     def hashdict(self):
         return {'sim_lib':self.sim_lib.hashdict(), 'transf': utils.clhash(self.transf),
                 'cl_len': {k: utils.clhash(self.cl[k]) for k in ['tt', 'ee', 'bb']},
                 'ftl': utils.clhash(self.ftl),'fel': utils.clhash(self.fel),'fbl': utils.clhash(self.fbl)}
+
+    def get_fmask(self):
+        return np.ones(hp.nside2npix(self.nside), dtype=float)
 
     def get_tal(self, a):
         assert (a.lower() in ['t', 'e', 'b'])
@@ -227,10 +234,12 @@ class library_fullsky_sepTP(library_sepTP):
         return np.copy(self.fbl)
 
     def _apply_ivf_t(self, tmap, soltn=None):
-        alm = hp.map2alm(tmap, lmax=self.lmax_fl)
+        assert len(tmap) == hp.nside2npix(self.nside), (hp.npix2nside(tmap.size), self.nside)
+        alm = hp.map2alm(tmap, lmax=self.lmax_fl, iter=0)
         return hp.almxfl(alm, self.get_ftl() * utils.cli(self.transf[:len(self.ftl)]))
 
     def _apply_ivf_p(self, pmap, soltn=None):
+        assert len(pmap[0]) == hp.nside2npix(self.nside) and len(pmap[0]) == len(pmap[1])
         elm, blm = hp.map2alm_spin([m for m in pmap], 2, lmax=self.lmax_fl)
         elm = hp.almxfl(elm, self.get_fel() * utils.cli(self.transf[:len(self.fel)]))
         blm = hp.almxfl(blm, self.get_fbl() * utils.cli(self.transf[:len(self.fbl)]))
