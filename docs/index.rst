@@ -10,7 +10,8 @@ Welcome to Plancklens2018's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   filt 
+   filt
+   n1
 
 Indices and tables
 ==================
