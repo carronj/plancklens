@@ -18,7 +18,7 @@ import os
 from plancklens2018 import mpi
 from plancklens2018 import utils
 
-#FIXME add fullsky
+#FIXME: problems with different lmax in ftl, fel, fbl ?
 
 class library_sepTP(object):
     """Template class for CMB inverse-variance and Wiener-filtering library.
@@ -28,13 +28,15 @@ class library_sepTP(object):
     Args:
         lib_dir (str): directory where hashes and filtered maps will be cached.
         sim_lib : simulation library instance. *sim_lib* must have *get_sim_tmap* and *get_sim_pmap* methods.
+        cl_weights: CMB spectra, used to compute the Wiener-filtered CMB from the inverse variance filtered maps.
 
     """
-    def __init__(self, lib_dir, sim_lib, soltn_lib=None, cache=True):
+    def __init__(self, lib_dir, sim_lib, cl_weights, soltn_lib=None, cache=True):
 
 
         self.lib_dir = lib_dir
         self.sim_lib = sim_lib
+        self.cl = cl_weights
         self.soltn_lib = soltn_lib
         self.cache = cache
         fn_hash = os.path.join(lib_dir, 'filt_hash.pk')
@@ -47,24 +49,13 @@ class library_sepTP(object):
         utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
 
     def hashdict(self):
-        return {'sim_lib': self.sim_lib.hashdict()}
-
-    def get_sim_tmliklm(self, idx):
-        assert 0, 'override this'
-
-    def get_sim_emliklm(self, idx):
-        assert 0, 'override this'
-
-    def get_sim_bmliklm(self, idx):
         assert 0, 'override this'
 
     def _apply_ivf_t(self, tmap, soltn=None):
         assert 0, 'override this'
-        return None
 
     def _apply_ivf_p(self, pmap, soltn=None):
         assert 0, 'override this'
-        return None, None
 
     def get_ftl(self):
         """ Isotropic approximation to temperature inverse variance filtering  $$N_L$$.
@@ -123,12 +114,21 @@ class library_sepTP(object):
         else:
             return hp.read_alm(tfname)
 
+    def get_sim_tmliklm(self, idx):
+        return hp.almxfl(self.get_sim_tlm(idx), self.cl['tt'])
+
+    def get_sim_emliklm(self, idx):
+        return hp.almxfl(self.get_sim_elm(idx), self.cl['ee'])
+
+    def get_sim_bmliklm(self, idx):
+        return hp.almxfl(self.get_sim_blm(idx), self.cl['bb'])
 
 class library_apo_sepTP(library_sepTP):
     """
     Library to perform inverse variance filtering on the sim_lib library using simple mask apo and isotropic filtering.
 
-    Separate T and Pol. filtering.
+    Note:
+        This uses independent T and Pol. filtering.
 
     Args:
         lib_dir :
@@ -144,14 +144,13 @@ class library_apo_sepTP(library_sepTP):
         assert len(transf) >= np.max([len(ftl), len(fel), len(fbl)])
         assert np.all([k in cl_len.keys() for k in ['tt', 'ee', 'bb']])
         
-        self.cl = cl_len
         self.ftl = ftl
         self.fel = fel
         self.fbl = fbl
         self.transf = transf
         self.lmax_fl = np.max([len(ftl), len(fel), len(fbl)]) - 1
         self.masknoapo_path = masknoapo_path
-        super(library_apo_sepTP, self).__init__(lib_dir, sim_lib, cache=cache)
+        super(library_apo_sepTP, self).__init__(lib_dir, sim_lib, cl_len, cache=cache)
 
         if mpi.rank == 0:
             if not os.path.exists(os.path.join(self.lib_dir, 'fmask.fits')):
@@ -162,7 +161,8 @@ class library_apo_sepTP(library_sepTP):
         mpi.barrier()
 
     def hashdict(self):
-        return {'masknoapo': self.masknoapo_path, 'transf': utils.clhash(self.transf),
+        return {'sim_lib':self.sim_lib.hashdict(),
+                'masknoapo': self.masknoapo_path, 'transf': utils.clhash(self.transf),
                 'cl_len': {k: utils.clhash(self.cl[k]) for k in ['tt', 'ee', 'bb']},
                 'ftl': utils.clhash(self.ftl),'fel': utils.clhash(self.fel),'fbl': utils.clhash(self.fbl)}
 
@@ -192,11 +192,46 @@ class library_apo_sepTP(library_sepTP):
         blm = hp.almxfl(blm, self.get_fbl() * utils.cli(self.transf[:len(self.fbl)]))
         return elm, blm
 
-    def get_sim_tmliklm(self, idx):
-        return hp.almxfl(self.get_sim_tlm(idx), self.cl['tt'])
+class library_fullsky_sepTP(library_sepTP):
+    """Full-sky isotropic filtering instance.
 
-    def get_sim_emliklm(self, idx):
-        return hp.almxfl(self.get_sim_elm(idx), self.cl['ee'])
+    Note:
+        This uses independent T and Pol. filtering.
 
-    def get_sim_bmliklm(self, idx):
-        return hp.almxfl(self.get_sim_blm(idx), self.cl['bb'])
+    """
+    def __init__(self, lib_dir, sim_lib, transf, cl_len, ftl, fel, fbl, cache=False):
+        self.sim_lib = sim_lib
+        self.ftl = ftl
+        self.fel = fel
+        self.fbl = fbl
+        self.lmax_fl = np.max([len(ftl), len(fel), len(fbl)]) - 1
+        self.transf = transf
+        super(library_fullsky_sepTP, self).__init__(lib_dir, sim_lib, cl_len, cache=cache)
+
+    def hashdict(self):
+        return {'sim_lib':self.sim_lib.hashdict(), 'transf': utils.clhash(self.transf),
+                'cl_len': {k: utils.clhash(self.cl[k]) for k in ['tt', 'ee', 'bb']},
+                'ftl': utils.clhash(self.ftl),'fel': utils.clhash(self.fel),'fbl': utils.clhash(self.fbl)}
+
+    def get_tal(self, a):
+        assert (a.lower() in ['t', 'e', 'b'])
+        return utils.cli(self.transf)
+
+    def get_ftl(self):
+        return np.copy(self.ftl)
+
+    def get_fel(self):
+        return np.copy(self.fel)
+
+    def get_fbl(self):
+        return np.copy(self.fbl)
+
+    def _apply_ivf_t(self, tmap, soltn=None):
+        alm = hp.map2alm(tmap, lmax=self.lmax_fl)
+        return hp.almxfl(alm, self.get_ftl() * utils.cli(self.transf[:len(self.ftl)]))
+
+    def _apply_ivf_p(self, pmap, soltn=None):
+        elm, blm = hp.map2alm_spin([m for m in pmap], 2, lmax=self.lmax_fl)
+        elm = hp.almxfl(elm, self.get_fel() * utils.cli(self.transf[:len(self.fel)]))
+        blm = hp.almxfl(blm, self.get_fbl() * utils.cli(self.transf[:len(self.fbl)]))
+        return elm, blm

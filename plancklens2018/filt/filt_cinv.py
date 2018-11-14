@@ -19,7 +19,7 @@ import os
 
 from plancklens2018 import mpi
 from plancklens2018 import utils
-from plancklens2018.filt import filt_simple
+from . import filt_simple
 from plancklens2018.qcinv import opfilt_pp, opfilt_tt
 from plancklens2018.qcinv import util, util_alm
 from plancklens2018.qcinv import multigrid, cd_solve
