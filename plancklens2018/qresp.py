@@ -69,9 +69,9 @@ def get_resp_legs(source, lmax):
     """
     lmax_cL = 2 *  lmax
     if source == 'p': # lensing (gradient and curl): _sX -> _sX +  1/2 alpha_1 \eth _sX + 1/2 \alpha_{-1} \bar \eth _sX
-        return {s : (1, 0.5 * get_alpha_lower(s, lmax),
-                        0.5 * get_alpha_raise(s, lmax),
-                         np.sqrt(np.arange(lmax_cL + 1) * np.arange(1, lmax_cL + 2, dtype=float))) for s in [0, -2, 2]}
+        return {s : (1, -0.5 * get_alpha_lower(s, lmax),
+                        -0.5 * get_alpha_raise(s, lmax),
+                        np.sqrt(np.arange(lmax_cL + 1) * np.arange(1, lmax_cL + 2, dtype=float))) for s in [0, -2, 2]}
     if source == 'f': # Modulation: _sX -> _sX + f _sX.
         return {s : (0, 0.5 * np.ones(lmax + 1, dtype=float),
                         0.5 * np.ones(lmax + 1, dtype=float),
@@ -101,35 +101,35 @@ def get_qe_jtp(qe_key, lmax, cls_weight):
     if qe_key[0] == 'p' or qe_key[0] == 'x':
         # Lensing estimate (both gradient and curl)
         if qe_key in ['ptt', 'xtt']:
-            cL_out = np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
+            cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
 
             cltt = cls_weight['tt'][:lmax + 1]
-            lega = qeleg(0, 0, -np.ones(lmax + 1, dtype=float))
-            legb = qeleg(0, 1, -np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * cltt)
+            lega = qeleg(0, 0,  np.ones(lmax + 1, dtype=float))
+            legb = qeleg(0, 1,  np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * cltt)
 
             return [qe(lega, legb, cL_out)]
         elif qe_key in ['p_p', 'x_p']:
             qes = []
-            cL_out = np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
+            cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
             clee = cls_weight['ee'][:lmax + 1]
             clbb = cls_weight['bb'][:lmax + 1]
             assert np.all(clbb == 0.), 'not implemented (but easy)'
 
-            # E-part. G = -1/2 _{2}P + 1/2 _{-2}P
+            # E-part. G = -1/2 _{2}P - 1/2 _{-2}P
             lega = qeleg(2, 2, np.ones(lmax + 1, dtype=float))
-            legb = qeleg(2, -1, -0.5 * _sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clee)
+            legb = qeleg(2, -1, 0.5 * _sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clee)
             qes.append(qe(lega, legb, cL_out))
 
             lega = qeleg(2, 2, np.ones(lmax + 1, dtype=float))
-            legb = qeleg(-2, -1, -0.5 * _sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clee)
+            legb = qeleg(-2, -1, 0.5 * _sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clee)
             qes.append(qe(lega, legb, cL_out))
 
             lega = qeleg(-2, -2, np.ones(lmax + 1, dtype=float))
-            legb = qeleg(2, 3, -0.5 * _sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clee)
+            legb = qeleg(2, 3, 0.5 * _sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clee)
             qes.append(qe(lega, legb, cL_out))
 
             lega = qeleg(-2, -2, np.ones(lmax + 1, dtype=float))
-            legb = qeleg(-2, 3, -0.5 * _sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clee)
+            legb = qeleg(-2, 3, 0.5 * _sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clee)
             qes.append(qe(lega, legb, cL_out))
 
             return qes
@@ -154,32 +154,60 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal):
     lmax_qlm = 2 * lmax_qe
     #FIXME: fix all lmaxs etc
     Rggcc = np.zeros((2, lmax_qlm + 1), dtype=float)
+    print(len(qes))
     for qe in qes: # loop over all quadratic terms in estimator
+
         si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
         so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
+        print(si, ti)
+
         # Rst,r involves R^r, -ti}
-        def add(si, ti, so, to, f):
+        def add(si, ti, so, to, fla, flb):
+            si *= -1
+            ti *= -1 # FIXME: This seems works for Pol, but why ???
             cpling = get_coupling(si, -ti, cls_cmb)[:lmax_qe + 1]
             r, prR, mrR, s_cL = resps[-ti]  # There should always be a single term here.
-            Rst_pr = get_hl(prR * cpling * qe.leg_a.cl * fal[f], qe.leg_b.cl * fal[f], ti - r, so, -ti, to) * s_cL[:lmax_qlm + 1]
-            Rst_mr = get_hl(mrR * cpling * qe.leg_a.cl * fal[f], qe.leg_b.cl * fal[f], ti + r, so, -ti, to) * s_cL[:lmax_qlm + 1]
+            Rst_pr = get_hl(prR * cpling * qe.leg_a.cl * fla, qe.leg_b.cl * flb, ti - r, so, -ti, to) * s_cL[:lmax_qlm + 1]
+            Rst_mr = get_hl(mrR * cpling * qe.leg_a.cl * fla, qe.leg_b.cl * flb, ti + r, so, -ti, to) * s_cL[:lmax_qlm + 1]
             # Swap s and t all over
             cpling *= (-1) ** (si - ti)
             r2, prR, mrR, s_cL = resps[-si]
-            Rts_pr = get_hl(prR * cpling * qe.leg_b.cl * fal[f], qe.leg_a.cl * fal[f], si - r, to, -si, so) * s_cL[:lmax_qlm + 1]
-            Rts_mr = get_hl(mrR * cpling * qe.leg_b.cl * fal[f], qe.leg_a.cl * fal[f], si + r, to, -si, so) * s_cL[:lmax_qlm + 1]
+            assert r2 == r, (r, r2)
+            Rts_pr = get_hl(prR * cpling * qe.leg_b.cl * flb, qe.leg_a.cl * fla, si - r, to, -si, so) * s_cL[:lmax_qlm + 1]
+            Rts_mr = get_hl(mrR * cpling * qe.leg_b.cl * flb, qe.leg_a.cl * fla, si + r, to, -si, so) * s_cL[:lmax_qlm + 1]
             gg = (Rst_mr + Rts_mr + (-1) ** r * (Rst_pr + Rts_pr)) * qe.cL[:lmax_qlm + 1]
             cc = (Rst_mr + Rts_mr - (-1) ** r * (Rst_pr + Rts_pr)) * qe.cL[:lmax_qlm + 1]
             return np.array([gg, cc])
 
-        if si == 0:
-            Rggcc += add(si, ti, so, to, 't')
+        if si == 0 and ti == 0:
+            prefac = 1.
+            Rggcc += add(si, ti, so, to, fal['t'], fal['t'])
+        elif si != 0 and ti != 0:
+            # Here we use _{\pm |s|}X = \pm^{s} 1/2 [ _{|s|} d_{lm}(f^g \pm f^c) _{|s|}d_{lm} + (-1)^{s} _{-|s|} d_{lm}(f^g \mp f^c) _{-|s|}d_{lm}
+            #FIXME
+            sgn_s = np.sign(si)
+            sgn_t = np.sign(ti)
+            prefac = 0.25 * (1 if si > 0 else -1) * (1 if ti > 0 else -1)
+            fla = fal['e'] + sgn_s * fal['b'] if abs(si) == 2 else None
+            flb = fal['e'] + sgn_t * fal['b'] if abs(ti) == 2 else None
+            Rggcc += add(abs(si), abs(ti), so, to, fla, flb)
+
+            fla = fal['e'] + sgn_s * fal['b'] if abs(si) == 2 else None
+            flb = fal['e'] - sgn_t * fal['b'] if abs(ti) == 2 else None
+            Rggcc += (-1) ** ti * add(abs(si), -abs(ti), so, to, fla, flb)
+
+            fla = fal['e'] - sgn_s * fal['b'] if abs(si) == 2 else None
+            flb = fal['e'] + sgn_t * fal['b'] if abs(ti) == 2 else None
+            Rggcc += (-1) ** si * add(-abs(si), abs(ti), so, to, fla, flb)
+
+            fla = fal['e'] - sgn_s * fal['b'] if abs(si) == 2 else None
+            flb = fal['e'] - sgn_t * fal['b'] if abs(ti) == 2 else None
+            Rggcc += (-1) ** (ti + si) * add(-abs(si), -abs(ti), so, to, fla, flb)
         else:
+            assert 0, 'implement this'
 
 
-            assert 0, 'finish this'
-
-    return Rggcc
+    return prefac *Rggcc
 
     #FIXME: finish this:
 
