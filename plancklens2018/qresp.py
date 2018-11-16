@@ -108,6 +108,13 @@ def get_qe_jtp(qe_key, lmax, cls_weight):
             legb = qeleg(0, 1,  np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * cltt)
 
             return [qe(lega, legb, cL_out)]
+
+        elif qe_key in ['pee', 'xee']:
+            qes = []
+            cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
+            clee = cls_weight['ee'][:lmax + 1]
+            assert 0, 'implement this'
+
         elif qe_key in ['p_p', 'x_p']:
             qes = []
             cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
@@ -147,11 +154,13 @@ def get_qe_jtp(qe_key, lmax, cls_weight):
         assert 0
 
 
-def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal):
+def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal, fal_leg2=None):
     lmax_source = lmax_qe # I think that's fine as long as we the same lmax on both legs.
     qes = get_qe_jtp(qe_key, lmax_qe, cls_weight)
     resps = get_resp_legs(source, lmax_source)
     lmax_qlm = 2 * lmax_qe
+    fal_leg1 = fal
+    fal_leg2 = fal if fal_leg2 is None else fal_leg2
     #FIXME: fix all lmaxs etc
     Rggcc = np.zeros((2, lmax_qlm + 1), dtype=float)
     print(len(qes))
@@ -164,7 +173,7 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal):
         # Rst,r involves R^r, -ti}
         def add(si, ti, so, to, fla, flb):
             si *= -1
-            ti *= -1 # FIXME: This seems works for Pol, but why ???
+            ti *= -1 # FIXME: This seems works for Pol, but why ??? (exc. for fac of 2 in qest file)
             cpling = get_coupling(si, -ti, cls_cmb)[:lmax_qe + 1]
             r, prR, mrR, s_cL = resps[-ti]  # There should always be a single term here.
             Rst_pr = get_hl(prR * cpling * qe.leg_a.cl * fla, qe.leg_b.cl * flb, ti - r, so, -ti, to) * s_cL[:lmax_qlm + 1]
@@ -188,20 +197,20 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal):
             sgn_s = np.sign(si)
             sgn_t = np.sign(ti)
             prefac = 0.25 * (1 if si > 0 else -1) * (1 if ti > 0 else -1)
-            fla = fal['e'] + sgn_s * fal['b'] if abs(si) == 2 else None
-            flb = fal['e'] + sgn_t * fal['b'] if abs(ti) == 2 else None
+            fla = fal_leg1['e'] + sgn_s * fal_leg1['b'] if abs(si) == 2 else None
+            flb = fal_leg2['e'] + sgn_t * fal_leg2['b'] if abs(ti) == 2 else None
             Rggcc += add(abs(si), abs(ti), so, to, fla, flb)
 
-            fla = fal['e'] + sgn_s * fal['b'] if abs(si) == 2 else None
-            flb = fal['e'] - sgn_t * fal['b'] if abs(ti) == 2 else None
+            fla = fal_leg1['e'] + sgn_s * fal_leg1 ['b'] if abs(si) == 2 else None
+            flb = fal_leg2['e'] - sgn_t * fal_leg2['b'] if abs(ti) == 2 else None
             Rggcc += (-1) ** ti * add(abs(si), -abs(ti), so, to, fla, flb)
 
-            fla = fal['e'] - sgn_s * fal['b'] if abs(si) == 2 else None
-            flb = fal['e'] + sgn_t * fal['b'] if abs(ti) == 2 else None
+            fla = fal_leg1['e'] - sgn_s * fal_leg1 ['b'] if abs(si) == 2 else None
+            flb = fal_leg2['e'] + sgn_t * fal_leg2['b'] if abs(ti) == 2 else None
             Rggcc += (-1) ** si * add(-abs(si), abs(ti), so, to, fla, flb)
 
-            fla = fal['e'] - sgn_s * fal['b'] if abs(si) == 2 else None
-            flb = fal['e'] - sgn_t * fal['b'] if abs(ti) == 2 else None
+            fla = fal_leg1['e'] - sgn_s * fal_leg1['b'] if abs(si) == 2 else None
+            flb = fal_leg2['e'] - sgn_t * fal_leg2['b'] if abs(ti) == 2 else None
             Rggcc += (-1) ** (ti + si) * add(-abs(si), -abs(ti), so, to, fla, flb)
         else:
             assert 0, 'implement this'
