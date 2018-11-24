@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
+import os
 import numpy as np
 
 from plancklens2018.wigners import gaujac
 from plancklens2018.wigners import gauleg
-
+from plancklens2018 import sql
 
 
 class qeleg:
@@ -68,7 +69,7 @@ def get_resp_legs(source, lmax):
 
     """
     lmax_cL = 2 *  lmax
-    if source == 'p': # lensing (gradient and curl): _sX -> _sX +  1/2 alpha_1 \eth _sX + 1/2 \alpha_{-1} \bar \eth _sX
+    if source == 'p': # lensing (gradient and curl): _sX -> _sX -  1/2 alpha_1 \eth _sX - 1/2 \alpha_{-1} \bar \eth _sX
         return {s : (1, -0.5 * get_alpha_lower(s, lmax),
                         -0.5 * get_alpha_raise(s, lmax),
                         np.sqrt(np.arange(lmax_cL + 1) * np.arange(1, lmax_cL + 2, dtype=float))) for s in [0, -2, 2]}
@@ -115,21 +116,22 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
             clee = cls_weight['ee'][:lmax + 1]
             clbb = cls_weight['bb'][:lmax + 1]
             assert np.all(clbb == 0.), 'not implemented (but easy)'
-
+            #FIXME: where does this 0.5 comes about??
+            fac = 0.5
             # E-part. G = -1/2 _{2}P - 1/2 _{-2}P
-            lega = qeleg(2, 2, np.ones(lmax + 1, dtype=float))
-            legb = qeleg(2, -1, 0.5 * _sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clee)
+            lega = qeleg(2, 2, fac * np.ones(lmax + 1, dtype=float))
+            legb = qeleg(2, -1,  0.5 * _sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clee)
             qes.append(qe(lega, legb, cL_out))
 
-            lega = qeleg(2, 2, np.ones(lmax + 1, dtype=float))
+            lega = qeleg(2, 2,  fac *np.ones(lmax + 1, dtype=float))
             legb = qeleg(-2, -1, 0.5 * _sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clee)
             qes.append(qe(lega, legb, cL_out))
 
-            lega = qeleg(-2, -2, np.ones(lmax + 1, dtype=float))
-            legb = qeleg(2, 3, 0.5 * _sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clee)
+            lega = qeleg(-2, -2, fac *  np.ones(lmax + 1, dtype=float))
+            legb = qeleg(2, 3,0.5 * _sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clee)
             qes.append(qe(lega, legb, cL_out))
 
-            lega = qeleg(-2, -2, np.ones(lmax + 1, dtype=float))
+            lega = qeleg(-2, -2, fac *  np.ones(lmax + 1, dtype=float))
             legb = qeleg(-2, 3, 0.5 * _sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clee)
             qes.append(qe(lega, legb, cL_out))
 
@@ -139,6 +141,7 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
             clte = -cls_weight['te'][:lmax + 1] #: _0X_{lm} convention
 
             qes = get_qe_sepTP('ptt', lmax, cls_weight) + get_qe_sepTP('p_p', lmax, cls_weight)
+
             # Here used Wiener-filtered T contains c_\ell^{TE} \bar E
             lega = qeleg( 0, 0,  np.ones(lmax + 1, dtype=float))
             legb = qeleg( 2, 1,  -0.5 * np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * clte)
@@ -169,8 +172,31 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
     else:
         assert 0
 
+class resp_lib_simple:
+    def __init__(self, lib_dir, lmax_qe, cls_weight, cls_cmb, fal):
+        self.lmax_qe = lmax_qe
+        self.cls_weight = cls_weight
+        self.cls_cmb = cls_cmb
+        self.fal = fal
+        self.lib_dir = lib_dir
+        self.npdb = sql.npdb(os.path.join(lib_dir))
+        #FIXME: hashdict
 
-def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal, fal_leg2=None):
+    def get_response(self, k, source, recache=False):
+        #FIXME: GC
+        fn = 'qe_' + k[1:] + '_source_%s'%source + ('_G' if k[0] != 'x' else '_C')
+        if self.npdb.get(fn) is None or recache:
+            G, C = get_response_sepTP(k, self.lmax_qe, source, self.cls_weight, self.cls_cmb, self.fal)
+            if recache and self.npdb.get(fn) is not None:
+                self.npdb.remove('qe_' + k[1:] + '_source_%s' % source + '_G')
+                self.npdb.remove('qe_' + k[1:] + '_source_%s' % source + '_C')
+            self.npdb.add('qe_' + k[1:] + '_source_%s' % source + '_G', G)
+            self.npdb.add('qe_' + k[1:] + '_source_%s' % source + '_C', C)
+        return self.npdb.get(fn)
+
+
+
+def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal, fal_leg2=None, ret_terms=False):
     lmax_source = lmax_qe # I think that's fine as long as we the same lmax on both legs.
     qes = get_qe_sepTP(qe_key, lmax_qe, cls_weight)
     resps = get_resp_legs(source, lmax_source)
@@ -179,7 +205,7 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal, fal_le
     fal_leg2 = fal if fal_leg2 is None else fal_leg2
     #FIXME: fix all lmaxs etc
     Rggcc = np.zeros((2, lmax_qlm + 1), dtype=float)
-    print(len(qes))
+    terms = []
     for qe in qes: # loop over all quadratic terms in estimator
 
         si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
@@ -205,6 +231,10 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal, fal_le
             Rts_mr = get_hl(mrR * cpling * qe.leg_b.cl * flb, qe.leg_a.cl * fla, si + r, to, -si, so) * s_cL[:lmax_qlm + 1]
             gg = (Rst_mr + Rts_mr + (-1) ** r * (Rst_pr + Rts_pr)) * qe.cL[:lmax_qlm + 1]
             cc = (Rst_mr + Rts_mr - (-1) ** r * (Rst_pr + Rts_pr)) * qe.cL[:lmax_qlm + 1]
+            terms.append(Rst_mr * qe.cL[:lmax_qlm + 1])
+            terms.append(Rst_pr * qe.cL[:lmax_qlm + 1])
+            terms.append(Rts_mr * qe.cL[:lmax_qlm + 1])
+            terms.append(Rts_pr * qe.cL[:lmax_qlm + 1])
             return np.array([gg, cc])
 
         if si == 0 and ti == 0:
@@ -232,56 +262,60 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal, fal_le
             fla = fal_leg1['e'] - np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal['t']
             flb = fal_leg2['e'] - np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal['t']
             Rggcc += (-1) ** (ti + si) * prefac * add(-abs(si), -abs(ti), so, to, fla, flb)
-
-    return Rggcc
+    return Rggcc if not ret_terms else (Rggcc, terms)
 
     #FIXME: finish this:
 
-def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe):
+def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None):
     """(Semi-)Analytical noise level calculation.
 
     """
     #FIXME: works for ptt p_p p jtTP, but overall mignus sign w.r.t. PDF?
-    #FIXME: actually it doesnt, by 20% or so ??
-    qes1 = get_qe_jtp(qe_key1, lmax_qe, cls_weights)
-    qes2 = get_qe_jtp(qe_key2, lmax_qe, cls_weights)
-    G_N0 = np.zeros(2 * lmax_qe + 1)
-    C_N0 = np.zeros(2 * lmax_qe + 1)
+    qes1 = get_qe_sepTP(qe_key1, lmax_qe, cls_weights)
+    qes2 = get_qe_sepTP(qe_key2, lmax_qe, cls_weights)
+    G_N0 = np.zeros(2 * lmax_qe + 1, dtype=float)
+    C_N0 = np.zeros(2 * lmax_qe + 1, dtype=float)
 
     def _joincls(cls_list):
         lmaxp1 = np.min([len(cl) for cl in cls_list])
         return np.prod(np.array([cl[:lmaxp1] for cl in cls_list]), axis=0)
-
+    terms = []
     for qe1 in qes1:
         for qe2 in qes2:
             si, ti, ui, vi = (qe1.leg_a.spin_in, qe1.leg_b.spin_in, qe2.leg_a.spin_in, qe2.leg_b.spin_in)
             so, to, uo, vo = (qe1.leg_a.spin_ou, qe1.leg_b.spin_ou, qe2.leg_a.spin_ou, qe2.leg_b.spin_ou)
             assert so + to >= 0
             assert uo + vo >= 0
+
+            sgn = -1
+            sgn2 = 1
+            sgn_R = (-1) ** (uo + vo + ui + vi)
+            clsu = _joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(si, -ui, cls_ivfs)])
+            cltv = _joincls([qe1.leg_b.cl, qe2.leg_b.cl, get_coupling(ti, -vi, cls_ivfs)])
+            R_sutv = sgn_R * _joincls([get_hl(clsu ,cltv, sgn*uo, sgn2*so, sgn*vo, sgn2*to), qe1.cL, qe2.cL])
+
+            clsv = _joincls([qe1.leg_a.cl, qe2.leg_b.cl, get_coupling(si, -vi, cls_ivfs)])
+            cltu = _joincls([qe1.leg_b.cl, qe2.leg_a.cl, get_coupling(ti, -ui, cls_ivfs)])
+            R_svtu = sgn_R * _joincls([get_hl(clsv ,cltu, sgn*vo, sgn2*so, sgn*uo, sgn2*to), qe1.cL, qe2.cL])
+
+            # s and t goes to -s, -t. We have mabe a minus sign (-1)**(si + so + ti + to) on top from the change in weights
+            sgnms = (-1) ** (si + so)
+            sgnmt = (-1) ** (ti + to)
+            clmsu = _joincls([qe1.leg_a.cl * sgnms, qe2.leg_a.cl, get_coupling(-si, -ui, cls_ivfs)])
+            clmtv = _joincls([qe1.leg_b.cl * sgnmt, qe2.leg_b.cl, get_coupling(-ti, -vi, cls_ivfs)])
+            R_msumtv =  sgn_R * _joincls([get_hl(clmsu ,clmtv, sgn*uo, -sgn2*so, sgn*vo, -sgn2*to), qe1.cL, qe2.cL])
+
+            clmsv = _joincls([qe1.leg_a.cl * sgnms, qe2.leg_b.cl, get_coupling(-si, -vi, cls_ivfs)])
+            clmtu = _joincls([qe1.leg_b.cl * sgnmt, qe2.leg_a.cl, get_coupling(-ti, -ui, cls_ivfs)])
+            R_msvmtu = sgn_R * _joincls([get_hl(clmsv ,clmtu, sgn*vo, -sgn2*so, sgn*uo, -sgn2*to), qe1.cL, qe2.cL])
         
-            clsu = _joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(si, ui, cls_ivfs)])
-            cltv = _joincls([qe1.leg_b.cl, qe2.leg_b.cl, get_coupling(ti, vi, cls_ivfs)])
-            R_sutv = (-1) ** (uo + vo + ui + vi) * _joincls([get_hl(clsu ,cltv, -uo, so, -vo, to), qe1.cL, qe2.cL])
-        
-            clsv = _joincls([qe1.leg_a.cl, qe2.leg_b.cl, get_coupling(si, vi, cls_ivfs)])
-            cltu = _joincls([qe1.leg_b.cl, qe2.leg_a.cl, get_coupling(ti, ui, cls_ivfs)])
-            R_svtu = (-1) ** (vo + uo+ vi + ui) * _joincls([get_hl(clsv ,cltu, -vo, so, -uo, to), qe1.cL, qe2.cL])
-        
-            clmsu = _joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(-si, ui, cls_ivfs)])
-            clmtv = _joincls([qe1.leg_b.cl, qe2.leg_b.cl, get_coupling(-ti, vi, cls_ivfs)])
-            R_msumtv = (-1) ** (uo + vo+ vi + ui) * _joincls([get_hl(clmsu ,clmtv, -uo, -so, -vo, -to), qe1.cL, qe2.cL])
-        
-            clmsv = _joincls([qe1.leg_a.cl, qe2.leg_b.cl, get_coupling(-si, vi, cls_ivfs)])
-            clmtu = _joincls([qe1.leg_b.cl, qe2.leg_a.cl, get_coupling(-ti, ui, cls_ivfs)])
-            R_msvmtu = (-1) ** (vo + uo+ vi + ui) * _joincls([get_hl(clmsv ,clmtu, -vo, -so, -uo, -to), qe1.cL, qe2.cL])
-        
-            G_N0 =  0.5 *  (R_sutv + R_svtu)
+            G_N0 +=  0.5 *  (R_sutv + R_svtu)
             G_N0 += 0.5 * (-1) ** (to + so) * (R_msumtv  + R_msvmtu)
         
             C_N0 -= 0.5 *  (R_sutv + R_svtu)
             C_N0 += 0.5 * (-1) ** (to + so) * (R_msumtv  + R_msvmtu)
-
-    return G_N0, C_N0
+            terms = terms + [ 0.5 *R_sutv,  0.5 *R_svtu,  0.5 *R_msumtv,  0.5 *R_msvmtu]
+    return (G_N0, C_N0) if not ret_terms else (G_N0, C_N0, terms)
 
 GL_cache = {}
 
@@ -291,6 +325,7 @@ def get_hl(cl1, cl2, sp1, s1, sp2, s2):
     lmax1 = len(cl1) - 1
     lmax2 = len(cl2) - 1
     lmaxout = lmax1 + lmax2
+    #FIXME:
     lmax_GL = lmax1 + lmax2 + 1
     if not 'xg wg %s' % lmax_GL in GL_cache.keys():
         GL_cache['xg wg %s' % lmax_GL] = gauleg.get_xgwg(lmax_GL)
