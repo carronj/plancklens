@@ -3,7 +3,6 @@
 This module collects a couple of fast (non-iterative) filtering methods.
 
 Todo:
-    * Full-sky isotropic
     * doc
     * libaml missing
 """
