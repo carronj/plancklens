@@ -184,6 +184,7 @@ class resp_lib_simple:
 
     def get_response(self, k, source, recache=False):
         #FIXME: GC
+        assert k[0] in ['p', 'x'], 'FIXME'
         fn = 'qe_' + k[1:] + '_source_%s'%source + ('_G' if k[0] != 'x' else '_C')
         if self.npdb.get(fn) is None or recache:
             G, C = get_response_sepTP(k, self.lmax_qe, source, self.cls_weight, self.cls_cmb, self.fal)
@@ -192,6 +193,30 @@ class resp_lib_simple:
                 self.npdb.remove('qe_' + k[1:] + '_source_%s' % source + '_C')
             self.npdb.add('qe_' + k[1:] + '_source_%s' % source + '_G', G)
             self.npdb.add('qe_' + k[1:] + '_source_%s' % source + '_C', C)
+        return self.npdb.get(fn)
+
+class nhl_lib_simple:
+    """Analytical unnormalized N0 library. """
+    def __init__(self, lib_dir, lmax_qe, cls_weight, cls_ivfs):
+        self.lmax_qe = lmax_qe
+        self.cls_weight = cls_weight
+        self.cls_ivfs = cls_ivfs
+        self.lib_dir = lib_dir
+        self.npdb = sql.npdb(os.path.join(lib_dir))
+        #FIXME: hashdict
+
+    def get_nhl(self, k1, k2, recache=False):
+        #FIXME: GC
+        assert k1[0] in ['p', 'x'] and k2[0] in ['p', 'x'], 'FIXME'
+        if k1[0] != k2[0]: return np.zeros(2 * self.lmax_qe + 1, dtype=float)
+        fn = 'anhl_qe_' + k1[1:] + '_qe_'%k2[1:] + ('_G' if k1[0] != 'x' else '_C')
+        if self.npdb.get(fn) is None or recache:
+            G, C = get_nhl(k1, k2, self.cls_weight, self.cls_ivfs, self.lmax_qe)
+            if recache and self.npdb.get(fn) is not None:
+                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_'%k2[1:] + '_G')
+                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_'%k2[1:] + '_C')
+            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_'%k2[1:] + '_G', G)
+            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_'%k2[1:] + '_C', C)
         return self.npdb.get(fn)
 
 
@@ -275,7 +300,7 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None):
     qes2 = get_qe_sepTP(qe_key2, lmax_qe, cls_weights)
     G_N0 = np.zeros(2 * lmax_qe + 1, dtype=float)
     C_N0 = np.zeros(2 * lmax_qe + 1, dtype=float)
-
+    sgn_fix = -1
     def _joincls(cls_list):
         lmaxp1 = np.min([len(cl) for cl in cls_list])
         return np.prod(np.array([cl[:lmaxp1] for cl in cls_list]), axis=0)
@@ -309,11 +334,11 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None):
             clmtu = _joincls([qe1.leg_b.cl * sgnmt, qe2.leg_a.cl, get_coupling(-ti, -ui, cls_ivfs)])
             R_msvmtu = sgn_R * _joincls([get_hl(clmsv ,clmtu, sgn*vo, -sgn2*so, sgn*uo, -sgn2*to), qe1.cL, qe2.cL])
         
-            G_N0 +=  0.5 *  (R_sutv + R_svtu)
-            G_N0 += 0.5 * (-1) ** (to + so) * (R_msumtv  + R_msvmtu)
+            G_N0 += sgn_fix *  0.5 *  (R_sutv + R_svtu)
+            G_N0 += sgn_fix *  0.5 * (-1) ** (to + so) * (R_msumtv  + R_msvmtu)
         
-            C_N0 -= 0.5 *  (R_sutv + R_svtu)
-            C_N0 += 0.5 * (-1) ** (to + so) * (R_msumtv  + R_msvmtu)
+            C_N0 -= sgn_fix * 0.5 *  (R_sutv + R_svtu)
+            C_N0 += sgn_fix * 0.5 * (-1) ** (to + so) * (R_msumtv  + R_msvmtu)
             terms = terms + [ 0.5 *R_sutv,  0.5 *R_svtu,  0.5 *R_msumtv,  0.5 *R_msvmtu]
     return (G_N0, C_N0) if not ret_terms else (G_N0, C_N0, terms)
 
