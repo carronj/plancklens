@@ -209,14 +209,14 @@ class nhl_lib_simple:
         #FIXME: GC
         assert k1[0] in ['p', 'x'] and k2[0] in ['p', 'x'], 'FIXME'
         if k1[0] != k2[0]: return np.zeros(2 * self.lmax_qe + 1, dtype=float)
-        fn = 'anhl_qe_' + k1[1:] + '_qe_'%k2[1:] + ('_G' if k1[0] != 'x' else '_C')
+        fn = 'anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + ('_G' if k1[0] != 'x' else '_C')
         if self.npdb.get(fn) is None or recache:
             G, C = get_nhl(k1, k2, self.cls_weight, self.cls_ivfs, self.lmax_qe)
             if recache and self.npdb.get(fn) is not None:
-                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_'%k2[1:] + '_G')
-                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_'%k2[1:] + '_C')
-            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_'%k2[1:] + '_G', G)
-            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_'%k2[1:] + '_C', C)
+                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_G')
+                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_C')
+            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_G', G)
+            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_C', C)
         return self.npdb.get(fn)
 
 
