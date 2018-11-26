@@ -137,8 +137,9 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
 
             return qes
         elif qe_key in ['p', 'x']:
+            #FIXME: signs...
             cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
-            clte = -cls_weight['te'][:lmax + 1] #: _0X_{lm} convention
+            clte = cls_weight['te'][:lmax + 1] #: _0X_{lm} convention
 
             qes = get_qe_sepTP('ptt', lmax, cls_weight) + get_qe_sepTP('p_p', lmax, cls_weight)
 
@@ -151,12 +152,12 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
 
             # E-mode contains C_\ell^{te} \bar T
             lega = qeleg(2,  2, np.ones(lmax + 1, dtype=float))
-            legb = qeleg(0, -1, _sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clte)
+            legb = qeleg(0, -1, -_sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clte)
             qes.append(qe(lega, legb, cL_out))
 
 
             lega = qeleg(-2, -2, np.ones(lmax + 1, dtype=float))
-            legb = qeleg( 0,  3, _sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clte)
+            legb = qeleg( 0,  3,-_sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clte)
             qes.append(qe(lega, legb, cL_out))
 
             return qes
@@ -221,13 +222,12 @@ class nhl_lib_simple:
 
 
 
-def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal, fal_leg2=None, ret_terms=False):
+def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, ret_terms=False):
     lmax_source = lmax_qe # I think that's fine as long as we the same lmax on both legs.
     qes = get_qe_sepTP(qe_key, lmax_qe, cls_weight)
     resps = get_resp_legs(source, lmax_source)
     lmax_qlm = 2 * lmax_qe
-    fal_leg1 = fal
-    fal_leg2 = fal if fal_leg2 is None else fal_leg2
+    fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
     #FIXME: fix all lmaxs etc
     Rggcc = np.zeros((2, lmax_qlm + 1), dtype=float)
     terms = []
@@ -241,6 +241,7 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal, fal_le
         def add(si, ti, so, to, fla, flb):
             if np.all(fla == 0.) or np.all(flb == 0.):
                 return np.zeros((2, lmax_qlm + 1), dtype=float)
+            print 'si ti', si, ti
             si = si * -1
             ti = ti * -1 # FIXME: This seems works for Pol, but why ??? (exc. for fac of 2 in qest file)
             cpling = get_coupling(si, -ti, cls_cmb)[:lmax_qe + 1]
@@ -263,7 +264,7 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal, fal_le
             return np.array([gg, cc])
 
         if si == 0 and ti == 0:
-            Rggcc += add(si, ti, so, to, fal['t'], fal['t'])
+            Rggcc += add(si, ti, so, to, fal_leg1['t'], fal_leg2['t'])
 
         else:
             # Here we use _{\pm |s|}X = \pm^{s} 1/2 [ _{|s|} d_{lm}(f^g \pm f^c) _{|s|}d_{lm} + (-1)^{s} _{-|s|} d_{lm}(f^g \mp f^c) _{-|s|}d_{lm}
@@ -272,20 +273,20 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal, fal_le
             sgt = 1 if ti > 0 else (1 if abs(ti)%2 == 0 else -1)
 
             prefac = 0.25 * sgs * sgt
-            fla = fal_leg1['e'] + np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal['t']
-            flb = fal_leg2['e'] + np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal['t']
+            fla = fal_leg1['e'] + np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal_leg1['t']
+            flb = fal_leg2['e'] + np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal_leg2['t']
             Rggcc += prefac * add(abs(si), abs(ti), so, to, fla, flb)
 
-            fla = fal_leg1['e'] + np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal['t']
-            flb = fal_leg2['e'] - np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal['t']
+            fla = fal_leg1['e'] + np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal_leg1['t']
+            flb = fal_leg2['e'] - np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal_leg2['t']
             Rggcc += (-1) ** ti *  prefac * add(abs(si), -abs(ti), so, to, fla, flb)
 
-            fla = fal_leg1['e'] - np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal['t']
-            flb = fal_leg2['e'] + np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal['t']
+            fla = fal_leg1['e'] - np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal_leg1['t']
+            flb = fal_leg2['e'] + np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal_leg2['t']
             Rggcc += (-1) ** si * prefac * add(-abs(si), abs(ti), so, to, fla, flb)
 
-            fla = fal_leg1['e'] - np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal['t']
-            flb = fal_leg2['e'] - np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal['t']
+            fla = fal_leg1['e'] - np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal_leg1['t']
+            flb = fal_leg2['e'] - np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal_leg2['t']
             Rggcc += (-1) ** (ti + si) * prefac * add(-abs(si), -abs(ti), so, to, fla, flb)
     return Rggcc if not ret_terms else (Rggcc, terms)
 
@@ -300,7 +301,6 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None):
     qes2 = get_qe_sepTP(qe_key2, lmax_qe, cls_weights)
     G_N0 = np.zeros(2 * lmax_qe + 1, dtype=float)
     C_N0 = np.zeros(2 * lmax_qe + 1, dtype=float)
-    sgn_fix = -1
     def _joincls(cls_list):
         lmaxp1 = np.min([len(cl) for cl in cls_list])
         return np.prod(np.array([cl[:lmaxp1] for cl in cls_list]), axis=0)
@@ -314,6 +314,8 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None):
 
             sgn = -1
             sgn2 = 1
+            sgn_fix = -1
+
             sgn_R = (-1) ** (uo + vo + ui + vi)
             clsu = _joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(si, -ui, cls_ivfs)])
             cltv = _joincls([qe1.leg_b.cl, qe2.leg_b.cl, get_coupling(ti, -vi, cls_ivfs)])
