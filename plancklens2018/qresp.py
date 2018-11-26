@@ -149,14 +149,15 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
             qes.append(qe(lega, legb, cL_out))
             legb = qeleg(-2, 1,  -0.5 * np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * clte)
             qes.append(qe(lega, legb, cL_out))
-
+            #FIXME: where does this 0.5 comes about??
+            fac = 0.5
             # E-mode contains C_\ell^{te} \bar T
-            lega = qeleg(2,  2, np.ones(lmax + 1, dtype=float))
+            lega = qeleg(2,  2, fac * np.ones(lmax + 1, dtype=float))
             legb = qeleg(0, -1, -_sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clte)
             qes.append(qe(lega, legb, cL_out))
 
 
-            lega = qeleg(-2, -2, np.ones(lmax + 1, dtype=float))
+            lega = qeleg(-2, -2, fac * np.ones(lmax + 1, dtype=float))
             legb = qeleg( 0,  3,-_sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clte)
             qes.append(qe(lega, legb, cL_out))
 
