@@ -12,26 +12,47 @@ def get_Pn(N, x, alpha, beta, norm = False):
     Normalized to get orthonormal Poly. The output is (N + 1, Nx) shaped.
 
     """
-    x =  np.array(x)
-    Pn = np.ones(x.size,dtype = float)
-    if N == 0 : return Pn
-    res = np.zeros( (N + 1,x.size))
-    Pn1 =  0.5 * (2 * (alpha + 1) +  (alpha + beta + 2) * (x - 1))
-    res[0,:] = Pn
-    res[1,:] = Pn1
-    if N == 1 : return res
-    alfbet = alpha + beta
-    for I in range(1,N) :
-        n2_ab2 = 2 * I  + alfbet  # 2(I + 1) + a + b - 2
-        a = 2 * (I + 1) * (I + 1 + alfbet) * n2_ab2
-        res[I + 1,:] = ( ((n2_ab2 + 1)* ( (n2_ab2 + 2) * (n2_ab2)*x + alpha ** 2 - beta ** 2 ))*res[I,:]
-                         - 2 * (I + alpha)*(I + beta) * (n2_ab2 + 2)*res[I-1,:])/a
+    res = _get_Pn_weave(N, x , alpha, beta)
     if not norm :
         return res
     lnnorm = gammaln(np.arange(1,N + 2,dtype = float) + alpha) + gammaln(np.arange(1,N + 2,dtype = float) + beta) \
           - gammaln(np.arange(1,N + 2,dtype = float) + alpha + beta) - gammaln(np.arange(1,N + 2,dtype = float))
     lnnorm += (alpha + beta + 1)*np.log(2.) - np.log(2 * np.arange(N + 1,dtype = float) + alpha + beta + 1)
     return res * np.outer(np.exp(-0.5 * lnnorm),np.ones(x.shape))
+
+def _get_Pn_weave(N, x, alpha, beta):
+    Pn = r"""
+        double alfbet, a2, b2, n2_ab2, norm;
+        
+        alfbet= alpha + beta;
+        a2 = alpha * alpha;
+        b2 = beta * beta;
+        
+        for (int ix = 0; ix < nx; ix++){
+            ret[ix] = 1.;
+            }
+        if (n > 0){
+            for (int ix = 0;ix < nx; ix++) {
+                ret[nx + ix] =  0.5 * (2 * (alpha + 1) +  (alfbet + 2) * (x[ix] - 1));
+                }
+        }
+        for (int in = 1; in < n; in++) {
+            n2_ab2 = 2 * in + alfbet;
+            norm = 2 * (in + 1) * (in + 1 + alfbet) * n2_ab2;
+            for (int ix = 0; ix < nx; ix++) { 
+                 ret[(in + 1) * nx + ix] = (((n2_ab2 + 1.) * ((n2_ab2 + 2.) * n2_ab2 * x[ix] + a2 - b2)) * ret[ in  * nx + ix] - 2 * ( in + alpha) * (in + beta) * (n2_ab2 + 2) * ret[(in - 1) * nx + ix]) / norm;
+            }
+        }
+    """
+    x =  np.array(x)
+    alpha = float(alpha)
+    beta = float(beta)
+    ret = np.zeros((N + 1, len(x)), dtype=float)
+    nx = int(ret.shape[1])
+    n = int(N)
+    weave.inline(Pn, ['x', 'ret', 'alpha', 'beta','n', 'nx'], headers = ["<stdlib.h>","<math.h>"])
+    return ret
+
 
 def get_rspace(cl, cost, mp, m):
     """ Wigner corr. fct. $\\sum_l c_l (2l + 1) / 4\\pi d^l_{m'm}(\\cos \\theta)$ from its harmonic series. """
