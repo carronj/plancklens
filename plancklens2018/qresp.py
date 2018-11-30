@@ -116,48 +116,44 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
             clee = cls_weight['ee'][:lmax + 1]
             clbb = cls_weight['bb'][:lmax + 1]
             assert np.all(clbb == 0.), 'not implemented (but easy)'
-            #FIXME: where does this 0.5 comes about??
-            fac = 0.5
             # E-part. G = -1/2 _{2}P - 1/2 _{-2}P
-            lega = qeleg(2, 2, fac * np.ones(lmax + 1, dtype=float))
+            lega = qeleg(2, 2, 0.5 * np.ones(lmax + 1, dtype=float))
             legb = qeleg(2, -1,  0.5 * _sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clee)
             qes.append(qe(lega, legb, cL_out))
 
-            lega = qeleg(2, 2,  fac *np.ones(lmax + 1, dtype=float))
+            lega = qeleg(2, 2,  0.5 *np.ones(lmax + 1, dtype=float))
             legb = qeleg(-2, -1, 0.5 * _sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clee)
             qes.append(qe(lega, legb, cL_out))
 
-            lega = qeleg(-2, -2, fac *  np.ones(lmax + 1, dtype=float))
+            lega = qeleg(-2, -2, 0.5 *  np.ones(lmax + 1, dtype=float))
             legb = qeleg(2, 3,0.5 * _sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clee)
             qes.append(qe(lega, legb, cL_out))
 
-            lega = qeleg(-2, -2, fac *  np.ones(lmax + 1, dtype=float))
+            lega = qeleg(-2, -2, 0.5 *  np.ones(lmax + 1, dtype=float))
             legb = qeleg(-2, 3, 0.5 * _sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clee)
             qes.append(qe(lega, legb, cL_out))
 
             return qes
         elif qe_key in ['p', 'x']:
-            #FIXME: signs...
             cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
             clte = cls_weight['te'][:lmax + 1] #: _0X_{lm} convention
 
             qes = get_qe_sepTP('ptt', lmax, cls_weight) + get_qe_sepTP('p_p', lmax, cls_weight)
 
-            # Here used Wiener-filtered T contains c_\ell^{TE} \bar E
+            # Here Wiener-filtered T contains c_\ell^{TE} \bar E
             lega = qeleg( 0, 0,  np.ones(lmax + 1, dtype=float))
             legb = qeleg( 2, 1,  -0.5 * np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * clte)
             qes.append(qe(lega, legb, cL_out))
             legb = qeleg(-2, 1,  -0.5 * np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * clte)
             qes.append(qe(lega, legb, cL_out))
-            #FIXME: where does this 0.5 comes about??
-            fac = 0.5
+
             # E-mode contains C_\ell^{te} \bar T
-            lega = qeleg(2,  2, fac * np.ones(lmax + 1, dtype=float))
+            lega = qeleg(2,  2, 0.5 * np.ones(lmax + 1, dtype=float))
             legb = qeleg(0, -1, -_sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clte)
             qes.append(qe(lega, legb, cL_out))
 
 
-            lega = qeleg(-2, -2, fac * np.ones(lmax + 1, dtype=float))
+            lega = qeleg(-2, -2, 0.5 * np.ones(lmax + 1, dtype=float))
             legb = qeleg( 0,  3,-_sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clte)
             qes.append(qe(lega, legb, cL_out))
 
@@ -183,6 +179,7 @@ class resp_lib_simple:
         self.lib_dir = lib_dir
         self.npdb = sql.npdb(os.path.join(lib_dir))
         #FIXME: hashdict
+
 
     def get_response(self, k, source, recache=False):
         #FIXME: GC
@@ -244,7 +241,7 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, f
                 return np.zeros((2, lmax_qlm + 1), dtype=float)
             print 'si ti', si, ti
             si = si * -1
-            ti = ti * -1 # FIXME: This seems works for Pol, but why ??? (exc. for fac of 2 in qest file)
+            ti = ti * -1 # FIXME: why this sign flip here?
             cpling = get_coupling(si, -ti, cls_cmb)[:lmax_qe + 1]
 
             r, prR, mrR, s_cL = resps[-ti]  # There should always be a single term here.
@@ -269,7 +266,7 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, f
 
         else:
             # Here we use _{\pm |s|}X = \pm^{s} 1/2 [ _{|s|} d_{lm}(f^g \pm f^c) _{|s|}d_{lm} + (-1)^{s} _{-|s|} d_{lm}(f^g \mp f^c) _{-|s|}d_{lm}
-            #FIXME
+            #TODO: can simplify if one spin is zero
             sgs = 1 if si > 0 else (1 if abs(si)%2 == 0 else -1)
             sgt = 1 if ti > 0 else (1 if abs(ti)%2 == 0 else -1)
 
@@ -344,6 +341,44 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None):
             C_N0 += sgn_fix * 0.5 * (-1) ** (to + so) * (R_msumtv  + R_msvmtu)
             terms = terms + [ 0.5 *R_sutv,  0.5 *R_svtu,  0.5 *R_msumtv,  0.5 *R_msvmtu]
     return (G_N0, C_N0) if not ret_terms else (G_N0, C_N0, terms)
+
+
+def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, ret_terms=None):
+        assert qe_key in ['p_p', 'ptt'], qe_key
+        GL = np.zeros(2 * lmax_qe + 1, dtype=float)
+        CL = np.zeros(2 * lmax_qe + 1, dtype=float)
+        l2p1 = 2 * np.arange(lmax_qe + 1) + 1.
+        cst_term = 0.
+
+        if qe_key == 'ptt':
+            for s1 in [0]:
+                for s2 in [0]:
+                    cl1 = cls_ivfs['tt'][:lmax_qe + 1]
+                    cl2 = cls_cmb['tt'][:lmax_qe + 1]
+                    for i in [-1, 1]:
+                        ai = get_alpha_lower(s2, lmax_qe) if i == 1 else get_alpha_raise(s2, lmax_qe)
+                        for j in [-1, 1]:
+                            aj = get_alpha_lower(s1, lmax_qe) if j == 1 else get_alpha_raise(s1, lmax_qe)
+                            hL = (-1) ** (s1 + s2) * get_hl(cl1, cl2 * ai * aj, -s1, -s2, s1-j , s2-i)
+                            GL += (1  if i == j else -1) * hL
+                            CL += hL
+
+            # constant term:
+            for s1 in [0]:
+                a1p1 = get_alpha_lower(s1, lmax_qe)
+                a1m1 = get_alpha_raise(s1, lmax_qe)
+                for s2 in [0]:
+                    a2p1 = get_alpha_lower(s2, lmax_qe)
+                    a2m1 = get_alpha_raise(s2, lmax_qe)
+
+                    cl_cst = cls_ivfs['tt'][:lmax_qe + 1] * cls_cmb['tt'][:lmax_qe + 1]
+                    #FIXME Wrong!  should have a2m1 a2m2p1...
+                    cst_term += 2 * (-1) ** s2 * np.sum(l2p1 * cl_cst * a2m1 * a2p1)
+                    cst_term += 2 * (-1) ** s1 * np.sum(l2p1 * cl_cst * a1m1 * a1p1)
+
+        prefac = 0.125
+        cst_term *= (1. / 4. / np.pi) / 16.
+        return GL * prefac, CL * prefac, cst_term
 
 GL_cache = {}
 
