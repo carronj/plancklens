@@ -345,7 +345,10 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None):
 
 def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, ret_terms=None):
         #FIXME: It looks like compated to flat-sky calc, the output (non-cst) misses a factor of -2, and the constant
-        # terms a factor of 4!
+        # terms a factor of -4! With these factors, the cst term is also exactly the inobs. curl l=1 term.
+        # OK: one factor of two because g1_MF = 2 * d2/da da* f + 2 * d2 / da*da2. A factor of 2 still missing in the cst term.
+        # The cst is to be added with a + sign.
+        # Overall sign still a to double-check.
         assert qe_key in ['p_p', 'ptt'], qe_key
         GL = np.zeros(2 * lmax_qe + 1, dtype=float)
         CL = np.zeros(2 * lmax_qe + 1, dtype=float)
@@ -367,14 +370,17 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, ret_terms=None):
 
             # constant term:
             for s1 in [0]:
-                as1 = get_alpha_raise(s1, lmax_qe) * get_alpha_raise(s1 + 1, lmax_qe)
-                for s2 in [0]:
-                    as2 = get_alpha_lower(s2, lmax_qe) * get_alpha_lower(s2 - 1, lmax_qe)
-                    cl_cst = cls_ivfs['tt'][:lmax_qe + 1] * cls_cmb['tt'][:lmax_qe + 1]
-                    cst_term += 0.5 * (-1) ** s2 * np.sum(l2p1 * cl_cst * as2) /4 /np.pi
-                    cst_term += 0.5 * (-1) ** s1 * np.sum(l2p1 * cl_cst * as1) /4 /np.pi
+                as1_rl = get_alpha_raise(s1, lmax_qe) * get_alpha_lower(s1 + 1, lmax_qe)
+                as1_lr = get_alpha_lower(s1, lmax_qe) * get_alpha_raise(s1 - 1, lmax_qe)
 
-        prefac = 0.125 * np.arange(2 * lmax_qe + 1) * np.arange(1, 2*lmax_qe + 2)
+                for s2 in [0]:
+                    as2_rl = get_alpha_lower(s2, lmax_qe) * get_alpha_raise(s2 - 1, lmax_qe)
+                    as2_lr = get_alpha_raise(s2, lmax_qe) * get_alpha_lower(s2 + 1, lmax_qe)
+
+                    cl_cst = cls_ivfs['tt'][:lmax_qe + 1] * cls_cmb['tt'][:lmax_qe + 1]
+                    cst_term += 0.5 * (-1) ** s2 * np.sum(l2p1 * cl_cst * (as2_lr + as2_rl)) /4. /np.pi
+                    cst_term += 0.5 * (-1) ** s1 * np.sum(l2p1 * cl_cst * (as1_lr + as1_rl)) /4. /np.pi
+        prefac = 0.25 * np.arange(2 * lmax_qe + 1) * np.arange(1, 2 * lmax_qe + 2)
         return GL * prefac, CL * prefac, prefac * cst_term
 
 GL_cache = {}
