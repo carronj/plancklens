@@ -344,41 +344,38 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None):
 
 
 def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, ret_terms=None):
+        #FIXME: It looks like compated to flat-sky calc, the output (non-cst) misses a factor of -2, and the constant
+        # terms a factor of 4!
         assert qe_key in ['p_p', 'ptt'], qe_key
         GL = np.zeros(2 * lmax_qe + 1, dtype=float)
         CL = np.zeros(2 * lmax_qe + 1, dtype=float)
         l2p1 = 2 * np.arange(lmax_qe + 1) + 1.
         cst_term = 0.
-
         if qe_key == 'ptt':
+            lmax_cmb = min(len(cls_cmb['tt']) - 1, lmax_qe + 2 * lmax_qe)
             for s1 in [0]:
                 for s2 in [0]:
                     cl1 = cls_ivfs['tt'][:lmax_qe + 1]
-                    cl2 = cls_cmb['tt'][:lmax_qe + 1]
+                    cl2 = cls_cmb['tt'][:lmax_cmb + 1]
                     for i in [-1, 1]:
-                        ai = get_alpha_lower(s2, lmax_qe) if i == 1 else get_alpha_raise(s2, lmax_qe)
+                        ai = get_alpha_lower(s2, lmax_cmb) if i == 1 else get_alpha_raise(s2, lmax_cmb)
                         for j in [-1, 1]:
-                            aj = get_alpha_lower(s1, lmax_qe) if j == 1 else get_alpha_raise(s1, lmax_qe)
-                            hL = (-1) ** (s1 + s2) * get_hl(cl1, cl2 * ai * aj, -s1, -s2, s1-j , s2-i)
+                            aj = get_alpha_lower(s1, lmax_cmb) if j == 1 else get_alpha_raise(s1, lmax_cmb)
+                            hL = (-1) ** (s1 + s2) * get_hl(cl1, cl2 * ai * aj, -s1, -s2, s1-j , s2-i)[:2 * lmax_qe + 1]
                             GL += (1  if i == j else -1) * hL
                             CL += hL
 
             # constant term:
             for s1 in [0]:
-                a1p1 = get_alpha_lower(s1, lmax_qe)
-                a1m1 = get_alpha_raise(s1, lmax_qe)
+                as1 = get_alpha_raise(s1, lmax_qe) * get_alpha_raise(s1 + 1, lmax_qe)
                 for s2 in [0]:
-                    a2p1 = get_alpha_lower(s2, lmax_qe)
-                    a2m1 = get_alpha_raise(s2, lmax_qe)
-
+                    as2 = get_alpha_lower(s2, lmax_qe) * get_alpha_lower(s2 - 1, lmax_qe)
                     cl_cst = cls_ivfs['tt'][:lmax_qe + 1] * cls_cmb['tt'][:lmax_qe + 1]
-                    #FIXME Wrong!  should have a2m1 a2m2p1...
-                    cst_term += 2 * (-1) ** s2 * np.sum(l2p1 * cl_cst * a2m1 * a2p1)
-                    cst_term += 2 * (-1) ** s1 * np.sum(l2p1 * cl_cst * a1m1 * a1p1)
+                    cst_term += 0.5 * (-1) ** s2 * np.sum(l2p1 * cl_cst * as2) /4 /np.pi
+                    cst_term += 0.5 * (-1) ** s1 * np.sum(l2p1 * cl_cst * as1) /4 /np.pi
 
-        prefac = 0.125
-        cst_term *= (1. / 4. / np.pi) / 16.
-        return GL * prefac, CL * prefac, cst_term
+        prefac = 0.125 * np.arange(2 * lmax_qe + 1) * np.arange(1, 2*lmax_qe + 2)
+        return GL * prefac, CL * prefac, prefac * cst_term
 
 GL_cache = {}
 
