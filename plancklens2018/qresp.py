@@ -220,39 +220,35 @@ class nhl_lib_simple:
 
 
 
-def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, ret_terms=False):
+def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None, ret_terms=False):
+    #FIXME Curl lensign l=1 response non-zero
     lmax_source = lmax_qe # I think that's fine as long as we the same lmax on both legs.
     qes = get_qe_sepTP(qe_key, lmax_qe, cls_weight)
     resps = get_resp_legs(source, lmax_source)
-    lmax_qlm = 2 * lmax_qe
+    lmax_qlm= 2 * lmax_qe if lmax_out is None else lmax_out
     fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
-    #FIXME: fix all lmaxs etc
-    Rggcc = np.zeros((2, lmax_qlm + 1), dtype=float)
+    Rggcc = np.zeros((2, lmax_out+ 1), dtype=float)
     terms = []
     for qe in qes: # loop over all quadratic terms in estimator
-
         si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
         so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
-        print(si, ti)
-
         # Rst,r involves R^r, -ti}
         def add(si, ti, so, to, fla, flb):
             if np.all(fla == 0.) or np.all(flb == 0.):
                 return np.zeros((2, lmax_qlm + 1), dtype=float)
-            print 'si ti', si, ti
             si = si * -1
             ti = ti * -1 # FIXME: why this sign flip here?
             cpling = get_coupling(si, -ti, cls_cmb)[:lmax_qe + 1]
 
             r, prR, mrR, s_cL = resps[-ti]  # There should always be a single term here.
-            Rst_pr = get_hl(prR * cpling * qe.leg_a.cl * fla, qe.leg_b.cl * flb, ti - r, so, -ti, to) * s_cL[:lmax_qlm + 1]
-            Rst_mr = get_hl(mrR * cpling * qe.leg_a.cl * fla, qe.leg_b.cl * flb, ti + r, so, -ti, to) * s_cL[:lmax_qlm + 1]
+            Rst_pr = get_hl(prR * cpling * qe.leg_a.cl * fla, qe.leg_b.cl * flb, ti - r, so, -ti, to, lmax_out=lmax_qlm) * s_cL[:lmax_qlm + 1]
+            Rst_mr = get_hl(mrR * cpling * qe.leg_a.cl * fla, qe.leg_b.cl * flb, ti + r, so, -ti, to, lmax_out=lmax_qlm) * s_cL[:lmax_qlm + 1]
             # Swap s and t all over
             cpling *= (-1) ** (si - ti)
             r2, prR, mrR, s_cL = resps[-si]
             assert r2 == r, (r, r2)
-            Rts_pr = get_hl(prR * cpling * qe.leg_b.cl * flb, qe.leg_a.cl * fla, si - r, to, -si, so) * s_cL[:lmax_qlm + 1]
-            Rts_mr = get_hl(mrR * cpling * qe.leg_b.cl * flb, qe.leg_a.cl * fla, si + r, to, -si, so) * s_cL[:lmax_qlm + 1]
+            Rts_pr = get_hl(prR * cpling * qe.leg_b.cl * flb, qe.leg_a.cl * fla, si - r, to, -si, so, lmax_out=lmax_qlm) * s_cL[:lmax_qlm + 1]
+            Rts_mr = get_hl(mrR * cpling * qe.leg_b.cl * flb, qe.leg_a.cl * fla, si + r, to, -si, so, lmax_out=lmax_qlm) * s_cL[:lmax_qlm + 1]
             gg = (Rst_mr + Rts_mr + (-1) ** r * (Rst_pr + Rts_pr)) * qe.cL[:lmax_qlm + 1]
             cc = (Rst_mr + Rts_mr - (-1) ** r * (Rst_pr + Rts_pr)) * qe.cL[:lmax_qlm + 1]
             terms.append(Rst_mr * qe.cL[:lmax_qlm + 1])
@@ -343,56 +339,60 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None):
     return (G_N0, C_N0) if not ret_terms else (G_N0, C_N0, terms)
 
 
-def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, ret_terms=None):
+def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out,ret_terms=None):
         #FIXME: It looks like compated to flat-sky calc, the output (non-cst) misses a factor of -2, and the constant
         # terms a factor of -4! With these factors, the cst term is also exactly the inobs. curl l=1 term.
-        # OK: one factor of two because g1_MF = 2 * d2/da da* f + 2 * d2 / da*da2. A factor of 2 still missing in the cst term.
-        # The cst is to be added with a + sign.
+        # OK: one factor of two because factor of two g1_MF = 2 * d2/da1 da-1 a1  + 2 * d2 / da-1 da-1 a-1.
+        # The cst is to be added with a + sign. Now factor OK
         # Overall sign still a to double-check.
+
+        #FIXME: the constant term is the curl l=1 term, do the subtraction this way.
         assert qe_key in ['p_p', 'ptt'], qe_key
-        GL = np.zeros(2 * lmax_qe + 1, dtype=float)
-        CL = np.zeros(2 * lmax_qe + 1, dtype=float)
-        l2p1 = 2 * np.arange(lmax_qe + 1) + 1.
-        cst_term = 0.
+        GL = np.zeros(lmax_out + 1, dtype=float)
+        CL = np.zeros(lmax_out + 1, dtype=float)
         if qe_key == 'ptt':
-            lmax_cmb = min(len(cls_cmb['tt']) - 1, lmax_qe + 2 * lmax_qe)
-            for s1 in [0]:
-                for s2 in [0]:
-                    cl1 = cls_ivfs['tt'][:lmax_qe + 1]
-                    cl2 = cls_cmb['tt'][:lmax_cmb + 1]
+            lmax_cmb = min(len(cls_cmb['tt']) - 1, lmax_qe + lmax_out)
+            spins = [0]
+            prefac = 1.
+        elif qe_key == 'p_p':
+            lmax_cmb = min(len(cls_cmb['ee']) - 1, len(cls_cmb['bb'] -1), lmax_qe + lmax_out)
+            spins = [-2, 2]
+            prefac = 0.25
+        else:
+            assert 0, qe_key + ' not implemented'
+
+        for s1 in spins:
+            for s2 in spins:
+                cl1 = get_coupling(s1, s2, cls_ivfs)[:lmax_qe +1] * prefac
+                cl2 = get_coupling(s1, s2, cls_cmb)[:lmax_cmb +1]
+                if np.any(cl1) and np.any(cl2):
                     for i in [-1, 1]:
                         ai = get_alpha_lower(s2, lmax_cmb) if i == 1 else get_alpha_raise(s2, lmax_cmb)
                         for j in [-1, 1]:
                             aj = get_alpha_lower(s1, lmax_cmb) if j == 1 else get_alpha_raise(s1, lmax_cmb)
-                            hL = (-1) ** (s1 + s2) * get_hl(cl1, cl2 * ai * aj, -s1, -s2, s1-j , s2-i)[:2 * lmax_qe + 1]
+                            hL = (-1) ** (s1 + s2) * get_hl(cl1, cl2 * ai * aj, -s1, -s2, s1-j , s2-i, lmax_out=lmax_out)
                             GL += (1  if i == j else -1) * hL
                             CL += hL
 
-            # constant term:
-            for s1 in [0]:
-                as1_rl = get_alpha_raise(s1, lmax_qe) * get_alpha_lower(s1 + 1, lmax_qe)
-                as1_lr = get_alpha_lower(s1, lmax_qe) * get_alpha_raise(s1 - 1, lmax_qe)
-
-                for s2 in [0]:
-                    as2_rl = get_alpha_lower(s2, lmax_qe) * get_alpha_raise(s2 - 1, lmax_qe)
-                    as2_lr = get_alpha_raise(s2, lmax_qe) * get_alpha_lower(s2 + 1, lmax_qe)
-
-                    cl_cst = cls_ivfs['tt'][:lmax_qe + 1] * cls_cmb['tt'][:lmax_qe + 1]
-                    cst_term += 0.5 * (-1) ** s2 * np.sum(l2p1 * cl_cst * (as2_lr + as2_rl)) /4. /np.pi
-                    cst_term += 0.5 * (-1) ** s1 * np.sum(l2p1 * cl_cst * (as1_lr + as1_rl)) /4. /np.pi
-        prefac = 0.25 * np.arange(2 * lmax_qe + 1) * np.arange(1, 2 * lmax_qe + 2)
-        return GL * prefac, CL * prefac, prefac * cst_term
+        GL -= CL[1]
+        CL -= CL[1]
+        GL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
+        CL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
+        GLR, CLR = get_response_sepTP(qe_key, lmax_qe, 'p',cls_cmb, cls_cmb, {'t':cls_ivfs['tt'], 'e':cls_ivfs['ee'], 'b':cls_ivfs['bb']}, lmax_out=lmax_out)
+        GL -= GLR
+        CL -= CLR
+        return GL, CL, GLR, CLR
 
 GL_cache = {}
 
-def get_hl(cl1, cl2, sp1, s1, sp2, s2):
+def get_hl(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
     """Legendre coeff. of $ (\\xi_{sp1,s1} * \\xi_{sp2,s2})(\\cos \\theta)$ from their harmonic series."""
     print('get_hl::spins: ', sp1, s1, sp2, s2)
     lmax1 = len(cl1) - 1
     lmax2 = len(cl2) - 1
-    lmaxout = lmax1 + lmax2
+    lmaxout = lmax1 + lmax2 if lmax_out is None else lmax_out
     #FIXME:
-    lmax_GL = lmax1 + lmax2 + 1
+    lmax_GL = int((lmaxout + lmax1 + lmax2 + 1) * 0.5 + 1)
     if not 'xg wg %s' % lmax_GL in GL_cache.keys():
         GL_cache['xg wg %s' % lmax_GL] = gauleg.get_xgwg(lmax_GL)
     xg, wg = GL_cache['xg wg %s' % lmax_GL]
@@ -413,7 +413,7 @@ def get_alpha_lower(s, lmax):
     return ret
 
 def get_lensing_resp(s, lmax):
-    """ 1/2 1d eth X + 1/2 -1d eth X """
+    """ -1/2 1d eth X - 1/2 -1d eth X """
     return  {1: -0.5 * get_alpha_lower(s, lmax), -1: -0.5 * get_alpha_raise(s, lmax)}
 
 def get_coupling(s1, s2, cls):
@@ -421,6 +421,7 @@ def get_coupling(s1, s2, cls):
 
     Note:
         This uses the spin-field conventions where _0X_{lm} = -T_{lm}
+
     """
     if s1 < 0:
         return (-1) ** (s1 + s2) * get_coupling(-s1, -s2, cls)
