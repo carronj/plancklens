@@ -381,7 +381,7 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out,ret_terms=None):
         CL -= CL[1]
         GL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
         CL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
-        GLR, CLR = get_response_sepTP(qe_key, lmax_qe, 'p',cls_cmb, cls_cmb, {'t':cls_ivfs['tt'], 'e':cls_ivfs['ee'], 'b':cls_ivfs['bb']}, lmax_out=lmax_out)
+        GLR, CLR = get_response_sepTP(qe_key, lmax_qe, 'p',cls_cmb, cls_cmb, {'e':cls_ivfs['ee'], 'b':cls_ivfs['bb']}, lmax_out=lmax_out)
         GL -= GLR
         CL -= CLR
         return GL, CL
