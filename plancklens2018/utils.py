@@ -31,6 +31,41 @@ def alm_copy(alm, lmax=None):
                 = alm[(m * (2 * alm_lmax + 1 - m) // 2 + m):(m * (2 * alm_lmax + 1 - m) // 2 + lmax + 1)]
     return ret
 
+def alm2rlm(alm):
+    """ converts a complex alm to 'real harmonic' coefficients rlm. """
+
+    lmax = hp.Alm.getlmax(alm.size)
+    rlm = np.zeros((lmax + 1) ** 2, dtype=float)
+
+    ls = np.arange(0, lmax + 1, dtype=int)
+    l2s = ls ** 2
+    rt2 = np.sqrt(2.)
+
+    rlm[l2s] = alm[ls].real
+    for m in range(1, lmax + 1):
+        rlm[l2s[m:] + 2 * m - 1] = alm[m * (2 * lmax + 1 - m) // 2 + ls[m:]].real * rt2
+        rlm[l2s[m:] + 2 * m + 0] = alm[m * (2 * lmax + 1 - m) // 2 + ls[m:]].imag * rt2
+    return rlm
+
+
+def rlm2alm(rlm):
+    """ converts 'real harmonic' coefficients rlm to complex alm. """
+
+    lmax = int(np.sqrt(len(rlm)) - 1)
+    assert ((lmax + 1) ** 2 == len(rlm))
+
+    alm = np.zeros((lmax + 1) * (lmax + 2) // 2, dtype=complex)
+
+    ls = np.arange(0, lmax + 1, dtype=int)
+    l2s = ls ** 2
+    ir2 = 1.0 / np.sqrt(2.)
+
+    alm[ls] = rlm[l2s]
+    for m in range(1, lmax + 1):
+        alm[m * (2 * lmax + 1 - m) // 2 + ls[m:]] = (rlm[l2s[m:] + 2 * m - 1] + 1j * rlm[l2s[m:] + 2 * m + 0]) * ir2
+    return alm
+
+
 def projectmap(hpmap, lcell_amin, Npts, lon_lat= (0., -45. )):
     """ Projects portion of healpix map onto square map.
 

@@ -295,8 +295,8 @@ class cinv_p(cinv):
             print("**** cinv_p::Discarding soltn in cinv_p")
         assert len(tmap) == 2
 
-        telm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
-        tblm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
+        telm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
+        tblm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
         talm = util_alm.eblm([telm, tblm])
 
         self.chain.solve(talm, [tmap[0], tmap[1]])

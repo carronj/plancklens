@@ -196,6 +196,7 @@ class alm_filter_ninv(object):
             return alm_filter_ninv([hp.ud_grade(n, nside, power=-2) for n in self.n_inv], self.b_transf)
 
     def apply_alm(self, alm):
+        """B^dagger N^{-1} B"""
         lmax = alm.lmax
 
         hp.almxfl(alm.elm, self.b_transf, inplace=True)
