@@ -20,8 +20,8 @@ mc_sims_mf_ds = np.array([])
 mc_sims_mf_ss = np.array([])
 
 qcls_dd = qecl.library(libdir_qcls_dd, qlms.qlms_dd, qlms.qlms_dd, mc_sims_mf_dd)
-qcls_ds = qecl.library(libdir_qcls_ds, qlms.qlms_ds, qlms.qlms_ds, mc_sims_mf_dd)
-qcls_ss = qecl.library(libdir_qcls_ss, qlms.qlms_ss, qlms.qlms_ss, mc_sims_mf_dd)
+qcls_ds = qecl.library(libdir_qcls_ds, qlms.qlms_ds, qlms.qlms_ds, mc_sims_mf_ds)
+qcls_ss = qecl.library(libdir_qcls_ss, qlms.qlms_ss, qlms.qlms_ss, mc_sims_mf_ss)
 
 if __name__ == '__main__':
     import argparse
