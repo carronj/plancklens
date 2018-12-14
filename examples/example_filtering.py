@@ -4,19 +4,17 @@ import os
 import healpy as hp
 import numpy as np
 
-from plancklens2018.filt import filt_cinv, filt_util
+from plancklens2018.filt import filt_cinv
 from plancklens2018 import utils
 from plancklens2018.sims import planck2018_sims
 
 PL2018 = os.environ['PL2018']
 
-lmin_ivf = 100
 lmax_ivf = 2048
 nside = 2048
 nlev_t = 35.
 nlev_p = 55.
 
-#transf = hp.beam_from_fwhm_arcmin(5., params['lmax_sky']) * ist.healpix_window(params['nside'],params['lmax_sky'])
 transf = hp.gauss_beam(5. / 60. / 180. * np.pi, lmax=lmax_ivf) * hp.pixwin(nside)[:lmax_ivf + 1]
 cl_unl = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))
 cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
@@ -46,21 +44,23 @@ ivfs    = filt_cinv.library_cinv_sepTP(libdir_ivfs, sim_lib, cinv_t, cinv_p)
 if __name__ == '__main__':
     import argparse
     from plancklens2018 import mpi
+
     parser = argparse.ArgumentParser(description='PL2018 filtering example')
-    parser.add_argument('-imin', dest='imin', default=-1, type=int, help='starting index (-1 stands for data map)')
-    parser.add_argument('-imax', dest='imax', default=-2, type=int, help='last index')
+    parser.add_argument('-imin', dest='imin', default=-1, dtype=int, help='starting index (-1 stands for data map)')
+    parser.add_argument('-imax', dest='imax', default=-2, dtype=int, help='last index')
     args = parser.parse_args()
 
-    jobs = []
-    for idx in range(args.imin, args.imax)[mpi.rank::mpi.size]:
-        jobs.append((idx, 't'))
-        jobs.append((idx, 'p'))
-        
+    jobs =  [ (idx, 't') for idx in range(args.imin, args.imax + 1)]
+    jobs += [ (idx, 'p') for idx in range(args.imin, args.imax + 1)]
+
     for i, (idx, lab) in enumerate(jobs[mpi.rank::mpi.size]):
+        print('rank %s doing sim %s %s, job %s in %s'%(mpi.rank, idx, lab, i, len(jobs)))
         if lab == 't':
             ivfs.get_sim_tlm(idx)
         elif lab == 'p':
             ivfs.get_sim_elm(idx) # This will cache blm as well.
 
+    mpi.barrier()
+    mpi.finalize()
 
 
