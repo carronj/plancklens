@@ -37,8 +37,30 @@ libdir_ivfs  = os.path.join(PL2018, 'temp', 'example_filtering', 'ivfs')
 ninv_t = [np.array([3. / nlev_t ** 2])] + Tmaskpaths
 cinv_t = filt_cinv.cinv_t(libdir_cinvt, lmax_ivf,nside, cl_len, transf, ninv_t,
                         marge_monopole=True, marge_dipole=True, marge_maps=[])
+
 ninv_p = [[np.array([3. / nlev_p ** 2])] + Tmaskpaths]
 cinv_p = filt_cinv.cinv_p(libdir_cinvp, lmax_ivf, nside, cl_len, transf, ninv_p)
 
 ivfs    = filt_cinv.library_cinv_sepTP(libdir_ivfs, sim_lib, cinv_t, cinv_p)
+
+if __name__ == '__main__':
+    import argparse
+    from plancklens2018 import mpi
+    parser = argparse.ArgumentParser(description='PL2018 filtering example')
+    parser.add_argument('-imin', dest='imin', default=-1, type=int, help='starting index (-1 stands for data map)')
+    parser.add_argument('-imax', dest='imax', default=-2, type=int, help='last index')
+    args = parser.parse_args()
+
+    jobs = []
+    for idx in range(args.imin, args.imax)[mpi.rank::mpi.size]:
+        jobs.append((idx, 't'))
+        jobs.append((idx, 'p'))
+        
+    for i, (idx, lab) in enumerate(jobs[mpi.rank::mpi.size]):
+        if lab == 't':
+            ivfs.get_sim_tlm(idx)
+        elif lab == 'p':
+            ivfs.get_sim_elm(idx) # This will cache blm as well.
+
+
 
