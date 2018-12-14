@@ -4,7 +4,7 @@ import numpy as np
 from plancklens2018.filt import filt_util
 from plancklens2018 import qest
 
-from . import example_filtering
+from . import example_1_filtering
 
 assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'
 PL2018 = os.environ['PL2018']
@@ -13,7 +13,7 @@ lmin_ivf = 100
 lmax_ivf = 2048
 lmax_qlm = 4096
 nside = 2048
-clte = example_filtering.cl_len['te']
+clte = example_1_filtering.cl_len['te']
 
 ftl = np.where(np.arange(lmax_ivf + 1) >= lmin_ivf, 1., 0.)
 fel = np.where(np.arange(lmax_ivf + 1) >= lmin_ivf, 1., 0.)
@@ -25,7 +25,7 @@ ss_dict = { k : v for k, v in zip( np.concatenate( [ range(i*60, (i+1)*60) for i
 # This remap all sim. indices to the data maps
 ds_dict = { k : -1 for k in range(300)}
 
-ivfs   = filt_util.library_ftl(example_filtering.ivfs, lmax_ivf, ftl, fel, fbl)
+ivfs   = filt_util.library_ftl(example_1_filtering.ivfs, lmax_ivf, ftl, fel, fbl)
 ivfs_d = filt_util.library_shuffle(ivfs, ds_dict)
 ivfs_s = filt_util.library_shuffle(ivfs, ss_dict)
 
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     import argparse
     from plancklens2018 import mpi
 
-    parser = argparse.ArgumentParser(description='Planck 2018 QE calcuation example')
+    parser = argparse.ArgumentParser(description='Planck 2018 QE calculation example')
     parser.add_argument('-imin', dest='imin', default=-1, dtype=int, help='starting index (-1 stands for data map)')
     parser.add_argument('-imax', dest='imax', default=-2, dtype=int, help='last index')
     parser.add_argument('-k', dest='k', action='+', default=['p'],
