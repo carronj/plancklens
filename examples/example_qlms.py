@@ -1,4 +1,3 @@
-
 import os
 import numpy as np
 
@@ -12,16 +11,30 @@ PL2018 = os.environ['PL2018']
 lmin_ivf = 100
 lmax_ivf = 2048
 lmax_qlm = 4096
+nside = 2048
+clte = example_filtering.cl_len['te']
 
 ftl = np.where(np.arange(lmax_ivf + 1) >= lmin_ivf, 1., 0.)
 fel = np.where(np.arange(lmax_ivf + 1) >= lmin_ivf, 1., 0.)
 fbl = np.where(np.arange(lmax_ivf + 1) >= lmin_ivf, 1., 0.)
 
-ivfs = filt_util.library_ftl(example_filtering.ivfs, lmax_ivf, ftl, fel, fbl)
+# This remaps idx -> idx + 1 by blocks of 60 up to 300:
+ss_dict = { k : v for k, v in zip( np.concatenate( [ range(i*60, (i+1)*60) for i in range(0,5) ] ),
+                    np.concatenate( [ np.roll( range(i*60, (i+1)*60), -1 ) for i in range(0,5) ] ) ) }
+# This remap all sim. indices to the data maps
+ds_dict = { k : -1 for k in range(300)}
 
-libdir_qlms = os.path.join(PL2018, 'example_qlms', 'qlms_dd')
-qlms_dd = qest.library_sepTP(libdir_qlms, ivfs, ivfs, example_filtering.cl_len['te'], example_filtering.nside,
-                             lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
+ivfs   = filt_util.library_ftl(example_filtering.ivfs, lmax_ivf, ftl, fel, fbl)
+ivfs_d = filt_util.library_shuffle(ivfs, ds_dict)
+ivfs_s = filt_util.library_shuffle(ivfs, ss_dict)
+
+libdir_qlmsdd = os.path.join(PL2018, 'example_qlms', 'qlms_dd')
+libdir_qlmsds = os.path.join(PL2018, 'example_qlms', 'qlms_ds')
+libdir_qlmsss = os.path.join(PL2018, 'example_qlms', 'qlms_ss')
+
+qlms_dd = qest.library_sepTP(libdir_qlmsdd, ivfs, ivfs  , clte, nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
+qlms_ds = qest.library_sepTP(libdir_qlmsds, ivfs, ivfs_d, clte, nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
+qlms_ss = qest.library_sepTP(libdir_qlmsss, ivfs, ivfs_s, clte, nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
 
 if __name__ == '__main__':
     import argparse
@@ -32,6 +45,10 @@ if __name__ == '__main__':
     parser.add_argument('-imax', dest='imax', default=-2, dtype=int, help='last index')
     parser.add_argument('-k', dest='k', action='+', default=['p'],
                         help='QE keys (NB: both gradient anc curl are calculated at the same time)')
+
+    parser.add_argument('-dd', dest='dd', action='store_true', help='perform dd qlms library QEs')
+    parser.add_argument('-ds', dest='ds', action='store_true', help='perform ds qlms library QEs')
+    parser.add_argument('-ss', dest='ss', action='store_true', help='perform ss qlms library QEs')
 
     args = parser.parse_args()
 
@@ -48,13 +65,15 @@ if __name__ == '__main__':
     mpi.barrier()
 
     # --- QE calculation
+    qlibs = [qlms_dd] * args.dd + [qlms_ds] * args.ds +  [qlms_ss] * args.ss
     jobs = []
-    for k in args.k:
-        jobs += [(idx, k) for idx in range(args.imin, args.imax + 1)]
+    for qlib in qlibs:
+        for k in args.k:
+            jobs += [(qlib, idx, k) for idx in range(args.imin, args.imax + 1)]
 
-    for i, (idx, k) in enumerate(jobs[mpi.rank::mpi.size]):
-        print('rank %s doing QE sim %s %s, job %s in %s' % (mpi.rank, idx, k, i, len(jobs)))
-        qlms_dd.get_sim_qlm(k, idx)
+    for i, (qlib, idx, k) in enumerate(jobs[mpi.rank::mpi.size]):
+        print('rank %s doing QE sim %s %s, qlm_lib %s, job %s in %s' % (mpi.rank, idx, k, qlib.lib_dir, i, len(jobs)))
+        qlib.get_sim_qlm(k, idx)
 
     mpi.barrier()
     mpi.finalize()
