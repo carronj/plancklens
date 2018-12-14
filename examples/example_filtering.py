@@ -1,4 +1,4 @@
-#FIXME: mask paths
+#FIXME: mask paths and sims
 
 import os
 import healpy as hp
@@ -8,6 +8,7 @@ from plancklens2018.filt import filt_cinv
 from plancklens2018 import utils
 from plancklens2018.sims import planck2018_sims
 
+assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'
 PL2018 = os.environ['PL2018']
 
 lmax_ivf = 2048
@@ -45,7 +46,7 @@ if __name__ == '__main__':
     import argparse
     from plancklens2018 import mpi
 
-    parser = argparse.ArgumentParser(description='PL2018 filtering example')
+    parser = argparse.ArgumentParser(description='Planck 2018 filtering example')
     parser.add_argument('-imin', dest='imin', default=-1, dtype=int, help='starting index (-1 stands for data map)')
     parser.add_argument('-imax', dest='imax', default=-2, dtype=int, help='last index')
     args = parser.parse_args()

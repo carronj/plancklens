@@ -6,6 +6,7 @@ from plancklens2018 import qest
 
 from . import example_filtering
 
+assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'
 PL2018 = os.environ['PL2018']
 
 lmin_ivf = 100
@@ -40,7 +41,7 @@ if __name__ == '__main__':
     import argparse
     from plancklens2018 import mpi
 
-    parser = argparse.ArgumentParser(description='PL2018 filtering example')
+    parser = argparse.ArgumentParser(description='Planck 2018 QE calcuation example')
     parser.add_argument('-imin', dest='imin', default=-1, dtype=int, help='starting index (-1 stands for data map)')
     parser.add_argument('-imax', dest='imax', default=-2, dtype=int, help='last index')
     parser.add_argument('-k', dest='k', action='+', default=['p'],
