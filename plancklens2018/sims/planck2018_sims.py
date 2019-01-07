@@ -7,9 +7,10 @@ class smica_dx12:
     def __init__(self):
         self.cmbs = '/project/projectdirs/cmb/data/planck2018/ffp10/compsep/mc_cmb/dx12_v3_smica_cmb_mc_%05d_005a_2048.fits'
         self.noise = '/project/projectdirs/cmb/data/planck2018/ffp10/compsep/mc_noise/dx12_v3_smica_noise_mc_%05d_005a_2048.fits'
+        self.data = '/project/projectdirs/cmb/data/planck2018/pr3/cmbmaps/dx12_v3_smica_cmb_005a_2048.fits'
 
     def hashdict(self):
-        return {'cmbs':self.cmbs, 'noise':self.noise}
+        return {'cmbs':self.cmbs, 'noise':self.noise, 'data':self.data}
 
     def get_sim_tmap(self, idx):
         if idx == -1:
@@ -17,7 +18,7 @@ class smica_dx12:
         return 1e6 * (hp.read_map(self.cmbs % idx, field=0) + hp.read_map(self.noise % idx, field=0))
 
     def get_dat_tmap(self):
-        assert 0, 'fix this'
+        return 1e6 * hp.read_map(self.data, field=0)
 
     def get_sim_pmap(self, idx):
         if idx == -1:
@@ -27,4 +28,5 @@ class smica_dx12:
         return Q, U
 
     def get_dat_pmap(self):
-        assert 0, 'fix this'
+        return 1e6 * hp.read_map(self.data, field=1), 1e6 * hp.read_map(self.data, field=2)
+
