@@ -2,7 +2,6 @@
 
 """
 import healpy as hp
-import os
 
 class smica_dx12:
     def __init__(self):
