@@ -4,7 +4,7 @@ import numpy as np
 from plancklens2018.filt import filt_util
 from plancklens2018 import qest
 
-from . import example_1_filtering
+import example_1_filtering
 
 assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'
 PL2018 = os.environ['PL2018']
