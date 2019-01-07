@@ -28,8 +28,8 @@ if __name__ == '__main__':
     from plancklens2018 import mpi
 
     parser = argparse.ArgumentParser(description='Planck 2018 QE power spectra calc. example')
-    parser.add_argument('-imin', dest='imin', default=-1, dtype=int, help='starting index (-1 stands for data map)')
-    parser.add_argument('-imax', dest='imax', default=-2, dtype=int, help='last index')
+    parser.add_argument('-imin', dest='imin', default=-1, type=int, help='starting index (-1 stands for data map)')
+    parser.add_argument('-imax', dest='imax', default=-2, type=int, help='last index')
     parser.add_argument('-k', dest='k', action='+', default=['p'],
                         help='QE keys (NB: both gradient anc curl are calculated at the same time)')
 
