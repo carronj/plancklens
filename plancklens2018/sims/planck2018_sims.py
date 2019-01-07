@@ -2,6 +2,9 @@
 
 """
 import healpy as hp
+import numpy as np
+
+from plancklens2018 import utils
 
 class smica_dx12:
     """ SMICA 2018 release simulation and data library at NERSC.
@@ -33,6 +36,42 @@ class smica_dx12:
     def get_dat_pmap(self):
         return 1e6 * hp.read_map(self.data, field=1), 1e6 * hp.read_map(self.data, field=2)
 
+class ffp10cmb_widnoise:
+    def __init__(self, transf, nlevt, nlevp, pix_libphas, nside=2048):
+        """Simulation library with freq-0 FFP10 CMB and ideal, homogeneous noise.
+
+            Args:
+                transf: transfer function (beam and pixel window)
+                nlevt, nlevp (float): temperature and polarization noise levels in uK-armin.
+                pix_libphas: random phases simulation library (see phas.py) of the noise maps.
+
+        """
+        assert pix_libphas.shape == (hp.nside2npix(nside),), pix_libphas.shape
+        self.nlevt = nlevt
+        self.nlevp = nlevp
+        self.transf = transf
+        self.pix_libphas = pix_libphas
+        self.nside = nside
+
+    def hashdict(self):
+        return {'transf':utils.clhash(self.transf), 'nlevt':np.float32(self.nlevt), 'nlevp':np.float32(self.nlevp),
+                'pix_phas':self.pix_libphas.hashdict()}
+
+    def get_sim_tmap(self, idx):
+        T = hp.alm2map(hp.almxfl(cmb_len_ffp10.get_sim_tlm(idx), self.transf), self.nside)
+        nlevt_pix = self.nlevt / np.sqrt(hp.nside2pixarea(self.nside, degrees=True)) / 60.
+        T += self.pix_libphas.get_sim(idx, idf=0) * nlevt_pix
+        return T
+
+    def get_sim_pmap(self, idx):
+        elm = hp.almxfl(cmb_len_ffp10.get_sim_elm(idx), self.transf)
+        blm = hp.almxfl(cmb_len_ffp10.get_sim_blm(idx), self.transf)
+        Q, U = hp.alm2map_spin((elm, blm), self.nside, 2, hp.Alm.getlmax(elm.size))
+        del elm, blm
+        nlevp_pix = self.nlevp / np.sqrt(hp.nside2pixarea(self.nside, degrees=True)) / 60.
+        Q += self.pix_libphas.get_sim(idx, idf=1) * nlevp_pix
+        U += self.pix_libphas.get_sim(idx, idf=2) * nlevp_pix
+        return Q, U
 
 class cmb_len_ffp10:
     """ FFP10 input sim libraries, lensed alms.
