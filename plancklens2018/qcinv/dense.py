@@ -93,7 +93,9 @@ class pre_op_dense_tt:
         print("   inverting M...")
         eigv, eigw = np.linalg.eigh(tmat)
 
-        eigv_inv = 1.0 / eigv
+        assert np.all(eigv[ntmpl:] > 0.)
+        eigv_inv = np.zeros_like(eigv)
+        eigv_inv[ntmpl:] = 1.0 / eigv[ntmpl:]
 
         if ntmpl > 0:
             print("     eigv[ntmpl-1] = ", eigv[ntmpl - 1])
@@ -169,7 +171,9 @@ class pre_op_dense_pp:
         print("   inverting M...")
         eigv, eigw = np.linalg.eigh(tmat)
 
-        eigv_inv = 1.0 / eigv
+        assert np.all(eigv[ntmpl:] > 0.)
+        eigv_inv = np.zeros_like(eigv)
+        eigv_inv[ntmpl:] = 1.0 / eigv[ntmpl:]
 
         if ntmpl > 0:
             # do nothing to the ntmpl eigenmodes
