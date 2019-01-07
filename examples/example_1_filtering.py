@@ -40,7 +40,7 @@ cinv_t = filt_cinv.cinv_t(libdir_cinvt, lmax_ivf,nside, cl_len, transf, ninv_t,
 ninv_p = [[np.array([3. / nlev_p ** 2])] + Tmaskpaths]
 cinv_p = filt_cinv.cinv_p(libdir_cinvp, lmax_ivf, nside, cl_len, transf, ninv_p)
 
-ivfs    = filt_cinv.library_cinv_sepTP(libdir_ivfs, sim_lib, cinv_t, cinv_p)
+ivfs    = filt_cinv.library_cinv_sepTP(libdir_ivfs, sim_lib, cinv_t, cinv_p, cl_len)
 
 if __name__ == '__main__':
     import argparse
