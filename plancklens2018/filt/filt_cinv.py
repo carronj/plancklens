@@ -77,10 +77,10 @@ class library_cinv_sepTP(filt_simple.library_sepTP):
     def get_fbl(self, lmax=None):
         return self.cinv_p.get_fbl(lmax=lmax)
 
-    def apply_ivf_t(self, tmap, soltn=None):
+    def _apply_ivf_t(self, tmap, soltn=None):
         return self.cinv_t.apply_ivf(tmap, soltn=soltn)
 
-    def apply_ivf_p(self, pmap, soltn=None):
+    def _apply_ivf_p(self, pmap, soltn=None):
         return self.cinv_p.apply_ivf(pmap, soltn=soltn)
 
     def get_tmliklm(self, idx):
