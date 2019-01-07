@@ -38,10 +38,10 @@ class library_cinv_sepTP(filt_simple.library_sepTP):
         soltn_lib (optional):
     """
 
-    def __init__(self, lib_dir, sim_lib, cinv_t, cinv_p, soltn_lib=None):
+    def __init__(self, lib_dir, sim_lib, cinv_t, cinv_p, cl_weights, soltn_lib=None):
         self.cinv_t = cinv_t
         self.cinv_p = cinv_p
-        super(library_cinv_sepTP, self).__init__(lib_dir, sim_lib, soltn_lib=soltn_lib)
+        super(library_cinv_sepTP, self).__init__(lib_dir, sim_lib, cl_weights, soltn_lib=soltn_lib)
 
         if mpi.rank == 0:
             fname_mask = os.path.join(self.lib_dir, "fmask.fits.gz")
