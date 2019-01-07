@@ -18,7 +18,7 @@ import healpy as hp
 from healpy import alm2map_spin, map2alm_spin
 #: Exporting these two methods so that they can be easily customized / optimized.
 
-from plancklens2018.utils import clhash
+from plancklens2018.utils import clhash, cli
 
 from . import util
 from .util_alm import eblm
