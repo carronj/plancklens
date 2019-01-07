@@ -16,7 +16,7 @@ import healpy as hp
 from healpy import alm2map, map2alm
 #: Exporting these two methods so that they can be easily customized / optimized.
 
-from plancklens2018.utils import clhash
+from plancklens2018.utils import clhash, enumerate_progress
 
 from . import util
 from . import template_removal
@@ -124,14 +124,11 @@ class alm_filter_ninv(object):
             if marge_dipole: templates.append(template_removal.template_dipole())
 
         if len(templates) != 0:
-            nmodes = np.sum([t.nmodes for t in templates])
+            nmodes = int(np.sum([t.nmodes for t in templates]))
             modes_idx_t = np.concatenate(([t.nmodes * [int(im)] for im, t in enumerate(templates)]))
             modes_idx_i = np.concatenate(([range(0, t.nmodes) for t in templates]))
-            print("   Building %s - %s template projection matrix" % (nmodes, nmodes))
             Pt_Nn1_P = np.zeros((nmodes, nmodes))
-            #FIXME: div by zero sometimes in progress bar here.
-            for ir in range(0, nmodes):
-                if np.mod(ir, int(0.1 * nmodes)) == 0: print ("   filling TNiT: %4.1f" % (100. * ir / nmodes)), "%"
+            for i, ir in enumerate_progress(range(nmodes), label='filling template (%s) projection matrix'%nmodes):
                 tmap = np.copy(n_inv)
                 templates[modes_idx_t[ir]].apply_mode(tmap, int(modes_idx_i[ir]))
 
