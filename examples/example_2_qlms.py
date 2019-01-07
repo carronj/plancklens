@@ -44,8 +44,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Planck 2018 QE calculation example')
     parser.add_argument('-imin', dest='imin', default=-1, type=int, help='starting index (-1 stands for data map)')
     parser.add_argument('-imax', dest='imax', default=-2, type=int, help='last index')
-    parser.add_argument('-k', dest='k', action='+', default=['p'],
-                        help='QE keys (NB: both gradient anc curl are calculated at the same time)')
+    parser.add_argument('-k', dest='k', action='store', default=['p'], nargs='+',
+                        help='QE keys (NB: both gradient and curl are calculated at the same time)')
 
     parser.add_argument('-dd', dest='dd', action='store_true', help='perform dd qlms library QEs')
     parser.add_argument('-ds', dest='ds', action='store_true', help='perform ds qlms library QEs')
