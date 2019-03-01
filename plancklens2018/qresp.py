@@ -6,7 +6,10 @@ import numpy as np
 from plancklens2018.wigners import gaujac
 from plancklens2018.wigners import gauleg
 from plancklens2018 import sql
+from plancklens2018.utils import clhash
 
+
+verbose = False
 
 class qeleg:
     def __init__(self, spin_in, spin_out, cl):
@@ -289,7 +292,8 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, f
 
     #FIXME: finish this:
 
-def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None, lmax_out=None):
+def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None, lmax_out=None,
+              cls_ivfs_bb=None, cls_ivfs_ab=None):
     """(Semi-)Analytical noise level calculation.
 
     """
@@ -299,6 +303,11 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None, lm
     lmax_out = 2 * lmax_qe if lmax_out is None else lmax_out
     G_N0 = np.zeros(lmax_out + 1, dtype=float)
     C_N0 = np.zeros(lmax_out + 1, dtype=float)
+    cls_ivfs_aa = cls_ivfs
+    cls_ivfs_bb = cls_ivfs if cls_ivfs_bb is None else cls_ivfs_bb
+    cls_ivfs_ab = cls_ivfs if cls_ivfs_ab is None else cls_ivfs_ab
+    cls_ivfs_ba = cls_ivfs_ab
+
     def _joincls(cls_list):
         lmaxp1 = np.min([len(cl) for cl in cls_list])
         return np.prod(np.array([cl[:lmaxp1] for cl in cls_list]), axis=0)
@@ -315,23 +324,23 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None, lm
             sgn_fix = -1
 
             sgn_R = (-1) ** (uo + vo + ui + vi)
-            clsu = _joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(si, -ui, cls_ivfs)])
-            cltv = _joincls([qe1.leg_b.cl, qe2.leg_b.cl, get_coupling(ti, -vi, cls_ivfs)])
+            clsu = _joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(si, -ui, cls_ivfs_aa)])
+            cltv = _joincls([qe1.leg_b.cl, qe2.leg_b.cl, get_coupling(ti, -vi, cls_ivfs_bb)])
             R_sutv = sgn_R * _joincls([get_hl(clsu ,cltv, sgn*uo, sgn2*so, sgn*vo, sgn2*to, lmax_out=lmax_out), qe1.cL, qe2.cL])
 
-            clsv = _joincls([qe1.leg_a.cl, qe2.leg_b.cl, get_coupling(si, -vi, cls_ivfs)])
-            cltu = _joincls([qe1.leg_b.cl, qe2.leg_a.cl, get_coupling(ti, -ui, cls_ivfs)])
+            clsv = _joincls([qe1.leg_a.cl, qe2.leg_b.cl, get_coupling(si, -vi, cls_ivfs_ab)])
+            cltu = _joincls([qe1.leg_b.cl, qe2.leg_a.cl, get_coupling(ti, -ui, cls_ivfs_ba)])
             R_svtu = sgn_R * _joincls([get_hl(clsv ,cltu, sgn*vo, sgn2*so, sgn*uo, sgn2*to, lmax_out=lmax_out), qe1.cL, qe2.cL])
 
             # s and t goes to -s, -t. We have mabe a minus sign (-1)**(si + so + ti + to) on top from the change in weights
             sgnms = (-1) ** (si + so)
             sgnmt = (-1) ** (ti + to)
-            clmsu = _joincls([qe1.leg_a.cl * sgnms, qe2.leg_a.cl, get_coupling(-si, -ui, cls_ivfs)])
-            clmtv = _joincls([qe1.leg_b.cl * sgnmt, qe2.leg_b.cl, get_coupling(-ti, -vi, cls_ivfs)])
+            clmsu = _joincls([qe1.leg_a.cl * sgnms, qe2.leg_a.cl, get_coupling(-si, -ui, cls_ivfs_aa)])
+            clmtv = _joincls([qe1.leg_b.cl * sgnmt, qe2.leg_b.cl, get_coupling(-ti, -vi, cls_ivfs_bb)])
             R_msumtv =  sgn_R * _joincls([get_hl(clmsu ,clmtv, sgn*uo, -sgn2*so, sgn*vo, -sgn2*to, lmax_out=lmax_out), qe1.cL, qe2.cL])
 
-            clmsv = _joincls([qe1.leg_a.cl * sgnms, qe2.leg_b.cl, get_coupling(-si, -vi, cls_ivfs)])
-            clmtu = _joincls([qe1.leg_b.cl * sgnmt, qe2.leg_a.cl, get_coupling(-ti, -ui, cls_ivfs)])
+            clmsv = _joincls([qe1.leg_a.cl * sgnms, qe2.leg_b.cl, get_coupling(-si, -vi, cls_ivfs_ab)])
+            clmtu = _joincls([qe1.leg_b.cl * sgnmt, qe2.leg_a.cl, get_coupling(-ti, -ui, cls_ivfs_ba)])
             R_msvmtu = sgn_R * _joincls([get_hl(clmsv ,clmtu, sgn*vo, -sgn2*so, sgn*uo, -sgn2*to, lmax_out=lmax_out), qe1.cL, qe2.cL])
         
             G_N0 += sgn_fix *  0.5 *  (R_sutv + R_svtu)
@@ -343,13 +352,8 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None, lm
     return (G_N0, C_N0) if not ret_terms else (G_N0, C_N0, terms)
 
 
-def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out,ret_terms=None):
-        #FIXME: It looks like compated to flat-sky calc, the output (non-cst) misses a factor of -2, and the constant
-        # terms a factor of -4! With these factors, the cst term is also exactly the inobs. curl l=1 term.
-        # OK: one factor of two because factor of two g1_MF = 2 * d2/da1 da-1 a1  + 2 * d2 / da-1 da-1 a-1.
-        # The cst is to be added with a + sign. Now factor OK
-
-        #FIXME: the constant term is the curl l=1 term, do the subtraction this way.
+def _get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out,ret_terms=None):
+        #FIXME: this version is wrong at low-L because of delicate cancellations.
         assert qe_key in ['p_p', 'ptt'], qe_key
         GL = np.zeros(lmax_out + 1, dtype=float)
         CL = np.zeros(lmax_out + 1, dtype=float)
@@ -360,14 +364,14 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out,ret_terms=None):
         elif qe_key == 'p_p':
             lmax_cmb = min(len(cls_cmb['ee']) - 1, len(cls_cmb['bb'] -1), lmax_qe + lmax_out)
             spins = [-2, 2]
-            prefac = 0.25
+            prefac = 0.25# This factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to E B
         else:
             assert 0, qe_key + ' not implemented'
 
         for s1 in spins:
             for s2 in spins:
                 cl1 = get_coupling(s1, s2, cls_ivfs)[:lmax_qe +1] * prefac
-                cl2 = get_coupling(s1, s2, cls_cmb)[:lmax_cmb +1]
+                cl2 = get_coupling(s2, s1, cls_cmb)[:lmax_cmb +1]
                 if np.any(cl1) and np.any(cl2):
                     for i in [-1, 1]:
                         ai = get_alpha_lower(s2, lmax_cmb) if i == 1 else get_alpha_raise(s2, lmax_cmb)
@@ -381,10 +385,286 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out,ret_terms=None):
         CL -= CL[1]
         GL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
         CL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
-        GLR, CLR = get_response_sepTP(qe_key, lmax_qe, 'p',cls_cmb, cls_cmb, {'e':cls_ivfs['ee'], 'b':cls_ivfs['bb']}, lmax_out=lmax_out)
+        GLR, CLR = get_response_sepTP(qe_key, lmax_qe, 'p', cls_cmb, cls_cmb,
+                                    {'t': cls_ivfs['tt'], 'e': cls_ivfs['ee'], 'b': cls_ivfs['bb']},lmax_out=lmax_out)
         GL -= GLR
         CL -= CLR
         return GL, CL
+
+
+def get_mf_respv2(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, ret_terms=None):
+    # FIXME: It looks like compated to flat-sky calc, the output (non-cst) misses a factor of -2, and the constant
+    # terms a factor of -4! With these factors, the cst term is also exactly the inobs. curl l=1 term.
+    # OK: one factor of two because factor of two g1_MF = 2 * d2/da1 da-1 a1  + 2 * d2 / da-1 da-1 a-1.
+    # The cst is to be added with a + sign. Now factor OK
+    #FIXME: overall sign ?
+    # FIXME: the constant term is the curl l=1 term, do the subtraction this way.
+    #FIXME: accuracy not good enough at low-ell! use v3
+    print("accuracy not good enough at low-ell! use v3")
+    assert qe_key in ['p_p', 'ptt'], qe_key
+    GL = np.zeros(lmax_out + 1, dtype=float)
+    CL = np.zeros(lmax_out + 1, dtype=float)
+    GCL = np.zeros(lmax_out + 1, dtype=float)
+    CGL = np.zeros(lmax_out + 1, dtype=float)
+    cst_term = 0.
+
+    if qe_key == 'ptt':
+        lmax_cmb = len(cls_cmb['tt']) - 1
+        spins = [0]
+    elif qe_key == 'p_p':
+        lmax_cmb = min(len(cls_cmb['ee']) - 1, len(cls_cmb['bb'] - 1))
+        spins = [-2, 2]
+    elif qe_key == 'p':
+        lmax_cmb = min(len(cls_cmb['ee']) - 1, len(cls_cmb['bb']) - 1, len(cls_cmb['tt']) - 1, len(cls_cmb['te']) - 1)
+        spins = [0, -2, 2]
+    else:
+        assert 0, qe_key + ' not implemented'
+
+    for s1 in spins:
+        for s2 in spins:
+            cl1 = get_coupling(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
+            # These 1/2 factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to T E B.
+            cl2 = get_coupling(s2, s1, cls_cmb)[:lmax_cmb + 1]
+            if np.any(cl1) and np.any(cl2):
+                for a in [-1, 1]:
+                    ai = get_alpha_lower(s2, lmax_cmb) if a == - 1 else get_alpha_raise(s2, lmax_cmb)
+                    for b in [-1, 1]:
+                        aj = get_alpha_lower(-s1, lmax_cmb) if b == 1 else get_alpha_raise(-s1, lmax_cmb)
+                        hL = (-1) ** (s1 + s2) * get_hl(cl1, cl2 * ai * aj, s2, s1, -s2 - a, -s1 - b, lmax_out=lmax_out)
+                        GL += (-1) * (1  if a == b else -1) * hL
+                        CL += (-1) * hL
+                        GCL += (-1) * a * hL
+                        CGL += (-1) * b * hL
+
+                        if a == b: # cst term
+                            b1 =  get_alpha_lower(s1, lmax_qe) if a == -1 else get_alpha_raise(s1, lmax_qe)
+                            b2  = get_alpha_lower(s1 + a, lmax_qe) if b == 1 else get_alpha_raise(s1 + a, lmax_qe)
+                            cst_term += np.sum(cl1 * cl2[:lmax_qe+1] * b1 * b2 * (2 * np.arange(lmax_qe + 1) + 1)) * (-1) ** s1 /(4. * np.pi)
+
+    print(-CL[1], cst_term)
+    print(-CL[1] / cst_term - 1.)
+
+    GL -= CL[1]
+    CL -= CL[1]
+    GL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
+    CL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
+
+    assert qe_key in ['ptt', 'p_p']
+
+    #GLR, CLR = get_nhl(qe_key, qe_key, cls_cmb, cls_ivfs, lmax_qe)
+    #FIXME: need MV (not sepTP quantities)
+    GLR, CLR = get_response_sepTP(qe_key, lmax_qe, 'p', cls_cmb, cls_cmb,
+                                  {'t':cls_ivfs['tt'], 'e': cls_ivfs['ee'], 'b': cls_ivfs['bb']},lmax_out=lmax_out)
+    GL -= GLR
+    CL -= CLR
+    return GL, CL, GCL, CGL, GLR, CLR
+
+def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
+    """Deflection-induced mean-field response calculation.
+
+    See Carron & Lewis 2019 in prep.
+    """
+    # This version looks stable enough
+    assert qe_key in ['p_p', 'ptt'], qe_key
+    GL = np.zeros(lmax_out + 1, dtype=float)
+    CL = np.zeros(lmax_out + 1, dtype=float)
+    if qe_key == 'ptt':
+        lmax_cmb = len(cls_cmb['tt']) - 1
+        spins = [0]
+    elif qe_key == 'p_p':
+        lmax_cmb = min(len(cls_cmb['ee']) - 1, len(cls_cmb['bb'] - 1))
+        spins = [-2, 2]
+    elif qe_key == 'p':
+        lmax_cmb = min(len(cls_cmb['ee']) - 1, len(cls_cmb['bb']) - 1, len(cls_cmb['tt']) - 1, len(cls_cmb['te']) - 1)
+        spins = [0, -2, 2]
+    else:
+        assert 0, qe_key + ' not implemented'
+    assert lmax_qe <= lmax_cmb
+    if qe_key == 'ptt':
+        cl_cmbtoticmb = {'tt': cls_cmb['tt'][:lmax_qe + 1] ** 2 * cls_ivfs['tt'][:lmax_qe + 1]}
+        cl_cmbtoti = {'tt': cls_cmb['tt'][:lmax_qe + 1] * cls_ivfs['tt'][:lmax_qe + 1]}
+    elif qe_key == 'p_p':
+        assert not np.any(cls_cmb['bb']), 'not implemented w. bb weights'
+        cl_cmbtoticmb = {'ee': cls_cmb['ee'][:lmax_qe + 1] ** 2 * cls_ivfs['ee'][:lmax_qe + 1],
+                         'bb': np.zeros(lmax_qe + 1, dtype=float)}
+        cl_cmbtoti = {'ee': cls_cmb['ee'][:lmax_qe + 1] * cls_ivfs['ee'][:lmax_qe + 1],
+                      'bb': np.zeros(lmax_qe + 1, dtype=float)}
+    else:
+        assert 0, 'not implemented'
+    # Build remaining fisher term II:
+    FisherGII = np.zeros(lmax_out + 1, dtype=float)
+    FisherCII = np.zeros(lmax_out + 1, dtype=float)
+
+    for s1 in spins:
+        for s2 in spins:
+            cl1 = get_coupling(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
+            # These 1/2 factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to T E B.
+            cl2 = get_coupling(s2, s1, cls_cmb)[:lmax_cmb + 1]
+            cl2[:lmax_qe + 1] -= get_coupling(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
+            if np.any(cl1) and np.any(cl2):
+                for a in [-1, 1]:
+                    ai = get_alpha_lower(s2, lmax_cmb) if a == - 1 else get_alpha_raise(s2, lmax_cmb)
+                    for b in [1]: # a, b symmetry
+                        fac = 2
+                        aj = get_alpha_lower(-s1, lmax_cmb) if b == 1 else get_alpha_raise(-s1, lmax_cmb)
+                        hL = fac * (-1) ** (s1 + s2) * get_hl(cl1, cl2 * ai * aj, s2, s1, -s2 - a, -s1 - b, lmax_out=lmax_out)
+                        GL += (- a * b) * hL
+                        CL += (-1) * hL
+
+    # Build remaining Fisher term II:
+    for s1 in spins:
+        for s2 in spins:
+            cl1 = get_coupling(s2, s1, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s1 != 0))
+            cl2 = get_coupling(s1, s2, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s2 != 0))
+            if np.any(cl1) and np.any(cl2):
+                for a in [-1, 1]:
+                    ai = get_alpha_lower(s2, lmax_qe) if a == -1 else get_alpha_raise(s2, lmax_qe)
+                    for b in [1]:
+                        fac = 2
+                        aj = get_alpha_lower(s1, lmax_qe) if b == 1 else get_alpha_raise(s1, lmax_qe)
+                        hL = fac * (-1) ** (s1 + s2) * get_hl(cl1 * ai, cl2 * aj, -s2 - a, -s1, s2, s1 -b, lmax_out=lmax_out)
+                        FisherGII += (- a * b) * hL
+                        FisherCII += (-1) * hL
+    GL -= FisherGII
+    CL -= FisherCII
+    GL -= CL[1]
+    CL -= CL[1]
+    GL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
+    CL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
+    return GL, CL
+
+def get_mf_respv4(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
+    # terms a factor of -4! With these factors, the cst term is also exactly the inobs. curl l=1 term.
+    # OK: one factor of two because factor of two g1_MF = 2 * d2/da1 da-1 a1  + 2 * d2 / da-1 da-1 a-1.
+    # The cst is to be added with a + sign. Now factor OK
+    # FIXME: this one not anything faster...
+    #FIXME: overall sign ?
+    # FIXME: the constant term is the curl l=1 term, do the subtraction this way.
+    assert qe_key in ['p_p', 'ptt'], qe_key
+    if qe_key == 'ptt':
+        lmax_cmb = len(cls_cmb['tt']) - 1
+        spins = [0]
+    elif qe_key == 'p_p':
+        lmax_cmb = min(len(cls_cmb['ee']) - 1, len(cls_cmb['bb'] - 1))
+        spins = [-2, 2]
+    elif qe_key == 'p':
+        lmax_cmb = min(len(cls_cmb['ee']) - 1, len(cls_cmb['bb']) - 1, len(cls_cmb['tt']) - 1, len(cls_cmb['te']) - 1)
+        spins = [0, -2, 2]
+    else:
+        assert 0, qe_key + ' not implemented'
+    assert lmax_qe <= lmax_cmb
+    if qe_key == 'ptt':
+        cl_cmbtoticmb = {'tt': cls_cmb['tt'][:lmax_qe + 1] ** 2 * cls_ivfs['tt'][:lmax_qe + 1]}
+        cl_cmbtoti = {'tt': cls_cmb['tt'][:lmax_qe + 1] * cls_ivfs['tt'][:lmax_qe + 1]}
+    elif qe_key == 'p_p':
+        assert not np.any(cls_cmb['bb']), 'not implemented w. bb weights'
+        cl_cmbtoticmb = {'ee': cls_cmb['ee'][:lmax_qe + 1] ** 2 * cls_ivfs['ee'][:lmax_qe + 1],
+                         'bb': np.zeros(lmax_qe + 1, dtype=float)}
+        cl_cmbtoti = {'ee': cls_cmb['ee'][:lmax_qe + 1] * cls_ivfs['ee'][:lmax_qe + 1],
+                      'bb': np.zeros(lmax_qe + 1, dtype=float)}
+    else:
+        assert 0, 'not implemented'
+    # Build remaining fisher term II:
+    #FisherGII = np.zeros(lmax_out + 1, dtype=float)
+    #FisherCII = np.zeros(lmax_out + 1, dtype=float)
+    lmaxtot = lmax_cmb + lmax_qe + lmax_out
+    wignerez = { 1: wigner_mem((lmaxtot + 2 - lmaxtot%2) // 2,  1, -1),
+                -1: wigner_mem((lmaxtot + 2 - lmaxtot%2) // 2, -1, -1)}
+    for s1 in spins:
+        for s2 in spins:
+            cl1 = get_coupling(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
+            # These 1/2 factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to T E B.
+            cl2 = get_coupling(s2, s1, cls_cmb)[:lmax_cmb + 1]
+            cl2[:lmax_qe + 1] -= get_coupling(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
+            sgn_s1s2 = (-1) ** (s1 + s2)
+            if np.any(cl1) and np.any(cl2):
+                for a in [-1, 1]:
+                    ai = get_alpha_lower(s2, lmax_cmb) if a == - 1 else get_alpha_raise(s2, lmax_cmb)
+                    for b in [1]:
+                        fac = 2
+                        aj = get_alpha_lower(-s1, lmax_cmb) if b == 1 else get_alpha_raise(-s1, lmax_cmb)
+
+                        wignerez[-a].add(cl1, cl2 * ai * aj, s2, s1, -s2 -a, -s1-b, -sgn_s1s2 * -a * b * fac, -sgn_s1s2 * fac)
+                        #hL = fac * (-1) ** (s1 + s2) * get_hl(cl1, cl2 * ai * aj, s2, s1, -s2 - a, -s1 - b, lmax_out=lmax_out)
+                        #GL += (- a * b) * hL
+                        #CL += (-1) * hL
+                        #ret_terms.append((- a * b) * hL)
+                        #FisherGII += (-1) * (1  if a == b else -1) * (-1) ** (s1 + s2) * get_hl(cl1, cl2_fisher * ai[:lmax_qe+1] * aj[:lmax_qe+1], s2, s1, -s2 - a, -s1 - b, lmax_out=lmax_out)
+
+    # Build remaining fisher term II:
+    GLCL = wignerez[-1](lmax_out) + wignerez[1](lmax_out)
+    wignerez[1].reset()
+    wignerez[-1].reset()
+
+    for s1 in spins:
+        for s2 in spins:
+            cl1 = get_coupling(s2, s1, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s1 != 0))
+            cl2 = get_coupling(s1, s2, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s2 != 0))
+            sgn_s1s2 = (-1) ** (s1 + s2)
+            if np.any(cl1) and np.any(cl2):
+                for a in [-1, 1]:
+                    ai = get_alpha_lower(s2, lmax_qe) if a == -1 else get_alpha_raise(s2, lmax_qe)
+                    for b in [1]:
+                        fac = 2
+                        aj = get_alpha_lower(s1, lmax_qe) if b == 1 else get_alpha_raise(s1, lmax_qe)
+                        wignerez[-a].add(cl1 * ai, cl2 * aj, -s2 - a, -s1, s2, s1 -b, -a * b * sgn_s1s2* fac,  -sgn_s1s2 * fac)
+                        #hL = fac * (-1) ** (s1 + s2) * get_hl(cl1 * ai, cl2 * aj, -s2 - a, -s1, s2, s1 -b, lmax_out=lmax_out)
+
+                        #FisherGII += (- a * b) * hL
+                        #FisherCII += (-1) * hL
+                        #ret_terms.append((-1) * (- a * b) * hL)
+
+    GLCL -= wignerez[-1](lmax_out) + wignerez[1](lmax_out)
+    wignerez[1].reset()
+    wignerez[-1].reset()
+    GL, CL = GLCL
+    GL -= CL[1]
+    CL -= CL[1]
+    GL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
+    CL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
+    return GL, CL
+
+
+class wigner_mem:
+    """Tries to speed the wigner integrals by looking up already calculated terms, but more care must be given to the
+       s1 s2 symmetries etc in the hash and such."""
+    def __init__(self, N, s1, s2):
+        # lmax_out = lmax1 + lmax2 if lmax_out is None else lmax_out
+        # lmaxtot = lmax1 + lmax2 + lmax_out
+        # N = (lmaxtot + 2 - lmaxtot%2) // 2
+        self.xg, self.wg = gauleg.get_xgwg(N)
+        self.pairs = []
+        self.xis = {}
+        self.s1 = s1
+        self.s2 = s2
+
+    def reset(self):
+        self.pairs = []
+        self.xis = {}
+
+    def add(self, cls, clt, s1, s2, t1, t2, facG, facC):
+        assert s1 + t1 == self.s1, (s1, t1, self.s1)
+        assert s2 + t2 == self.s2, (s2, t2, self.s2)
+        tag1 = str(s1) + '_' + str(s2) + '_' + clhash(cls)
+        tag2 = str(t1) + '_' + str(t2) + '_' + clhash(clt)
+        if not tag1 in self.xis.keys():
+            self.xis[tag1] = gaujac.get_rspace(cls, self.xg, s1, s2)
+            print("added %s "%(len(self.pairs) * 2) + tag1)
+        if not tag2 in self.xis.keys():
+            print("added %s "%(len(self.pairs) * 2 + 1) + tag2)
+            self.xis[tag2] = gaujac.get_rspace(clt, self.xg, t1, t2)
+        self.pairs.append([tag1, tag2, facG, facC])
+
+    def __call__(self, lmax_out):
+        xi1xi2G = np.zeros_like(self.wg)
+        xi1xi2C = np.zeros_like(self.wg)
+        for tag1, tag2, sgnG, sgnC in self.pairs:
+            xi1xi2G += self.xis[tag1] * self.xis[tag2] * sgnG
+            xi1xi2C += self.xis[tag1] * self.xis[tag2] * sgnC
+        GL = (2. * np.pi) * np.dot(gaujac.get_wignerd(lmax_out, self.xg, self.s1, self.s2), self.wg * xi1xi2G)
+        CL = (2. * np.pi) * np.dot(gaujac.get_wignerd(lmax_out, self.xg, self.s1, self.s2), self.wg * xi1xi2C)
+        return np.array([GL, CL])
+
 
 GL_cache = {}
 
@@ -394,7 +674,7 @@ def get_hl(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
         The integrand is always a polynomial, of max. degree lmax1 + lmax2 + lmax_out.
         We use Gauss-Legendre integration to solve this exactly.
     """
-    print('get_hl::spins: ', sp1, s1, sp2, s2)
+    if verbose: print('get_hl::spins: ', sp1, s1, sp2, s2)
     lmax1 = len(cl1) - 1
     lmax2 = len(cl2) - 1
     lmax_out = lmax1 + lmax2 if lmax_out is None else lmax_out
