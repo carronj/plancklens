@@ -393,20 +393,13 @@ def _get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out,ret_terms=None):
 
 
 def get_mf_respv2(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, ret_terms=None):
-    # FIXME: It looks like compated to flat-sky calc, the output (non-cst) misses a factor of -2, and the constant
-    # terms a factor of -4! With these factors, the cst term is also exactly the inobs. curl l=1 term.
-    # OK: one factor of two because factor of two g1_MF = 2 * d2/da1 da-1 a1  + 2 * d2 / da-1 da-1 a-1.
-    # The cst is to be added with a + sign. Now factor OK
-    #FIXME: overall sign ?
-    # FIXME: the constant term is the curl l=1 term, do the subtraction this way.
-    #FIXME: accuracy not good enough at low-ell! use v3
-    print("accuracy not good enough at low-ell! use v3")
+    print("Check accuracy not good enough at low-ell!")
     assert qe_key in ['p_p', 'ptt'], qe_key
     GL = np.zeros(lmax_out + 1, dtype=float)
     CL = np.zeros(lmax_out + 1, dtype=float)
-    GCL = np.zeros(lmax_out + 1, dtype=float)
-    CGL = np.zeros(lmax_out + 1, dtype=float)
-    cst_term = 0.
+    #GCL = np.zeros(lmax_out + 1, dtype=float)
+    #CGL = np.zeros(lmax_out + 1, dtype=float)
+    #cst_term = 0.
 
     if qe_key == 'ptt':
         lmax_cmb = len(cls_cmb['tt']) - 1
@@ -433,31 +426,29 @@ def get_mf_respv2(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, ret_terms=None):
                         hL = (-1) ** (s1 + s2) * get_hl(cl1, cl2 * ai * aj, s2, s1, -s2 - a, -s1 - b, lmax_out=lmax_out)
                         GL += (-1) * (1  if a == b else -1) * hL
                         CL += (-1) * hL
-                        GCL += (-1) * a * hL
-                        CGL += (-1) * b * hL
+                        #GCL += (-1) * a * hL
+                        #CGL += (-1) * b * hL
 
-                        if a == b: # cst term
-                            b1 =  get_alpha_lower(s1, lmax_qe) if a == -1 else get_alpha_raise(s1, lmax_qe)
-                            b2  = get_alpha_lower(s1 + a, lmax_qe) if b == 1 else get_alpha_raise(s1 + a, lmax_qe)
-                            cst_term += np.sum(cl1 * cl2[:lmax_qe+1] * b1 * b2 * (2 * np.arange(lmax_qe + 1) + 1)) * (-1) ** s1 /(4. * np.pi)
+                        #if a == b: # cst term
+                        #    b1 =  get_alpha_lower(s1, lmax_qe) if a == -1 else get_alpha_raise(s1, lmax_qe)
+                        #    b2  = get_alpha_lower(s1 + a, lmax_qe) if b == 1 else get_alpha_raise(s1 + a, lmax_qe)
+                        #    cst_term += np.sum(cl1 * cl2[:lmax_qe+1] * b1 * b2 * (2 * np.arange(lmax_qe + 1) + 1)) * (-1) ** s1 /(4. * np.pi)
 
-    print(-CL[1], cst_term)
-    print(-CL[1] / cst_term - 1.)
+    #print(-CL[1], cst_term)
+    #print(-CL[1] / cst_term - 1.)
 
     GL -= CL[1]
     CL -= CL[1]
     GL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
     CL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
 
-    assert qe_key in ['ptt', 'p_p']
+    assert qe_key in ['ptt', 'p_p'],'FIXME: need MV (not sepTP quantities)'
 
-    #GLR, CLR = get_nhl(qe_key, qe_key, cls_cmb, cls_ivfs, lmax_qe)
-    #FIXME: need MV (not sepTP quantities)
     GLR, CLR = get_response_sepTP(qe_key, lmax_qe, 'p', cls_cmb, cls_cmb,
                                   {'t':cls_ivfs['tt'], 'e': cls_ivfs['ee'], 'b': cls_ivfs['bb']},lmax_out=lmax_out)
     GL -= GLR
     CL -= CLR
-    return GL, CL, GCL, CGL, GLR, CLR
+    return GL, CL #, GCL, CGL, GLR, CLR,
 
 def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     """Deflection-induced mean-field response calculation.
@@ -527,6 +518,10 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
                         FisherCII += (-1) * hL
     GL -= FisherGII
     CL -= FisherCII
+    print("CL[1] ",CL[1])
+    print("GL[1] (before subtraction) ", GL[1])
+    print("GL[1] (after subtraction) ", GL[1] - CL[1])
+
     GL -= CL[1]
     CL -= CL[1]
     GL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
