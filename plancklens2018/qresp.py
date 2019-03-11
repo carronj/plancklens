@@ -352,46 +352,6 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None, lm
     return (G_N0, C_N0) if not ret_terms else (G_N0, C_N0, terms)
 
 
-def _get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out,ret_terms=None):
-        #FIXME: this version is wrong at low-L because of delicate cancellations.
-        assert qe_key in ['p_p', 'ptt'], qe_key
-        GL = np.zeros(lmax_out + 1, dtype=float)
-        CL = np.zeros(lmax_out + 1, dtype=float)
-        if qe_key == 'ptt':
-            lmax_cmb = min(len(cls_cmb['tt']) - 1, lmax_qe + lmax_out)
-            spins = [0]
-            prefac = 1.
-        elif qe_key == 'p_p':
-            lmax_cmb = min(len(cls_cmb['ee']) - 1, len(cls_cmb['bb'] -1), lmax_qe + lmax_out)
-            spins = [-2, 2]
-            prefac = 0.25# This factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to E B
-        else:
-            assert 0, qe_key + ' not implemented'
-
-        for s1 in spins:
-            for s2 in spins:
-                cl1 = get_coupling(s1, s2, cls_ivfs)[:lmax_qe +1] * prefac
-                cl2 = get_coupling(s2, s1, cls_cmb)[:lmax_cmb +1]
-                if np.any(cl1) and np.any(cl2):
-                    for i in [-1, 1]:
-                        ai = get_alpha_lower(s2, lmax_cmb) if i == 1 else get_alpha_raise(s2, lmax_cmb)
-                        for j in [-1, 1]:
-                            aj = get_alpha_lower(s1, lmax_cmb) if j == 1 else get_alpha_raise(s1, lmax_cmb)
-                            hL = (-1) ** (s1 + s2) * get_hl(cl1, cl2 * ai * aj, -s1, -s2, s1-j , s2-i, lmax_out=lmax_out)
-                            GL += (1  if i == j else -1) * hL
-                            CL += hL
-
-        GL -= CL[1]
-        CL -= CL[1]
-        GL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
-        CL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
-        GLR, CLR = get_response_sepTP(qe_key, lmax_qe, 'p', cls_cmb, cls_cmb,
-                                    {'t': cls_ivfs['tt'], 'e': cls_ivfs['ee'], 'b': cls_ivfs['bb']},lmax_out=lmax_out)
-        GL -= GLR
-        CL -= CLR
-        return GL, CL
-
-
 def get_mf_respv2(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, ret_terms=None):
     print("Check accuracy not good enough at low-ell!")
     assert qe_key in ['p_p', 'ptt'], qe_key
@@ -399,7 +359,7 @@ def get_mf_respv2(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, ret_terms=None):
     CL = np.zeros(lmax_out + 1, dtype=float)
     #GCL = np.zeros(lmax_out + 1, dtype=float)
     #CGL = np.zeros(lmax_out + 1, dtype=float)
-    #cst_term = 0.
+    cst_term = 0.
 
     if qe_key == 'ptt':
         lmax_cmb = len(cls_cmb['tt']) - 1
@@ -429,13 +389,13 @@ def get_mf_respv2(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, ret_terms=None):
                         #GCL += (-1) * a * hL
                         #CGL += (-1) * b * hL
 
-                        #if a == b: # cst term
-                        #    b1 =  get_alpha_lower(s1, lmax_qe) if a == -1 else get_alpha_raise(s1, lmax_qe)
-                        #    b2  = get_alpha_lower(s1 + a, lmax_qe) if b == 1 else get_alpha_raise(s1 + a, lmax_qe)
-                        #    cst_term += np.sum(cl1 * cl2[:lmax_qe+1] * b1 * b2 * (2 * np.arange(lmax_qe + 1) + 1)) * (-1) ** s1 /(4. * np.pi)
+                        if a == b: # cst term
+                            b1 =  get_alpha_lower(s1, lmax_qe) if a == -1 else get_alpha_raise(s1, lmax_qe)
+                            b2  = get_alpha_lower(s1 + a, lmax_qe) if b == 1 else get_alpha_raise(s1 + a, lmax_qe)
+                            cst_term += np.sum(cl1 * cl2[:lmax_qe+1] * b1 * b2 * (2 * np.arange(lmax_qe + 1) + 1)) * (-1) ** s1 /(4. * np.pi)
 
-    #print(-CL[1], cst_term)
-    #print(-CL[1] / cst_term - 1.)
+    print(-CL[1], cst_term)
+    print(-CL[1] / cst_term - 1.)
 
     GL -= CL[1]
     CL -= CL[1]
@@ -448,7 +408,7 @@ def get_mf_respv2(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, ret_terms=None):
                                   {'t':cls_ivfs['tt'], 'e': cls_ivfs['ee'], 'b': cls_ivfs['bb']},lmax_out=lmax_out)
     GL -= GLR
     CL -= CLR
-    return GL, CL #, GCL, CGL, GLR, CLR,
+    return GL, CL, cst_term
 
 def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     """Deflection-induced mean-field response calculation.
@@ -491,7 +451,7 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
             cl1 = get_coupling(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
             # These 1/2 factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to T E B.
             cl2 = get_coupling(s2, s1, cls_cmb)[:lmax_cmb + 1]
-            cl2[:lmax_qe + 1] -= get_coupling(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
+            cl2[:lmax_qe + 1] -=  get_coupling(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
             if np.any(cl1) and np.any(cl2):
                 for a in [-1, 1]:
                     ai = get_alpha_lower(s2, lmax_cmb) if a == - 1 else get_alpha_raise(s2, lmax_cmb)
