@@ -145,6 +145,7 @@ class alm_filter_ninv(object):
         self.b_transf = b_transf
         self.npix = len(self.n_inv)
 
+        self.nside = hp.npix2nside(self.npix)
         self.marge_monopole = marge_monopole
         self.marge_dipole = marge_dipole
         self.marge_uptolmin = marge_uptolmin
