@@ -160,8 +160,7 @@ class alm_filter_ninv(object):
                 'marge_uptolmin': self.marge_uptolmin}
 
     def get_ftl(self):
-        assert len(self.n_inv) == 1, len(self.n_inv)
-        return np.sum(self.n_inv[0]) / (4.0 * np.pi) * self.b_transf ** 2
+        return np.sum(self.n_inv) / (4.0 * np.pi) * self.b_transf ** 2
 
 
     def degrade(self, nside):
