@@ -100,7 +100,6 @@ class alm_filter_ninv(object):
     """Missing doc. """
     def __init__(self, n_inv, b_transf, marge_monopole=False, marge_dipole=False, marge_uptolmin=-1, marge_maps=()):
         if isinstance(n_inv, list):
-            # The following line does nothing is if the first element of n_inv is not a string.
             n_inv_prod = util.load_map(n_inv[0])
             if len(n_inv) > 1:
                 for n in n_inv[1:]:
@@ -159,6 +158,11 @@ class alm_filter_ninv(object):
                 'marge_dipole': self.marge_dipole,
                 'templates_hash': self.templates_hash,
                 'marge_uptolmin': self.marge_uptolmin}
+
+    def get_ftl(self):
+        assert len(self.n_inv) == 1, len(self.n_inv)
+        return np.sum(self.n_inv[0]) / (4.0 * np.pi) * self.b_transf ** 2
+
 
     def degrade(self, nside):
         """Missing doc. """
