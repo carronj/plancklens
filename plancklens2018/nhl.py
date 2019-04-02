@@ -31,7 +31,11 @@ class nhl_lib_simple:
 
     def get_sim_nhl(self, idx, k1, k2, recache=False):
         assert idx == -1 or idx >= 0, idx
-        fn = 'anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + ('_G' if k1[0] != 'x' else '_C')
+        GC1 = '_C' if k1[0] == 'x' else '_G'
+        GC2 = '_C' if k2[0] == 'x' else '_G'
+        if GC1 != GC2:
+            return np.zeros(self.lmax_qlm + 1, dtype=float)
+        fn = 'anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + GC1
         suf =  ('sim%04d'%idx) * (idx >= 0) +  'dat' * (idx == -1)
         if self.npdb.get(fn + suf) is None or recache:
             cls_ivfs, lmax_ivf = self._get_cls(idx)
