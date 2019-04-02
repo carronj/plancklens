@@ -49,7 +49,7 @@ class nhl_lib_simple:
                 'bb':  hp.alm2cl(self.ivfs.get_sim_blm(idx)) / self.fsky,
                 'te':  hp.alm2cl(self.ivfs.get_sim_tlm(idx), alms2=self.ivfs.get_sim_elm(idx)) / self.fsky}
         lmaxs = [len(cl) for cl in ret.values()]
-        assert np.all(lmaxs == lmaxs[0]), 'not implemented'
+        assert len(np.unique(lmaxs)) == 1, lmaxs
         return ret, lmaxs[0]
 
 
