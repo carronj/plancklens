@@ -28,7 +28,7 @@ class cmb_maps(object):
         tmap = hp.alm2map(tmap,self.nside)
         return tmap + self.get_sim_tnoise(idx)
 
-    def get_sim_qumap(self,idx):
+    def get_sim_pmap(self,idx):
         elm = self.sims_cmb_len.get_sim_elm(idx)
         hp.almxfl(elm,self.cl_transf,inplace=True)
         blm = self.sims_cmb_len.get_sim_blm(idx)
