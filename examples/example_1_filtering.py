@@ -1,4 +1,8 @@
 #FIXME: mask paths and sims
+"""
+
+    NB: on first call, the dense temperature and polarization pre-conditioners will be computed and cached.
+"""
 
 import os
 import healpy as hp
