@@ -8,7 +8,6 @@ import pickle as pk
 from plancklens2018.filt import filt_cinv
 from plancklens2018 import utils
 from plancklens2018.sims import planck2018_sims, phas, cmbs, maps, utils as maps_utils
-from plancklens2018.sims import utils as sims_utils
 
 assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'
 PL2018 = os.environ['PL2018']
@@ -31,8 +30,8 @@ Tmaskpaths = [os.environ['CSCRATCH'] + '/jpipe/inputs/PR3vApr6_temp_lensingmask_
 
 #dcl:
 #FIXME:
-dcl = pk.load(open(os.environ['JPIPE'] + '/dcls/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.pk','r'))
-dcl_dat = pk.load(open(os.environ['JPIPE'] + '/dcls_dat/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.pk','r'))
+dcl = pk.load(open('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/dcls/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.pk','r'))
+dcl_dat = pk.load(open('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/dcls_dat/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.pk','r'))
 
 
 libdir_cinvt = os.path.join(PL2018, 'temp', 'example_filtering', 'cinv_t')
