@@ -47,7 +47,7 @@ dcl_phas = phas.lib_phas(libdir_dclphas, 3, 2048)
 
 sims_raw  = planck2018_sims.smica_dx12()
 sims_dcl_sim = maps.cmb_maps_noisefree(cmbs.sims_cmb_unl(dcl, dcl_phas), transf)
-sims_dcl_dat = maps.cmb_maps_noisefree(cmbs.sims_cmb_unl(dcl_dat, dcl_phas), transf)
+sims_dcl_dat = maps_utils.sim_lib_shuffle(maps.cmb_maps_noisefree(cmbs.sims_cmb_unl(dcl_dat, dcl_phas), transf), {-1:nsims})
 sims = maps_utils.sim_lib_add_dat([maps_utils.sim_lib_add_sim([sims_raw, sims_dcl_sim]), sims_dcl_dat])
 
 
