@@ -29,19 +29,21 @@ class nhl_lib_simple:
         ret['lmax_qlm'] = self.lmax_qlm
         return ret
 
-    def get_nhl(self, idx, k1, k2, recache=False):
+    def get_sim_nhl(self, idx, k1, k2, recache=False):
+        assert idx == -1 or idx >= 0, idx
         fn = 'anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + ('_G' if k1[0] != 'x' else '_C')
-        if self.npdb.get(fn) is None or recache:
-            cls_ivfs, lmax_ivf = self.get_cls(idx)
+        suf =  ('sim%04d'%idx) * (idx >= 0) +  'dat' * (idx == -1)
+        if self.npdb.get(fn + suf) is None or recache:
+            cls_ivfs, lmax_ivf = self._get_cls(idx)
             G, C = qresp.get_nhl(k1, k2, self.cls_weight, cls_ivfs, lmax_ivf, lmax_out=self.lmax_qlm)
             if recache and self.npdb.get(fn) is not None:
-                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_G')
-                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_C')
-            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_G', G)
-            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_C', C)
-        return self.npdb.get(fn)
+                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_G' + suf)
+                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_C' + suf)
+            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_G' + suf, G)
+            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_C' + suf, C)
+        return self.npdb.get(fn + suf)
 
-    def get_cls(self, idx):
+    def _get_cls(self, idx):
         ret =  {'tt':  hp.alm2cl(self.ivfs.get_sim_tlm(idx)) / self.fsky,
                 'ee':  hp.alm2cl(self.ivfs.get_sim_elm(idx)) / self.fsky,
                 'bb':  hp.alm2cl(self.ivfs.get_sim_blm(idx)) / self.fsky,
