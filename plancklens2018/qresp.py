@@ -222,6 +222,12 @@ class nhl_lib_simple:
         return self.npdb.get(fn)
 
 
+def get_response_jtTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fabl_leg1, fabl_leg2=None, lmax_out=None, ret_terms=False):
+    """QE. response assuming joint T-P filering.
+
+        Instead of a T, E or B array, the filtering isotropic approximation is a 3x3 matrix.
+    """
+
 
 def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None, ret_terms=False):
     #FIXME Curl lensign l=1 response non-zero
@@ -289,8 +295,6 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, f
             flb = fal_leg2['e'] - np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal_leg2['t']
             Rggcc += (-1) ** (ti + si) * prefac * add(-abs(si), -abs(ti), so, to, fla, flb)
     return Rggcc if not ret_terms else (Rggcc, terms)
-
-    #FIXME: finish this:
 
 def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None, lmax_out=None,
               cls_ivfs_bb=None, cls_ivfs_ab=None):

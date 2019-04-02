@@ -3,6 +3,7 @@ from __future__ import print_function
 import os
 import sqlite3
 
+import healpy as hp
 import numpy as np
 import pickle as pk
 
@@ -148,3 +149,40 @@ class pix_lib_phas:
 
     def hashdict(self):
         return {'nfields': self.nfields, 'shape': self.shape}
+
+class _lib_phas(sim_lib):
+    def __init__(self, lib_dir,lmax, **kwargs):
+        self.lmax = lmax
+        super(_lib_phas, self).__init__(lib_dir, **kwargs)
+
+    def _build_sim_from_rng(self, rng_state, phas_only=False):
+        np.random.set_state(rng_state)
+        alm = (np.random.standard_normal(hp.Alm.getsize(self.lmax)) + 1j * np.random.standard_normal(hp.Alm.getsize(self.lmax))) / np.sqrt(2.)
+        if phas_only: return
+        m0 = hp.Alm.getidx(self.lmax, np.arange(self.lmax + 1,dtype = int),0)
+        alm[m0] = np.sqrt(2.) * alm[m0].real
+        return alm
+
+    def hashdict(self):
+        return {'lmax':self.lmax}
+
+class lib_phas:
+    def __init__(self, lib_dir, nfields, lmax, **kwargs):
+        self.lmax = lmax
+        self.nfields = nfields
+        self.lib_phas = {}
+        for i in range(nfields):
+            self.lib_phas[i] = _lib_phas(os.path.join(lib_dir, 'pha_%04d'%i), lmax, **kwargs)
+
+    def is_full(self):
+        return np.all([lib.is_full() for lib in self.lib_phas.values()])
+
+    def get_sim(self, idx, idf=None, phas_only=False):
+        if idf is not None:
+            assert idf < self.nfields, (idf, self.nfields)
+            return self.lib_phas[idf].get_sim(idx, phas_only=phas_only)
+        return np.array([self.lib_phas[_idf].get_sim(idx, phas_only=phas_only) for _idf in range(self.nfields)])
+
+
+    def hashdict(self):
+        return {'nfields': self.nfields, 'lmax':self.lmax}
