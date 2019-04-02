@@ -4,7 +4,7 @@ import numpy as np
 from plancklens2018 import qecl
 from plancklens2018 import nhl
 from plancklens2018 import utils
-
+from plancklens2018 import n1
 import example_2_qlms as qlms
 
 assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'
@@ -17,6 +17,7 @@ libdir_qcls_dd = os.path.join(PL2018, 'temp', 'example_qcls', 'qcls_dd')
 libdir_qcls_ds = os.path.join(PL2018, 'temp', 'example_qcls', 'qcls_ds')
 libdir_qcls_ss = os.path.join(PL2018, 'temp', 'example_qcls', 'qcls_ss')
 libdir_nhl_dd = os.path.join(PL2018, 'temp', 'example_qcls', 'nhl_dd')
+libdir_n1 = os.path.join(PL2018, 'temp', 'example_qcls', 'n1')
 
 mc_sims_mf_dd = mc_sims_bias
 mc_sims_mf_ds = np.array([])
@@ -26,8 +27,11 @@ qcls_dd = qecl.library(libdir_qcls_dd, qlms.qlms_dd, qlms.qlms_dd, mc_sims_mf_dd
 qcls_ds = qecl.library(libdir_qcls_ds, qlms.qlms_ds, qlms.qlms_ds, mc_sims_mf_ds)
 qcls_ss = qecl.library(libdir_qcls_ss, qlms.qlms_ss, qlms.qlms_ss, mc_sims_mf_ss)
 
+cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
 cl_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
+
 nhl_dd = nhl.nhl_lib_simple(libdir_nhl_dd, qlms.ivfs, cl_weight, qlms.lmax_qlm)
+n1_dd = n1.library_n1(libdir_n1,cl_len['tt'],cl_len['te'],cl_len['ee'])
 
 if __name__ == '__main__':
     import argparse
