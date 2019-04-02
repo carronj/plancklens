@@ -27,7 +27,7 @@ qcls_ds = qecl.library(libdir_qcls_ds, qlms.qlms_ds, qlms.qlms_ds, mc_sims_mf_ds
 qcls_ss = qecl.library(libdir_qcls_ss, qlms.qlms_ss, qlms.qlms_ss, mc_sims_mf_ss)
 
 cl_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
-nhl_dd = nhl.nhl_lib_simple(libdir_nhl_dd, qlms.qlms_dd.ivfs, cl_weight, qlms.lmax_qlm)
+nhl_dd = nhl.nhl_lib_simple(libdir_nhl_dd, qlms.ivfs, cl_weight, qlms.lmax_qlm)
 
 if __name__ == '__main__':
     import argparse
