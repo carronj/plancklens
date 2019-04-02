@@ -11,9 +11,9 @@ PL2018 = os.environ['PL2018']
 mc_sims_bias = np.arange(60)
 mc_sims_var  = np.arange(60, 300)
 
-libdir_qcls_dd = os.path.join(PL2018, 'qcls_dd')
-libdir_qcls_ds = os.path.join(PL2018, 'qcls_ds')
-libdir_qcls_ss = os.path.join(PL2018, 'qcls_ss')
+libdir_qcls_dd = os.path.join(PL2018, 'temp', 'example_qcls', 'qcls_dd')
+libdir_qcls_ds = os.path.join(PL2018, 'temp', 'example_qcls', 'qcls_ds')
+libdir_qcls_ss = os.path.join(PL2018, 'temp', 'example_qcls', 'qcls_ss')
 
 mc_sims_mf_dd = mc_sims_bias
 mc_sims_mf_ds = np.array([])
