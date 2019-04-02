@@ -30,7 +30,7 @@ class nhl_lib_simple:
         utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
 
         self.lib_dir = lib_dir
-        self.npdb = sql.npdb(lib_dir)
+        self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
         self.fsky = np.mean(self.ivfs.get_fmask())
 
     def hashdict(self):
