@@ -2,6 +2,8 @@ import os
 import numpy as np
 
 from plancklens2018 import qecl
+from plancklens2018 import nhl
+from plancklens2018 import utils
 
 import example_2_qlms as qlms
 
@@ -14,6 +16,7 @@ mc_sims_var  = np.arange(60, 300)
 libdir_qcls_dd = os.path.join(PL2018, 'temp', 'example_qcls', 'qcls_dd')
 libdir_qcls_ds = os.path.join(PL2018, 'temp', 'example_qcls', 'qcls_ds')
 libdir_qcls_ss = os.path.join(PL2018, 'temp', 'example_qcls', 'qcls_ss')
+libdir_nhl_dd = os.path.join(PL2018, 'temp', 'example_qcls', 'nhl_dd')
 
 mc_sims_mf_dd = mc_sims_bias
 mc_sims_mf_ds = np.array([])
@@ -23,6 +26,9 @@ qcls_dd = qecl.library(libdir_qcls_dd, qlms.qlms_dd, qlms.qlms_dd, mc_sims_mf_dd
 qcls_ds = qecl.library(libdir_qcls_ds, qlms.qlms_ds, qlms.qlms_ds, mc_sims_mf_ds)
 qcls_ss = qecl.library(libdir_qcls_ss, qlms.qlms_ss, qlms.qlms_ss, mc_sims_mf_ss)
 
+cl_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
+nhl_dd = nhl.nhl_lib_simple(libdir_nhl_dd, qlms.qlms_dd.ivfs, cl_weight, qlms.lmax_qlm)
+
 if __name__ == '__main__':
     import argparse
     from plancklens2018 import mpi
@@ -30,7 +36,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Planck 2018 QE power spectra calc. example')
     parser.add_argument('-imin', dest='imin', default=-1, type=int, help='starting index (-1 stands for data map)')
     parser.add_argument('-imax', dest='imax', default=-2, type=int, help='last index')
-    parser.add_argument('-k', dest='k', action='+', default=['p'],
+    parser.add_argument('-k', dest='k', nargs='+', action='store', default=['p'],
                         help='QE keys (NB: both gradient anc curl are calculated at the same time)')
 
     parser.add_argument('-dd', dest='dd', action='store_true', help='perform dd qcls library QEs')
