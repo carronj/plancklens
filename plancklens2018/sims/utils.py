@@ -48,7 +48,7 @@ class sim_lib_add_sim:
         for i, (s, w) in enumerate(zip(self.sim_libs, self.w)):
             ret['sim_lib ' + str(i)] = s.hashdict()
             ret['w ' + str(i)] = w
-        return w
+        return ret
 
 
 
@@ -70,7 +70,9 @@ class sim_lib_add_dat:
         return t
 
     def get_sim_pmap(self, idx):
-        q, u = self.sim_libs[0].get_sim_pmap(idx) * self.w[0]
+        q, u = self.sim_libs[0].get_sim_pmap(idx)
+        q *= self.w[0]
+        u *= self.w[0]
         if idx < 0:
             for s, w in zip(self.sim_libs[1:], self.w[1:]):
                 _q, _u = s.get_sim_pmap(idx)
@@ -83,7 +85,7 @@ class sim_lib_add_dat:
         for i, (s, w) in enumerate(zip(self.sim_libs, self.w)):
             ret['sim_lib ' + str(i)] = s.hashdict()
             ret['w ' + str(i)] = w
-        return w
+        return ret
 
 
 
