@@ -19,6 +19,15 @@ class nhl_lib_simple:
         self.lmax_qlm = lmax_qlm
         self.cls_weight = cls_weight
         self.ivfs = ivfs
+        fn_hash = os.path.join(lib_dir, 'nhl_hash.pk')
+        if mpi.rank == 0:
+            if not os.path.exists(lib_dir):
+                os.makedirs(lib_dir)
+            if not os.path.exists(fn_hash):
+                pk.dump(self.hashdict(), open(fn_hash, 'wb'))
+        mpi.barrier()
+        utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
+
         self.lib_dir = lib_dir
         self.npdb = sql.npdb(lib_dir)
         self.fsky = np.mean(self.ivfs.get_fmask())
