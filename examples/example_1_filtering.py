@@ -30,7 +30,7 @@ cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_le
 
 # Masks
 #FIXME: paths
-Tmaskpaths = [os.environ['CSCRATCH'] + '/jpipe/inputs/PR3vApr6_temp_lensingmask_gPR2_70_psPR2_143_COT2_psPR2_217_sz.fits.gz']
+Tmaskpaths = ['/global/cscratch1/sd/jcarron/jpipe/inputs/PR3vApr6_temp_lensingmask_gPR2_70_psPR2_143_COT2_psPR2_217_sz.fits.gz']
 
 #dcl:
 #FIXME:
