@@ -3,10 +3,12 @@
 import os
 import healpy as hp
 import numpy as np
+import pickle as pk
 
 from plancklens2018.filt import filt_cinv
 from plancklens2018 import utils
-from plancklens2018.sims import planck2018_sims
+from plancklens2018.sims import planck2018_sims, phas, cmbs, maps, utils as maps_utils
+from plancklens2018.sims import utils as sims_utils
 
 assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'
 PL2018 = os.environ['PL2018']
@@ -15,23 +17,36 @@ lmax_ivf = 2048
 nside = 2048
 nlev_t = 35.
 nlev_p = 55.
+nsims = 300
 
 transf = hp.gauss_beam(5. / 60. / 180. * np.pi, lmax=lmax_ivf) * hp.pixwin(nside)[:lmax_ivf + 1]
 cl_unl = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))
 cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
 
 
-sim_lib  = planck2018_sims.smica_dx12()
 
 # Masks
+#FIXME: paths
 Tmaskpaths = [os.environ['CSCRATCH'] + '/jpipe/inputs/PR3vApr6_temp_lensingmask_gPR2_70_psPR2_143_COT2_psPR2_217_sz.fits.gz']
-Tmaskpaths += ['/project/projectdirs/planck/data/compsep/comparison/dx12_v3/dx12_v3_common_ps_mask_int_005a_2048_v2.fits.gz',
-               '/project/projectdirs/planck/data/compsep/comparison/dx12_v3/dx12_v3_common_ps_mask_pol_005a_2048_v2.fits.gz']
+
+#dcl:
+#FIXME:
+dcl = pk.load(open(os.environ['JPIPE'] + '/dcls/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.pk','r'))
+dcl_dat = pk.load(open(os.environ['JPIPE'] + '/dcls_dat/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.pk','r'))
 
 
 libdir_cinvt = os.path.join(PL2018, 'temp', 'example_filtering', 'cinv_t')
 libdir_cinvp = os.path.join(PL2018, 'temp', 'example_filtering', 'cinv_p')
 libdir_ivfs  = os.path.join(PL2018, 'temp', 'example_filtering', 'ivfs')
+libdir_dclphas = os.path.join(PL2018, 'temp', 'example_filtering', 'dcl_phas')
+
+dcl_phas = phas.lib_phas(libdir_dclphas, 3, 2048)
+
+sims_raw  = planck2018_sims.smica_dx12()
+sims_dcl_sim = maps.cmb_maps_noisefree(cmbs.sims_cmb_unl(dcl, dcl_phas), transf)
+sims_dcl_dat = maps.cmb_maps_noisefree(cmbs.sims_cmb_unl(dcl_dat, dcl_phas), transf)
+sims = maps_utils.sim_lib_add_dat(maps_utils.sim_lib_add_sim(sims_raw, sims_dcl_sim), sims_dcl_dat)
+
 
 ninv_t = [np.array([3. / nlev_t ** 2])] + Tmaskpaths
 cinv_t = filt_cinv.cinv_t(libdir_cinvt, lmax_ivf,nside, cl_len, transf, ninv_t,
@@ -40,7 +55,7 @@ cinv_t = filt_cinv.cinv_t(libdir_cinvt, lmax_ivf,nside, cl_len, transf, ninv_t,
 ninv_p = [[np.array([3. / nlev_p ** 2])] + Tmaskpaths]
 cinv_p = filt_cinv.cinv_p(libdir_cinvp, lmax_ivf, nside, cl_len, transf, ninv_p)
 
-ivfs    = filt_cinv.library_cinv_sepTP(libdir_ivfs, sim_lib, cinv_t, cinv_p, cl_len)
+ivfs    = filt_cinv.library_cinv_sepTP(libdir_ivfs, sims, cinv_t, cinv_p, cl_len)
 
 if __name__ == '__main__':
     import argparse
