@@ -11,9 +11,10 @@ from plancklens2018 import sql
 from plancklens2018 import qresp
 
 class nhl_lib_simple:
-    """Analytical unnormalized N0 library.
+    """Semi-analytical unnormalized N0 library.
 
-    NB: This version only for 4 identical legs
+    NB: This version only for 4 identical legs. Simple 1/fsky spectrum estimator.
+
     """
     def __init__(self, lib_dir, ivfs, cls_weight, lmax_qlm):
         self.lmax_qlm = lmax_qlm
