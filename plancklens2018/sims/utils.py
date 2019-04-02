@@ -43,6 +43,15 @@ class sim_lib_add_sim:
                 u += w * _u
         return q, u
 
+    def hashdict(self):
+        ret = {'lib': 'add_sim'}
+        for i, (s, w) in enumerate(zip(self.sim_libs, self.w)):
+            ret['sim_lib ' + str(i)] = s.hashdict()
+            ret['w ' + str(i)] = w
+        return w
+
+
+
 class sim_lib_add_dat:
     """Added simulation libraries.
 
@@ -68,6 +77,13 @@ class sim_lib_add_dat:
                 q += w * _q
                 u += w * _u
         return q, u
+
+    def hashdict(self):
+        ret = {'lib': 'add_dat'}
+        for i, (s, w) in enumerate(zip(self.sim_libs, self.w)):
+            ret['sim_lib ' + str(i)] = s.hashdict()
+            ret['w ' + str(i)] = w
+        return w
 
 
 
