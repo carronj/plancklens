@@ -29,6 +29,7 @@ qcls_ss = qecl.library(libdir_qcls_ss, qlms.qlms_ss, qlms.qlms_ss, mc_sims_mf_ss
 
 cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
 cl_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
+cl_weight['bb'] *= 0.
 
 nhl_dd = nhl.nhl_lib_simple(libdir_nhl_dd, qlms.ivfs, cl_weight, qlms.lmax_qlm)
 n1_dd = n1.library_n1(libdir_n1,cl_len['tt'],cl_len['te'],cl_len['ee'])
