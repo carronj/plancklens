@@ -173,6 +173,15 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
             return [qe(lega, legb, cL_out)]
         else:
             assert 0
+
+    elif qe_key[0] == 's':
+        if qe_key == 'stt':
+            lega = qeleg(0, 0, -np.ones(lmax + 1, dtype=float))
+            legb = qeleg(0, 0, -np.ones(lmax + 1, dtype=float))
+            cL_out = np.ones(2 * lmax + 1, dtype=float)
+            return [qe(lega, legb, cL_out)]
+        else:
+            assert 0
     else:
         assert 0
 
