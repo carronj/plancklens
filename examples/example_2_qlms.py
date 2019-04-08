@@ -31,9 +31,9 @@ ivfs   = filt_util.library_ftl(example_1_filtering.ivfs, lmax_ivf, ftl, fel, fbl
 ivfs_d = filt_util.library_shuffle(ivfs, ds_dict)
 ivfs_s = filt_util.library_shuffle(ivfs, ss_dict)
 
-libdir_qlmsdd = os.path.join(PL2018, 'temp', 'example_qlms', 'qlms_dd')
-libdir_qlmsds = os.path.join(PL2018, 'temp', 'example_qlms', 'qlms_ds')
-libdir_qlmsss = os.path.join(PL2018, 'temp', 'example_qlms', 'qlms_ss')
+libdir_qlmsdd = os.path.join(PL2018, 'temp', 'example', 'qlms_dd')
+libdir_qlmsds = os.path.join(PL2018, 'temp', 'example', 'qlms_ds')
+libdir_qlmsss = os.path.join(PL2018, 'temp', 'example', 'qlms_ss')
 
 qlms_dd = qest.library_sepTP(libdir_qlmsdd, ivfs, ivfs  , clte, nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
 qlms_ds = qest.library_sepTP(libdir_qlmsds, ivfs, ivfs_d, clte, nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})

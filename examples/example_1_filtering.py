@@ -38,10 +38,10 @@ dcl = pk.load(open('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/dcls/sm
 dcl_dat = pk.load(open('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/dcls_dat/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.pk','r'))
 
 
-libdir_cinvt = os.path.join(PL2018, 'temp', 'example_filtering', 'cinv_t')
-libdir_cinvp = os.path.join(PL2018, 'temp', 'example_filtering', 'cinv_p')
-libdir_ivfs  = os.path.join(PL2018, 'temp', 'example_filtering', 'ivfs')
-libdir_dclphas = os.path.join(PL2018, 'temp', 'example_filtering', 'dcl_phas')
+libdir_cinvt = os.path.join(PL2018, 'temp', 'example', 'cinv_t')
+libdir_cinvp = os.path.join(PL2018, 'temp', 'example', 'cinv_p')
+libdir_ivfs  = os.path.join(PL2018, 'temp', 'example', 'ivfs')
+libdir_dclphas = os.path.join(PL2018, 'temp', 'example', 'dcl_phas')
 
 dcl_phas = phas.lib_phas(libdir_dclphas, 3, 2048)
 
