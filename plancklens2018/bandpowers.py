@@ -71,6 +71,7 @@ class ffp10_binner:
         return ret
 
     def _get_binnedcl(self, cl):
+        assert len(cl) > self.bin_lmaxs[-1], (len(cl), self.bin_lmaxs[-1])
         ret = np.zeros(self.nbins)
         for i, (lmin, lmax) in enumerate(zip(self.bin_lmins, self.bin_lmaxs)):
             ret[i] = np.sum(self._get_BiL(i, np.arange(lmin, lmax + 1)) * cl[lmin:lmax + 1])
@@ -111,9 +112,10 @@ class ffp10_binner:
         ftlB = ivfsB.get_ftl()
         felB = ivfsB.get_fel()
         fblB = ivfsB.get_fbl()
+        clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp']
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
-        n1pp = self.parfile.n1_dd.get_n1(self.k1, self.ksource, self.clkk_fid *utils.cli(self.kappaswitch), ftlA, felA, fblA, len(qc_resp) - 1
-                                    , kB=self.k2, ftlB=ftlB, felB=felB, fblB=fblB)
+        n1pp = self.parfile.n1_dd.get_n1(self.k1, self.ksource, clpp_fid, ftlA, felA, fblA, len(qc_resp) - 1,
+                                         kB=self.k2, ftlB=ftlB, felB=felB, fblB=fblB)
         return self._get_binnedcl(utils.cli(qc_resp) * n1pp)
 
     def get_bmmc(self):
