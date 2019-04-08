@@ -140,10 +140,6 @@ class ffp10_binner:
         """Point source correction.
 
         """
-        # This PS implementation accepts only identical filtering on each four legs.
-        assert np.all(self.parfile.qcls_dd.qeA.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeA.f2map2.ivfs.get_ftl())
-        assert np.all(self.parfile.qcls_dd.qeB.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeB.f2map2.ivfs.get_ftl())
-        assert np.all(self.parfile.qcls_dd.qeA.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeB.f2map1.ivfs.get_ftl())
 
         ks4 = 'stt'
         twolpo = 2 * np.arange(lmax_ss_s4 + 1) + 1.
@@ -155,10 +151,13 @@ class ffp10_binner:
         ss_ptsrc = self.parfile.qcls_ss.get_sim_stats_qcl(ks4, self.parfile.mc_sims_bias if mc_sims_ss is None else mc_sims_ss).mean()[:lmax_ss_s4 + 1]
         dat_ptsrc = self.parfile.qcls_dd.get_sim_qcl(ks4, -1)[:lmax_ss_s4 + 1]
 
-        lmax_ptsrc = min(len(dat_ptsrc), len(ds_ptsrc)) - 1
+        # This PS implementation accepts only identical filtering on each four legs.
+        assert np.all(self.parfile.qcls_dd.qeA.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeA.f2map2.ivfs.get_ftl())
+        assert np.all(self.parfile.qcls_dd.qeB.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeB.f2map2.ivfs.get_ftl())
+        assert np.all(self.parfile.qcls_dd.qeA.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeB.f2map1.ivfs.get_ftl())
         ftl = self.parfile.qcls_dd.qeA.f2map1.ivfs.get_ftl()
-        qc_resp_ptsrc = qresp.get_nhl(ks4, ks4, {}, {'tt':ftl}, len(ftl) - 1, lmax_out=lmax_ss_s4)[0]
-        #qc_resp_ptsrc = self.parfile.qresp_dd.get_response(ks4, ks4[0]) ** 2
+        qc_resp_ptsrc = qresp.get_nhl(ks4, ks4, {}, {'tt':ftl}, len(ftl) - 1, lmax_out=lmax_ss_s4)[0] ** 2
+
         s4_band_norm = 4.0 / np.sum(4.0 * (twolpo[lmin_ss_s4:lmax_ss_s4 + 1] * qc_resp_ptsrc[lmin_ss_s4:lmax_ss_s4 + 1]))
         s4_cl_dat = s4_band_norm * twolpo * (dat_ptsrc - 4. * ds_ptsrc + 2. * ss_ptsrc)
         s4_cl_check = s4_band_norm * twolpo * (dd_ptsrc - 2. * ss_ptsrc)
@@ -194,7 +193,8 @@ class ffp10_binner:
                                              s4_band_dat / np.sqrt(np.var(s4_band_sim_stats)))))
         qc_resp =   self.parfile.qresp_dd.get_response(self.k1, self.ksource) \
                   * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
-        qlss = self.parfile.qcls_dd.get_response(self.k1, 'stt', k2 = self.k2)[:len(qc_resp)]
+        # PS spectrum response to ks4, using symmetry of response functions.
+        qlss = self.parfile.qresp_dd.get_response(ks4, self.k1[1]) * self.parfile.qresp_dd.get_response(ks4, self.k2[0])
         # Correction to apply to estimated spectrum :
         pp_cl_ps = s4_band_dat * utils.cli(qc_resp) * qlss
         return s4_band_dat, s4_band_check, s4_band_syst, s4_band_sim_stats, Cs2s2, pp_cl_ps
