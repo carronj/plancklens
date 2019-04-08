@@ -193,7 +193,7 @@ class resp_lib_simple:
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'))
         mpi.barrier()
         hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
-        self.npdb = sql.npdb(os.path.join(lib_dir))
+        self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
 
     def hashdict(self):
         ret = {'lmaxqe':self.lmax_qe, 'lmax_qlm':self.lmax_qlm}

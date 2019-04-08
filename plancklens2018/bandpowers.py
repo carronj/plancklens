@@ -57,6 +57,3 @@ def get_n1(parfile, k1, k2, ksource):
     n1pp = parfile.n1_dd.get_n1(k1, ksource, parfile.cl_unl.clpp, ftlA, felA, fblA, len(qc_norm) - 1
                                 , kB=k2, ftlB=ftlB, felB=felB, fblB=fblB)
     return qc_norm * n1pp
-
-
-
