@@ -21,12 +21,12 @@ def get_blbubc(bin_type):
 def get_rdn0(parfile, k1, k2, ksource):
     ds = parfile.qcls_ds.get_sim_stats_qcl(k1, parfile.mc_sims_var, k2=k2).mean()
     ss = parfile.qcls_ss.get_sim_stats_qcl(k1, parfile.mc_sims_var, k2=k2).mean()
-    qc_norm = parfile.resp_dd.get_response(k1, ksource) * parfile.resp_dd.get_response(k2, ksource)
+    qc_norm = parfile.qresp_dd.get_response(k1, ksource) * parfile.qresp_dd.get_response(k2, ksource)
     return qc_norm * (4. * ds - 2. * ss)
 
 def get_mcn0(parfile, k1, k2, ksource):
     ss = parfile.qcls_ss.get_sim_stats_qcl(k1, parfile.mc_sims_var, k2=k2).mean()
-    qc_norm = parfile.resp_dd.get_response(k1, ksource) * parfile.resp_dd.get_response(k2, ksource)
+    qc_norm = parfile.qresp_dd.get_response(k1, ksource) * parfile.qresp_dd.get_response(k2, ksource)
     return qc_norm * (2. * ss)
 
 def get_n1(parfile, k1, k2, ksource):
@@ -53,7 +53,7 @@ def get_n1(parfile, k1, k2, ksource):
     ftlB = ivfsB.get_ftl()
     felB = ivfsB.get_fel()
     fblB = ivfsB.get_fbl()
-    qc_norm = parfile.resp_dd.get_response(k1, ksource) * parfile.resp_dd.get_response(k2, ksource)
+    qc_norm = parfile.qresp_dd.get_response(k1, ksource) * parfile.qresp_dd.get_response(k2, ksource)
     n1pp = parfile.n1_dd.get_n1(k1, ksource, parfile.cl_unl.clpp, ftlA, felA, fblA, len(qc_norm) - 1
                                 , kB=k2, ftlB=ftlB, felB=felB, fblB=fblB)
     return qc_norm * n1pp
