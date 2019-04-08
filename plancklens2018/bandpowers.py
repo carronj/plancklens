@@ -136,7 +136,7 @@ class ffp10_binner:
         return self._get_binnedcl(utils.cli(qc_resp) * n1pp) if not unnormed else n1pp
 
 
-    def get_S4(self,lmin_ss_s4 = 100,lmax_ss_s4 = 2048,mc_sims_ss = None,mc_sims_ds = None):
+    def get_ps_data(self,lmin_ss_s4=100,lmax_ss_s4=2048,mc_sims_ss=None,mc_sims_ds=None):
         """Point source correction.
 
         """
@@ -151,7 +151,7 @@ class ffp10_binner:
         ss_ptsrc = self.parfile.qcls_ss.get_sim_stats_qcl(ks4, self.parfile.mc_sims_bias if mc_sims_ss is None else mc_sims_ss).mean()[:lmax_ss_s4 + 1]
         dat_ptsrc = self.parfile.qcls_dd.get_sim_qcl(ks4, -1)[:lmax_ss_s4 + 1]
 
-        # This PS implementation accepts only identical filtering on each four legs.
+        # This simple PS implementation accepts only identical filtering on each four legs.
         assert np.all(self.parfile.qcls_dd.qeA.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeA.f2map2.ivfs.get_ftl())
         assert np.all(self.parfile.qcls_dd.qeB.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeB.f2map2.ivfs.get_ftl())
         assert np.all(self.parfile.qcls_dd.qeA.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeB.f2map1.ivfs.get_ftl())
@@ -198,6 +198,9 @@ class ffp10_binner:
         # Correction to apply to estimated spectrum :
         pp_cl_ps = s4_band_dat * utils.cli(qc_resp) * qlss
         return s4_band_dat, s4_band_check, s4_band_syst, s4_band_sim_stats, Cs2s2, pp_cl_ps
+
+    def get_ps_corr(self, lmin_ss_s4=100, lmax_ss_s4=2048):
+        return self.get_ps_data(lmin_ss_s4=lmin_ss_s4, lmax_ss_s4=lmax_ss_s4)[-1]
 
     def get_bmmc(self):
         """Binned multiplicative MC correction.
