@@ -35,7 +35,7 @@ cl_weight['bb'] *= 0.
 
 nhl_dd = nhl.nhl_lib_simple(libdir_nhl_dd, qlms.ivfs, cl_weight, qlms.lmax_qlm)
 n1_dd = n1.library_n1(libdir_n1_dd,cl_len['tt'],cl_len['te'],cl_len['ee'])
-ressp_dd = qresp.resp_lib_simple(libdir_resp_dd, qlms.lmax_ivf, cl_weight, cl_len,{'t': qlms.ivfs.get_ftl(), 'e':qlms.ivfs.get_fel(), 'b':qlms.ivfs.get_fbl()}, qlms.lmax_qlm)
+qresp_dd = qresp.resp_lib_simple(libdir_resp_dd, qlms.lmax_ivf, cl_weight, cl_len,{'t': qlms.ivfs.get_ftl(), 'e':qlms.ivfs.get_fel(), 'b':qlms.ivfs.get_fbl()}, qlms.lmax_qlm)
 
 if __name__ == '__main__':
     import argparse
