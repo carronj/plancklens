@@ -88,7 +88,7 @@ class ffp10_binner:
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
         return self._get_binnedcl(utils.cli(qc_resp) * (4 * ds - 2. * ss))
 
-    def get_n1(self):
+    def get_n1(self, binned=True):
         """Analytical N1 caculation.
 
             This takes the analyical approximation to the QE pair filtering as input.
@@ -116,11 +116,17 @@ class ffp10_binner:
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
         n1pp = self.parfile.n1_dd.get_n1(self.k1, self.ksource, clpp_fid, ftlA, felA, fblA, len(qc_resp) - 1,
                                          kB=self.k2, ftlB=ftlB, felB=felB, fblB=fblB)
-        return self._get_binnedcl(utils.cli(qc_resp) * n1pp)
+        return self._get_binnedcl(utils.cli(qc_resp) * n1pp) if binned else utils.cli(qc_resp) * n1pp
 
     def get_bmmc(self):
-        assert 0, 'FIXME'
-        MC = get_binnedcl(getme.get_MC_pp_qcl(useN1=flags['useN1']))
-        bmMC = 1. / (1 + MC / self.fid_bandpowers)  # Binned multiplicative MC correction.
-        return binned(cl_ksource, btype) / cl
+        """Binned multiplicative MC correction.
+
+        """
+        assert self.k1[0] == 'p' and self.k2[0] == 'p' and self.ksource == 'p', (self.k1, self.k2, self.ksource)
+        dd = self.parfile.qcls_dd.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
+        ss = self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
+        cl_pred =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp']
+        qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
+        cl = utils.cli(qc_resp) *(dd - 2 * ss - cl_pred[:len(dd)]) - self.get_n1()
+        return  1. / (1 + self._get_binnedcl(cl) / self.fid_bandpowers)
 
