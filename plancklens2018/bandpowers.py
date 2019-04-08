@@ -103,6 +103,15 @@ class ffp10_binner:
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
         return self._get_binnedcl(utils.cli(qc_resp) * (4 * ds - 2. * ss))
 
+    def get_dat_nhl(self):
+        """N0 lensing bias, semi-analytical version.
+
+            This is not accurate on the cut-sky.
+
+        """
+        qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
+        return self._get_binnedcl(utils.cli(qc_resp) * self.parfile.nhl_dd.get_sim_nhl(-1, self.k1, self.k2))
+
     def get_n1(self, k1=None, k2=None, unnormed=False):
         """Analytical N1 lensing bias.
 
@@ -140,7 +149,6 @@ class ffp10_binner:
         """Point source correction.
 
         """
-
         ks4 = 'stt'
         twolpo = 2 * np.arange(lmax_ss_s4 + 1) + 1.
         filt = np.ones(lmax_ss_s4 + 1, dtype=float)
@@ -164,9 +172,9 @@ class ffp10_binner:
         s4_cl_systs = s4_band_norm * twolpo * (4. * ds_ptsrc - 4. * ss_ptsrc)
         # phi-induced PS estimator N1
         clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp']
-        s4_cl_clpp_n1 = s4_band_norm * twolpo * self.get_n1(k1=ks4, k2=ks4)[:lmax_ss_s4+1]
+        s4_cl_clpp_n1 = s4_band_norm * twolpo * self.get_n1(k1=ks4, k2=ks4, unnormed=True)[:lmax_ss_s4+1]
 
-        s4_cl_clpp_prim = s4_band_norm * twolpo * self.parfile.qcls_dd.get_response(ks4, self.ksource)[ :lmax_ss_s4 + 1] * clpp_fid[:lmax_ss_s4 + 1]
+        s4_cl_clpp_prim = s4_band_norm * twolpo * self.parfile.qresp_dd.get_response(ks4, self.ksource) [ :lmax_ss_s4 + 1] ** 2 * clpp_fid[:lmax_ss_s4 + 1]
 
         s4_band_dat = np.sum((s4_cl_dat - s4_cl_clpp_prim - s4_cl_clpp_n1)[lmin_ss_s4: lmax_ss_s4 + 1])
         s4_band_check = np.sum((s4_cl_check - s4_cl_clpp_prim - s4_cl_clpp_n1)[lmin_ss_s4: lmax_ss_s4 + 1])
@@ -177,7 +185,7 @@ class ffp10_binner:
         # reconstucted PS power (with correct normalization)
         s4_band_sim_stats = []
 
-        for idx in self.parfile.mc_sims_var:
+        for i, idx in utils.enumerate_progress(self.parfile.mc_sims_var):
             ts4_cl = s4_band_norm * twolpo[: lmax_ss_s4 + 1] * \
                      (self.parfile.qcls_dd.get_sim_qcl(ks4, idx)[:lmax_ss_s4 + 1] - 2. * ss_ptsrc)
             s4_band_sim_stats.append(np.sum((ts4_cl - s4_cl_clpp_prim - s4_cl_clpp_n1)[lmin_ss_s4: lmax_ss_s4 + 1]))
@@ -193,7 +201,7 @@ class ffp10_binner:
                                              s4_band_dat / np.sqrt(np.var(s4_band_sim_stats)))))
         qc_resp =   self.parfile.qresp_dd.get_response(self.k1, self.ksource) \
                   * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
-        # PS spectrum response to ks4, using symmetry of response functions.
+        # PS spectrum response to ks4, using qe.key- source key symmetry of response functions.
         qlss = self.parfile.qresp_dd.get_response(ks4, self.k1[1]) * self.parfile.qresp_dd.get_response(ks4, self.k2[0])
         # Correction to apply to estimated spectrum :
         pp_cl_ps = s4_band_dat * utils.cli(qc_resp) * qlss
