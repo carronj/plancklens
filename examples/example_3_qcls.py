@@ -2,6 +2,7 @@ import os
 import numpy as np
 
 from plancklens2018 import qecl
+from plancklens2018 import qresp
 from plancklens2018 import nhl
 from plancklens2018 import utils
 from plancklens2018 import n1
@@ -17,7 +18,8 @@ libdir_qcls_dd = os.path.join(PL2018, 'temp', 'example_qcls', 'qcls_dd')
 libdir_qcls_ds = os.path.join(PL2018, 'temp', 'example_qcls', 'qcls_ds')
 libdir_qcls_ss = os.path.join(PL2018, 'temp', 'example_qcls', 'qcls_ss')
 libdir_nhl_dd = os.path.join(PL2018, 'temp', 'example_qcls', 'nhl_dd')
-libdir_n1 = os.path.join(PL2018, 'temp', 'example_qcls', 'n1')
+libdir_n1_dd = os.path.join(PL2018, 'temp', 'example_qcls', 'n1')
+libdir_resp_dd = os.path.join(PL2018, 'temp', 'example_qcls', 'qresp')
 
 mc_sims_mf_dd = mc_sims_bias
 mc_sims_mf_ds = np.array([])
@@ -32,7 +34,8 @@ cl_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole
 cl_weight['bb'] *= 0.
 
 nhl_dd = nhl.nhl_lib_simple(libdir_nhl_dd, qlms.ivfs, cl_weight, qlms.lmax_qlm)
-n1_dd = n1.library_n1(libdir_n1,cl_len['tt'],cl_len['te'],cl_len['ee'])
+n1_dd = n1.library_n1(libdir_n1_dd,cl_len['tt'],cl_len['te'],cl_len['ee'])
+ressp_dd = qresp.resp_lib_simple(libdir_resp_dd, qlms.lmax_ivf, cl_weight, cl_len,{'t': qlms.ivfs.get_ftl(), 'e':qlms.ivfs.get_fel(), 'b':qlms.ivfs.get_fbl()}, qlms.lmax_qlm)
 
 if __name__ == '__main__':
     import argparse
