@@ -3,6 +3,7 @@ import os
 import numpy as np
 
 from plancklens2018 import utils
+from plancklens2018 import qresp
 
 PL2018 = os.environ['PL2018']
 
@@ -139,6 +140,10 @@ class ffp10_binner:
         """Point source correction.
 
         """
+        # This PS implementation accepts only identical filtering on each four legs.
+        assert np.all(self.parfile.qcls_dd.qeA.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeA.f2map2.ivfs.get_ftl())
+        assert np.all(self.parfile.qcls_dd.qeB.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeB.f2map2.ivfs.get_ftl())
+        assert np.all(self.parfile.qcls_dd.qeA.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeB.f2map1.ivfs.get_ftl())
 
         ks4 = 'stt'
         twolpo = 2 * np.arange(lmax_ss_s4 + 1) + 1.
@@ -151,14 +156,14 @@ class ffp10_binner:
         dat_ptsrc = self.parfile.qcls_dd.get_sim_qcl(ks4, -1)[:lmax_ss_s4 + 1]
 
         lmax_ptsrc = min(len(dat_ptsrc), len(ds_ptsrc)) - 1
-
-        qc_resp_ptsrc = self.parfile.qresp_dd.get_response(ks4, ks4[0]) ** 2
+        ftl = self.parfile.qcls_dd.qeA.f2map1.ivfs.get_ftl()
+        qc_resp_ptsrc = qresp.get_nhl(ks4, ks4, {}, {'tt':ftl}, len(ftl) - 1, lmax_out=lmax_ss_s4)[0]
+        #qc_resp_ptsrc = self.parfile.qresp_dd.get_response(ks4, ks4[0]) ** 2
         s4_band_norm = 4.0 / np.sum(4.0 * (twolpo[lmin_ss_s4:lmax_ss_s4 + 1] * qc_resp_ptsrc[lmin_ss_s4:lmax_ss_s4 + 1]))
         s4_cl_dat = s4_band_norm * twolpo * (dat_ptsrc - 4. * ds_ptsrc + 2. * ss_ptsrc)
         s4_cl_check = s4_band_norm * twolpo * (dd_ptsrc - 2. * ss_ptsrc)
         s4_cl_systs = s4_band_norm * twolpo * (4. * ds_ptsrc - 4. * ss_ptsrc)
         # phi-induced PS estimator N1
-        #FIXME: n1 through n1 method
         clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp']
         s4_cl_clpp_n1 = s4_band_norm * twolpo * self.get_n1(k1=ks4, k2=ks4)[:lmax_ss_s4+1]
 
