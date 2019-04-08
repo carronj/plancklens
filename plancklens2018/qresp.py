@@ -354,7 +354,8 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None, lm
 
             sgn = -1
             sgn2 = 1
-            sgn_fix = -1
+            #FIXME::
+            sgn_fix = (-1) ** (so + to)
 
             sgn_R = (-1) ** (uo + vo + ui + vi)
             clsu = _joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(si, -ui, cls_ivfs_aa)])
