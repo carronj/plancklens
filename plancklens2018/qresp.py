@@ -2,11 +2,14 @@ from __future__ import absolute_import
 
 import os
 import numpy as np
+import pickle as pk
 
 from plancklens2018.wigners import gaujac
 from plancklens2018.wigners import gauleg
 from plancklens2018 import sql
-from plancklens2018.utils import clhash
+from plancklens2018.utils import clhash, hash_check
+from plancklens2018 import mpi
+
 
 
 verbose = False
@@ -174,27 +177,44 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
         assert 0
 
 class resp_lib_simple:
-    def __init__(self, lib_dir, lmax_qe, cls_weight, cls_cmb, fal):
+    def __init__(self, lib_dir, lmax_qe, cls_weight, cls_cmb, fal, lmax_qlm):
         self.lmax_qe = lmax_qe
+        self.lmax_qlm = lmax_qlm
         self.cls_weight = cls_weight
         self.cls_cmb = cls_cmb
         self.fal = fal
         self.lib_dir = lib_dir
+
+        fn_hash = os.path.join(lib_dir, 'resp_hash.pk')
+        if mpi.rank == 0:
+            if not os.path.exists(lib_dir):
+                os.makedirs(lib_dir)
+            if not os.path.exists(fn_hash):
+                pk.dump(self.hashdict(), open(fn_hash, 'wb'))
+        mpi.barrier()
+        hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
         self.npdb = sql.npdb(os.path.join(lib_dir))
-        #FIXME: hashdict
 
+    def hashdict(self):
+        ret = {'lmaxqe':self.lmax_qe, 'lmax_qlm':self.lmax_qlm}
+        for k in self.cls_weight.keys():
+            ret['clsweight ' + k] = clhash(self.cls_weight[k])
+        for k in self.cls_cmb.keys():
+            ret['clscmb ' + k] = clhash(self.cls_cmb[k])
+        for k in self.fal.keys():
+            ret['fal' + k] = clhash(self.fal[k])
+        return ret
 
-    def get_response(self, k, source, recache=False):
-        #FIXME: GC
-        assert k[0] in ['p', 'x'], 'FIXME'
-        fn = 'qe_' + k[1:] + '_source_%s'%source + ('_G' if k[0] != 'x' else '_C')
+    def get_response(self, k, ksource, recache=False):
+        fn = 'qe_' + k[1:] + '_source_%s'%ksource + ('_G' if k[0] != 'x' else '_C')
         if self.npdb.get(fn) is None or recache:
-            G, C = get_response_sepTP(k, self.lmax_qe, source, self.cls_weight, self.cls_cmb, self.fal)
+            G, C = get_response_sepTP(k, self.lmax_qe, ksource, self.cls_weight, self.cls_cmb, self.fal,
+                                      lmax_out=self.lmax_qlm)
             if recache and self.npdb.get(fn) is not None:
-                self.npdb.remove('qe_' + k[1:] + '_source_%s' % source + '_G')
-                self.npdb.remove('qe_' + k[1:] + '_source_%s' % source + '_C')
-            self.npdb.add('qe_' + k[1:] + '_source_%s' % source + '_G', G)
-            self.npdb.add('qe_' + k[1:] + '_source_%s' % source + '_C', C)
+                self.npdb.remove('qe_' + k[1:] + '_source_%s' % ksource + '_G')
+                self.npdb.remove('qe_' + k[1:] + '_source_%s' % ksource + '_C')
+            self.npdb.add('qe_' + k[1:] + '_source_%s' % ksource + '_G', G)
+            self.npdb.add('qe_' + k[1:] + '_source_%s' % ksource + '_C', C)
         return self.npdb.get(fn)
 
 class nhl_lib_simple:
