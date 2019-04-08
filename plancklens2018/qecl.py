@@ -76,7 +76,11 @@ class library(object):
         lmax_qcl = self.get_lmaxqcl(k1, k2)
         lmax_out = lmax or lmax_qcl
         assert lmax_out <= lmax_qcl
-        fname = os.path.join(self.lib_dir, 'sim_qcl_k1%s_k2%s_lmax%s_%04d_%s.dat' % (k1, k2, lmax_qcl, idx, self._mcmf_hash()))
+        if idx >= 0:
+            fname = os.path.join(self.lib_dir, 'sim_qcl_k1%s_k2%s_lmax%s_%04d_%s.dat' % (k1, k2, lmax_qcl, idx, self._mcmf_hash()))
+        else:
+            assert idx ==-1
+            fname = os.path.join(self.lib_dir, 'sim_qcl_k1%s_k2%s_lmax%s_dat_%s.dat' % (k1, k2, lmax_qcl, self._mcmf_hash()))
         if self.npdb.get(fname) is None or recache:
             qlmA = self.qeA.get_sim_qlm(k1, idx, lmax=lmax_qcl)
             qlmA -= self.qeA.get_sim_qlm_mf(k1, self.mc_sims_mf[0::2], lmax=lmax_qcl)
@@ -85,24 +89,6 @@ class library(object):
             if recache and self.npdb.get(fname) is not None:
                 self.npdb.remove(fname)
             self.npdb.add(fname, self._alm2clfsky1234(qlmA, qlmB, k1, k2))
-            del qlmA, qlmB
-        return self.npdb.get(fname)[:lmax_out + 1] / self.fskies[1234]
-
-    def get_dat_qcl(self, k1, k2=None, lmax=None, recache=False):
-        if k2 is None: k2 = k1
-        assert k1 in self.qeA.keys and k2 in self.qeB.keys, (k1, k2)
-        lmax_qcl = self.get_lmaxqcl(k1, k2)
-        lmax_out = lmax or lmax_qcl
-        assert lmax_out <= lmax_qcl
-        fname = os.path.join(self.lib_dir, 'dat_qcl_k1%s_k2%s_lmax%s_%s.dat' % (k1, k2, lmax_qcl, self._mcmf_hash()))
-        if self.npdb.get(fname) is None or recache:
-            qlmA = self.qeA.get_dat_qlm(k1, lmax=lmax_qcl)
-            qlmA -= self.qeA.get_sim_qlm_mf(k1, self.mc_sims_mf[0::2], lmax=lmax_qcl)
-            qlmB = self.qeB.get_dat_qlm(k2, lmax=lmax_qcl)
-            qlmB -= self.qeB.get_sim_qlm_mf(k2, self.mc_sims_mf[1::2], lmax=lmax_qcl)
-            if recache and self.npdb.get(fname) is not None:
-                self.npdb.remove(fname)
-            self.npdb.add(fname, self._alm2clfsky1234(qlmA, qlmB, k1, k2=k2))
             del qlmA, qlmB
         return self.npdb.get(fname)[:lmax_out + 1] / self.fskies[1234]
 
@@ -132,12 +118,6 @@ class library(object):
             print("Cant produce Nhl")
             return
         return self.nhl_lib.get_sim_nhl(k1, idx, k2=k2)
-
-    def get_dat_nhl(self, k1, k2=None):
-        if self.nhl_lib is None:
-            print("Cant produce Nhl")
-            return
-        return self.nhl_lib.get_dat_nhl(k1, k2=k2)
 
     def _alm2clfsky1234(self, qlm1, qlm2, k1, k2):
         return hp.alm2cl(qlm1, alms2=qlm2)

@@ -25,6 +25,7 @@ def get_blbubc(bin_type):
 class ffp10_binner:
     def __init__(self, k1, k2, parfile, btype, ksource='p'):
         assert ksource == 'p', ksource +  ' source not implemented'
+
         lmaxphi = 2048
         clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp'][:lmaxphi+1]
         kappaswitch = (np.arange(0, lmaxphi + 1, dtype=float) * (np.arange(1, lmaxphi + 2))) ** 2 / (2. * np.pi) * 1e7
@@ -77,21 +78,34 @@ class ffp10_binner:
             ret[i] = np.sum(self._get_BiL(i, np.arange(lmin, lmax + 1)) * cl[lmin:lmax + 1])
         return ret
 
+    def get_fid_bandpowers(self):
+        return np.copy(self.fid_bandpowers)
+
+    def get_dat_bandpowers(self):
+        qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
+        return self._get_binnedcl(utils.cli(qc_resp * self.parfile.qcls_dd.get_sim_qcl(self.k1, -1, k2=self.k2)))
+
     def get_mcn0(self):
+        """MCN0 lensing bias.
+
+        """
         ss = self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
         return self._get_binnedcl(utils.cli(qc_resp) * (2. * ss))
 
     def get_rdn0(self):
+        """Realization-dependent N0 lensing bias RDN0.
+
+        """
         ds = self.parfile.qcls_ds.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
         ss = self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
         return self._get_binnedcl(utils.cli(qc_resp) * (4 * ds - 2. * ss))
 
     def get_n1(self, binned=True):
-        """Analytical N1 caculation.
+        """Analytical N1 lensing bias.
 
-            This takes the analyical approximation to the QE pair filtering as input.
+            This uses the analyical approximation to the QE pair filtering as input.
 
         """
         assert self.k1 == self.k2, 'check signs for qe''s of different spins'
@@ -120,6 +134,8 @@ class ffp10_binner:
 
     def get_bmmc(self):
         """Binned multiplicative MC correction.
+
+            This compares the reconstruction on the simulations to the FFP10 input lensing spectrum.
 
         """
         assert self.k1[0] == 'p' and self.k2[0] == 'p' and self.ksource == 'p', (self.k1, self.k2, self.ksource)
