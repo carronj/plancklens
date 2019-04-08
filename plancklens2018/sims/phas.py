@@ -20,7 +20,7 @@ class rng_db:
             con = sqlite3.connect(fname, detect_types=sqlite3.PARSE_DECLTYPES, timeout=3600)
             cur = con.cursor()
             cur.execute("create table rngdb (id %s PRIMARY KEY, "
-                        "type STRING, pos INTEGER, has_gauss INTEGER,cached_gaussian REAL, keys array)" % idtype)
+                        "type STRING, pos INTEGER, has_gauss INTEGER,cached_gaussian REAL, keys STRING)" % idtype)
             con.commit()
         mpi.barrier()
 
@@ -29,8 +29,9 @@ class rng_db:
     def add(self, idx, state):
         try:
             assert (self.get(idx) is None)
+            keys_string = '_'.join(str(s) for s in state[1])
             self.con.execute("INSERT INTO rngdb (id, type, pos, has_gauss, cached_gaussian, keys) VALUES (?,?,?,?,?,?)",
-                             (idx, state[0], state[2], state[3], state[4], state[1].reshape(1, len(state[1]))))
+                             (idx, state[0], state[2], state[3], state[4], keys_string))
             self.con.commit()
         except:
             print("rng_db::rngdb add failed!")
@@ -45,7 +46,7 @@ class rng_db:
         else:
             assert (len(data) == 5)
             typ, pos, has_gauss, cached_gaussian, keys = data
-            keys = keys[0]
+            keys = np.array([int(a) for a in keys.split('_')], dtype=np.uint32)
             return [typ, keys, pos, has_gauss, cached_gaussian]
 
     def delete(self, idx):
