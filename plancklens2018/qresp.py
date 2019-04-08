@@ -176,7 +176,7 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
 
     elif qe_key[0] == 's':
         if qe_key == 'stt':
-            lega = qeleg(0, 0, -0.5 * np.ones(lmax + 1, dtype=float))
+            lega = qeleg(0, 0, - np.ones(lmax + 1, dtype=float))
             legb = qeleg(0, 0, -0.5 * np.ones(lmax + 1, dtype=float))
             cL_out = np.ones(2 * lmax + 1, dtype=float)
             return [qe(lega, legb, cL_out)]
