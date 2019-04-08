@@ -30,7 +30,7 @@ class ffp10_binner:
         kappaswitch = (np.arange(0, lmaxphi + 1, dtype=float) * (np.arange(1, lmaxphi + 2))) ** 2 / (2. * np.pi) * 1e7
         clkk_fid = clpp_fid * kappaswitch
 
-        qc_resp = parfile.qresp_dd.get_response(k1, ksource) * parfile.qresp_dd.get_response(k2, ksource)
+        qc_resp = parfile.qresp_dd.get_response(k1, ksource)[:lmaxphi+1] * parfile.qresp_dd.get_response(k2, ksource)[:lmaxphi+1]
         bin_lmins, bin_lmaxs, bin_centers = get_blbubc(btype)
         vlpp_inv = qc_resp * (2 * np.arange(lmaxphi + 1) + 1) * (0.5 * parfile.qcls_dd.fsky1234)
         vlpp_inv[np.where(kappaswitch != 0)] /= kappaswitch[np.where(kappaswitch != 0)] ** 2
