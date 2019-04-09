@@ -228,7 +228,7 @@ class library:
         #FIXME: sign consistent with Planck Lensing 2015, but couter-intuitive and should be fixed.
         tmap1 = self.f2map1.get_irestmap(idx) if not swapped else self.f2map2.get_irestmap(idx)  # healpy map
         tmap1 *= (self.f2map2.get_irestmap(idx) if not swapped else self.f2map1.get_irestmap(idx))  # healpy map
-        return -0.5 * hp.map2alm(tmap1, lmax=self.lmax_qlm['PS'],iter=0)
+        return -0.5 * hp.map2alm(tmap1, lmax=self.get_lmax_qlm('PS'),iter=0)
 
     def _get_sim_ntt(self, idx, swapped=False):
         """ Noise inhomogeneity estimator (same as point-source estimator but acting on beam-deconvolved maps) """
@@ -236,13 +236,13 @@ class library:
         f1 = self.f2map1 if not swapped else self.f2map2
         f2 = self.f2map2 if not swapped else self.f2map1
         tmap1 = f1.get_wirestmap(idx, f1.ivfs.get_tal('t')[:]) * f2.get_wirestmap(idx, f2.ivfs.get_tal('t')[:])
-        return -0.5 * hp.map2alm(tmap1, lmax=self.lmax_qlm['T'],iter=0)
+        return -0.5 * hp.map2alm(tmap1, lmax=self.get_lmax_qlm('T'),iter=0)
 
     def _get_sim_ftt(self, idx, swapped=False):
         """ Modulation estimator """
         tmap1 = self.f2map1.get_irestmap(idx) if not swapped else self.f2map2.get_irestmap(idx)  # healpy map
         tmap1 *= (self.f2map2.get_tmap(idx) if not swapped else self.f2map1.get_tmap(idx))  # healpy map
-        return hp.map2alm(tmap1, lmax=self.lmax_qlm['T'], iter = 0)
+        return hp.map2alm(tmap1, lmax=self.get_lmax_qlm('T'), iter = 0)
 
     def _build_sim_Tgclm(self, idx):
         """ T only lensing potentials estimators """
