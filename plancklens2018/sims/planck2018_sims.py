@@ -76,6 +76,9 @@ class ffp10cmb_widnoise:
 class cmb_len_ffp10:
     """ FFP10 input sim libraries, lensed alms.
 
+        The lensing deflections contain the L=1 aberration term (constant across all maps )
+        due to our motion w.r.t. the CMB frame.
+
     """
     def __init__(self):
         pass
