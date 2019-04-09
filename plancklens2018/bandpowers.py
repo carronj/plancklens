@@ -87,7 +87,8 @@ class ffp10_binner:
         return self._get_binnedcl(utils.cli(qc_resp * self.parfile.qcls_dd.get_sim_qcl(self.k1, -1, k2=self.k2)))
 
     def get_mcn0(self):
-        """MCN0 lensing bias.
+        """Monte-Carlo N0 lensing bias.
+
 
         """
         ss = self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
@@ -96,6 +97,8 @@ class ffp10_binner:
 
     def get_rdn0(self):
         """Realization-dependent N0 lensing bias RDN0.
+
+            Mixes data and simulations.
 
         """
         ds = self.parfile.qcls_ds.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
