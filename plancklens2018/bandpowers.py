@@ -84,7 +84,7 @@ class ffp10_binner:
 
     def get_dat_bandpowers(self):
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
-        return self._get_binnedcl(utils.cli(qc_resp * self.parfile.qcls_dd.get_sim_qcl(self.k1, -1, k2=self.k2)))
+        return self._get_binnedcl(utils.cli(qc_resp) * self.parfile.qcls_dd.get_sim_qcl(self.k1, -1, k2=self.k2))
 
     def get_mcn0(self):
         """Monte-Carlo N0 lensing bias.
