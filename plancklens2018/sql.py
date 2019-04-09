@@ -1,11 +1,28 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
+import numpy as np
 
 import sqlite3
+import io
 import os
+import six # Hack for memoryview for py2.7 comptability
 
 from . import mpi
+
+def adapt_array(arr):
+    out = io.BytesIO(); np.save(out, arr)
+    out.seek(0)
+    return buffer(out.read()) if six.PY2 else memoryview(out.read())
+
+def convert_array(text):
+    out = io.BytesIO(text)
+    out.seek(0)
+    return np.load(out)
+
+
+sqlite3.register_adapter(np.ndarray, adapt_array)
+sqlite3.register_converter("ARRAY", convert_array)
 
 class npdb:
     """A simple wrapper class to store np arrays in an sqlite3 database.
