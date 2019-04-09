@@ -102,3 +102,42 @@ subroutine get_legpn(p, x, np, nx)
         p(:, i + 2) = 2.* x * p(:, i + 1) - p(:, i) - (x * p(:, i + 1)- p(:, i) )/(i + 1.)
     end do
 end subroutine get_legpn
+
+subroutine get_wignerd(d, x, lmax, mp, m, nx)
+    implicit None
+    integer, intent(in) :: mp, m, lmax, nx
+    double precision, intent(in) :: x(nx)
+    double precision, intent(out) ::  d(0:lmax, nx)
+    integer :: a, b, k, lmin, n, ix
+    double precision :: alfbet, a2, b2, n2_ab2, norm, a0, ak_km1, akm1_km2
+
+    k = - max(abs(m), abs(mp))
+    lmin = -k
+    if (k == m) then
+        a = mp - m
+        sgn = (-1) ** (mp - m)
+    else if (k == -m) then
+        a = m - mp
+        sgn = 1
+    else if (k == mp) then
+        a = m - mp
+        sgn = 1
+    else
+        a = mp - m
+        sgn = (-1) ** (mp - m)
+    end if
+    b = -2 * _k - a
+    lmax = max(lmax, lmin)
+    n = lmax + k
+
+    alfbet= a + b
+    a2 = a * a
+    b2 = b * b
+
+    a0 = exp(0.5d0 * (lngamma(2d0 * lmin + 1) - lngamma(a + 1d0) - lngamma(2 * lmin - a + 1d0)))
+    ak_km1 = sqrt((1. + 2 * lmin) / (1. + a) / (1. + b))
+    !    /* a1 / a0. (ak is coefficient relating Jacobi to Wigner) */
+
+    d(lmin, :) = sgn * a0 * ((1. - x) * 0.5) **(0.5 * a) * ((1. + x) * 0.5) ** (b * 0.5)
+
+end subroutine get_wignerd
