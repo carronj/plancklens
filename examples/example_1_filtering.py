@@ -67,10 +67,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Planck 2018 filtering example')
     parser.add_argument('-imin', dest='imin', default=-1, type=int, help='starting index (-1 stands for data map)')
     parser.add_argument('-imax', dest='imax', default=-2, type=int, help='last index')
-    args = parser.parse_args()
+    parser.add_argument('-t', dest='t', action='store_false', help='do not filter temperature')
+    parser.add_argument('-p', dest='p', action='store_false', help='do not filter polarization')
 
-    jobs =  [ (idx, 't') for idx in range(args.imin, args.imax + 1)]
-    jobs += [ (idx, 'p') for idx in range(args.imin, args.imax + 1)]
+    args = parser.parse_args()
+    jobs = []
+    if args.t: jobs +=  [ (idx, 't') for idx in range(args.imin, args.imax + 1)]
+    if args.p: jobs +=  [ (idx, 'p') for idx in range(args.imin, args.imax + 1)]
 
     for i, (idx, lab) in enumerate(jobs[mpi.rank::mpi.size]):
         print('rank %s doing sim %s %s, job %s in %s'%(mpi.rank, idx, lab, i, len(jobs)))
