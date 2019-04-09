@@ -103,41 +103,110 @@ subroutine get_legpn(p, x, np, nx)
     end do
 end subroutine get_legpn
 
-subroutine get_wignerd(d, x, lmax, mp, m, nx)
+subroutine get_wignerd(d, x, lmax, m1, m2, nx)
+    ! Small-d Wigner matrices d^l_{mp, m}(x) for l from 0 to lmax.
+    ! Uses their Jacobi orthogonal polynomials representation.
     implicit None
-    integer, intent(in) :: mp, m, lmax, nx
+    integer, intent(in) :: m1, m2, lmax, nx
     double precision, intent(in) :: x(nx)
-    double precision, intent(out) ::  d(0:lmax, nx)
-    integer :: a, b, k, lmin, n, ix
+    double precision, intent(out) ::  d(nx, 0:lmax)
+    double precision, external :: lngamma
+    integer :: a, b, lmin, n, ix, in, sgn
     double precision :: alfbet, a2, b2, n2_ab2, norm, a0, ak_km1, akm1_km2
 
-    k = - max(abs(m), abs(mp))
-    lmin = -k
-    if (k == m) then
-        a = mp - m
-        sgn = (-1) ** (mp - m)
-    else if (k == -m) then
-        a = m - mp
+    lmin = max(abs(m1), abs(m2))
+    if (lmin == -m2) then
+        a = m1 - m2
+        sgn = (-1) ** (m1 - m2)
+    else if (lmin == m2) then
+        a = m2 - m1
         sgn = 1
-    else if (k == mp) then
-        a = m - mp
+    else if (lmin == -m1) then
+        a = m2 - m1
         sgn = 1
     else
-        a = mp - m
-        sgn = (-1) ** (mp - m)
+        a = m1 - m2
+        sgn = (-1) ** (m1 - m2)
     end if
-    b = -2 * _k - a
-    lmax = max(lmax, lmin)
-    n = lmax + k
+    b = 2 * lmin - a
+    n = max(lmax, lmin) - lmin
 
     alfbet= a + b
     a2 = a * a
     b2 = b * b
 
-    a0 = exp(0.5d0 * (lngamma(2d0 * lmin + 1) - lngamma(a + 1d0) - lngamma(2 * lmin - a + 1d0)))
-    ak_km1 = sqrt((1. + 2 * lmin) / (1. + a) / (1. + b))
-    !    /* a1 / a0. (ak is coefficient relating Jacobi to Wigner) */
-
-    d(lmin, :) = sgn * a0 * ((1. - x) * 0.5) **(0.5 * a) * ((1. + x) * 0.5) ** (b * 0.5)
-
+    a0 = exp(0.5d0 * (lngamma(2d0 * lmin + 1d0) - lngamma(a + 1d0) - lngamma(2 * lmin - a + 1d0)))
+    ak_km1 = sqrt((1.d0 + 2 * lmin) / (1.d0 + a) / (1.d0 + b))
+    !  a1 / a0. (ak is coefficient relating Jacobi to Wigner)
+    d(:, 0:lmin) = 0d0
+    d(:, lmin) = sgn * a0 * ((1.d0 - x) * 0.5d0) ** (0.5d0 * a) * ((1. + x) * 0.5d0) ** (b * 0.5d0)
+    if (n > 0) then
+        d(:, lmin + 1) = ak_km1 * d(:, lmin) * 0.5d0 * (2 * (a + 1) +  (alfbet + 2d0) * (x - 1d0))
+    end if
+    do in = 1, n -1
+        akm1_km2 = ak_km1
+        ak_km1 = sqrt((1d0 + lmin * 2d0 / (in + 1d0)) / (1d0 + a / (in + 1d0)) / (1d0 + b/(in + 1d0)))
+        n2_ab2 = 2 * in + alfbet
+        norm = 2 * (in + 1) * (in + 1 + alfbet) * n2_ab2
+        d(:, lmin + in + 1) = (((n2_ab2 + 1.d0) * ((n2_ab2 + 2.d0) * n2_ab2 * x + a2 - b2)) * ak_km1 * d(:, lmin + in) &
+        - 2 * ( in + a) * (in + b) * (n2_ab2 + 2d0) * akm1_km2 * ak_km1 * d(:, lmin + in - 1)) / norm
+    end do
 end subroutine get_wignerd
+
+subroutine get_rspace(xi, cl, x, m1, m2, nx, lmax)
+    ! Position-space representation
+    ! sum_l Cl (2l + 1) / 4pi d^l_{m1,m2}(x)
+    implicit None
+    integer, intent(in) :: m1, m2, lmax, nx
+    double precision, intent(in) :: x(nx), cl(0:lmax)
+    double precision, intent(out) ::  xi(nx)
+    double precision :: d0(nx), d1(nx), d2(nx)
+    double precision, external :: lngamma
+    integer :: a, b, lmin, n, ix, in, sgn
+    double precision :: alfbet, a2, b2, n2_ab2, norm, a0, ak_km1, akm1_km2
+    lmin = max(abs(m1), abs(m2))
+    if (lmin == -m2) then
+        a = m1 - m2
+        sgn = (-1) ** (m1 - m2)
+    else if (lmin == m2) then
+        a = m2 - m1
+        sgn = 1
+    else if (lmin == -m1) then
+        a = m2 - m1
+        sgn = 1
+    else
+        a = m1 - m2
+        sgn = (-1) ** (m1 - m2)
+    end if
+    b = 2 * lmin - a
+    n = max(lmax, lmin) - lmin
+
+    alfbet= a + b
+    a2 = a * a
+    b2 = b * b
+
+    a0 = exp(0.5d0 * (lngamma(2d0 * lmin + 1d0) - lngamma(a + 1d0) - lngamma(2 * lmin - a + 1d0)))
+    ak_km1 = sqrt((1.d0 + 2 * lmin) / (1.d0 + a) / (1.d0 + b))
+    !  a1 / a0. (ak is coefficient relating Jacobi to Wigner)
+    ! lmin
+    d0 = sgn * a0 * ((1.d0 - x) * 0.5d0) ** (0.5d0 * a) * ((1. + x) * 0.5d0) ** (b * 0.5d0)
+    xi = (2 * lmin + 1) * cl(lmin) * d0
+    if (n > 0) then
+        ! lmin + 1
+        d1 = ak_km1 * d0 * 0.5d0 * (2 * (a + 1) +  (alfbet + 2d0) * (x - 1d0))
+        xi = xi + (2 * lmin + 3) * cl(lmin + 1) * d1
+    end if
+    do in = 1, n -1
+        akm1_km2 = ak_km1
+        ak_km1 = sqrt((1d0 + lmin * 2d0 / (in + 1d0)) / (1d0 + a / (in + 1d0)) / (1d0 + b/(in + 1d0)))
+        n2_ab2 = 2 * in + alfbet
+        norm = 2 * (in + 1) * (in + 1 + alfbet) * n2_ab2
+        !lmin + in + 1
+        d2 = (((n2_ab2 + 1.d0) * ((n2_ab2 + 2.d0) * n2_ab2 * x + a2 - b2)) * ak_km1 * d1 &
+        - 2 * ( in + a) * (in + b) * (n2_ab2 + 2d0) * akm1_km2 * ak_km1 * d0) / norm
+        xi = xi + (2 * (lmin + in + 1) + 1) * cl(lmin + in + 1) * d2
+        d0 = d1
+        d1 = d2
+    end do
+    xi = xi * (0.25d0 / 3.14159265358979323846d0)
+end subroutine get_rspace
