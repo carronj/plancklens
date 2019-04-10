@@ -9,7 +9,15 @@ from plancklens2018 import sql
 from plancklens2018.utils import clhash, hash_check
 from plancklens2018 import mpi
 
-
+try:
+    from plancklens2018.wigners import wigners  # fortran shared object
+    HASWIGNER = True
+except:
+    print("wigners.so fortran shared object not found")
+    print('try f2py -c -m wigners wigners.f90 from the command line in wigners directory')
+    print("Falling back on python2 weave implementation")
+    HASWIGNER = False
+    from plancklens2018.wigners import gaujac, gauleg
 
 verbose = False
 
@@ -529,33 +537,20 @@ def get_hl(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
         The integrand is always a polynomial, of max. degree lmax1 + lmax2 + lmax_out.
         We use Gauss-Legendre integration to solve this exactly.
     """
-    try:
-        from plancklens2018.wigners import wigners  # fortran shared object
-        lmax1 = len(cl1) - 1
-        lmax2 = len(cl2) - 1
-        lmax_out = lmax1 + lmax2 if lmax_out is None else lmax_out
-        lmaxtot = lmax1 + lmax2 + lmax_out
-        N = (lmaxtot + 2 - lmaxtot % 2) // 2
-        if not 'xg wg %s' % N in GL_cache.keys():
-            GL_cache['xg wg %s' % N] = wigners.get_xgwg(-1., 1., N)
-        xg, wg = GL_cache['xg wg %s' % N]
+    lmax1 = len(cl1) - 1
+    lmax2 = len(cl2) - 1
+    lmax_out = lmax1 + lmax2 if lmax_out is None else lmax_out
+    lmaxtot = lmax1 + lmax2 + lmax_out
+    N = (lmaxtot + 2 - lmaxtot % 2) // 2
+    if not 'xg wg %s' % N in GL_cache.keys():
+        GL_cache['xg wg %s' % N] = wigners.get_xgwg(-1., 1., N)
+    xg, wg = GL_cache['xg wg %s' % N]
+
+    if HASWIGNER:
         xi1 = wigners.wignerpos(cl1, xg, sp1, s1)
         xi2 = wigners.wignerpos(cl2, xg, sp2, s2)
         return wigners.wignercoeff(xi1 * xi2 * wg, xg, sp1 + sp2, s1 + s2, lmax_out)
-
-    except:
-        print("wigners fortran shared object not found")
-        print('try f2py -c -m wigners wigners.f90 from the command line in the wigners directory')
-        print("Trying to revert to weave (py2 only) implementation...")
-        from plancklens2018.wigners import gaujac, gauleg
-        lmax1 = len(cl1) - 1
-        lmax2 = len(cl2) - 1
-        lmax_out = lmax1 + lmax2 if lmax_out is None else lmax_out
-        lmaxtot = lmax1 + lmax2 + lmax_out
-        N = (lmaxtot + 2 - lmaxtot % 2) // 2
-        if not 'xg wg %s' % N in GL_cache.keys():
-            GL_cache['xg wg %s' % N] = gauleg.get_xgwg(N)
-        xg, wg = GL_cache['xg wg %s' % N]
+     else:
         xi1 = gaujac.get_rspace(cl1, xg, sp1, s1)
         xi2 = gaujac.get_rspace(cl2, xg, sp2, s2)
         return 2. * np.pi * np.dot(gaujac.get_wignerd(lmax_out, xg, sp1 + sp2, s1 + s2), wg * xi1 * xi2)
