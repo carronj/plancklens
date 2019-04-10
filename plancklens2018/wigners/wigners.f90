@@ -1,22 +1,3 @@
-subroutine HELLOfunc
-  INTEGER :: NTHREADS, TID, OMP_GET_NUM_THREADS, OMP_GET_THREAD_NUM
-
-  ! Fork a team of threads giving them their own copies of variables
-  !$omp PARALLEL PRIVATE(NTHREADS, TID)
-
-  ! Obtain thread number
-  TID = OMP_GET_THREAD_NUM()
-  write(*,*) 'Hello World from thread = ', TID
-  ! Only master thread does this
-  IF (TID == 0) THEN
-    NTHREADS = OMP_GET_NUM_THREADS()
-    write(*,*) 'Number of threads = ', NTHREADS
-
-  END IF
-  ! All threads join master thread and disband
-  !$omp END PARALLEL
-end
-
 double precision function lngamma(z)
 !       Uses Lanczos-type approximation to ln(gamma) for z > 0.
 !       Reference:
