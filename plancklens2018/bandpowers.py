@@ -228,7 +228,7 @@ class ffp10_binner:
         for i, idx in utils.enumerate_progress(self.parfile.mc_sims_var, label='collecting BP stats'):
             dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
             bp_stats.add(self._get_binnedcl(utils.cli(qc_resp) *(dd - ss2) - cl_pred) - bp_n1)
-        return  bp_stats.mean(), bp_stats.sigmas()
+        return  bp_stats.mean(), bp_stats.sigmas_on_mean()
 
     def get_bmmc(self):
         """Binned multiplicative MC correction.
