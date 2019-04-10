@@ -545,7 +545,7 @@ def get_hl(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
 
     except:
         print("wigners fortran shared object not found")
-        print('try f2py -c -m wigners wigners.f90 from the command line')
+        print('try f2py -c -m wigners wigners.f90 from the command line in the wigners directory')
         print("Trying to revert to weave (py2 only) implementation...")
         from plancklens2018.wigners import gaujac, gauleg
         lmax1 = len(cl1) - 1
