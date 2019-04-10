@@ -143,7 +143,7 @@ class ffp10_binner:
         fblB = ivfsB.get_fbl()
         clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp']
         qc_resp = self.parfile.qresp_dd.get_response(k1, self.ksource) * self.parfile.qresp_dd.get_response(k2, self.ksource)
-        n1pp = self.parfile.n1_dd.get_n1(self.k1, self.ksource, clpp_fid, ftlA, felA, fblA, len(qc_resp) - 1,
+        n1pp = self.parfile.n1_dd.get_n1(k1, self.ksource, clpp_fid, ftlA, felA, fblA, len(qc_resp) - 1,
                                          kB=k2, ftlB=ftlB, felB=felB, fblB=fblB)
         return self._get_binnedcl(utils.cli(qc_resp) * n1pp) if not unnormed else n1pp
 
@@ -205,7 +205,7 @@ class ffp10_binner:
         qc_resp =   self.parfile.qresp_dd.get_response(self.k1, self.ksource) \
                   * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
         # PS spectrum response to ks4, using qe.key- source key symmetry of response functions.
-        qlss = self.parfile.qresp_dd.get_response(ks4, self.k1[1]) * self.parfile.qresp_dd.get_response(ks4, self.k2[0])
+        qlss = self.parfile.qresp_dd.get_response(ks4, self.k1[0]) * self.parfile.qresp_dd.get_response(ks4, self.k2[0])
         # Correction to apply to estimated spectrum :
         pp_cl_ps = s4_band_dat * utils.cli(qc_resp) * qlss
         return s4_band_dat, s4_band_check, s4_band_syst, s4_band_sim_stats, Cs2s2, pp_cl_ps
