@@ -1,7 +1,8 @@
 #FIXME: put this into cd_solve module?
 import sys
 import numpy as np
-import util
+
+from . import util
 
 ## monitors
 logger_basic = (

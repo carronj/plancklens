@@ -211,7 +211,7 @@ class ffp10_binner:
         return s4_band_dat, s4_band_check, s4_band_syst, s4_band_sim_stats, Cs2s2, pp_cl_ps
 
     def get_ps_corr(self, lmin_ss_s4=100, lmax_ss_s4=2048):
-        return self.get_ps_data(lmin_ss_s4=lmin_ss_s4, lmax_ss_s4=lmax_ss_s4)[-1]
+        return self._get_binnedcl(self.get_ps_data(lmin_ss_s4=lmin_ss_s4, lmax_ss_s4=lmax_ss_s4)[-1])
 
     def get_bmmc(self):
         """Binned multiplicative MC correction.
