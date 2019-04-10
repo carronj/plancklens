@@ -213,6 +213,23 @@ class ffp10_binner:
     def get_ps_corr(self, lmin_ss_s4=100, lmax_ss_s4=2048):
         return self._get_binnedcl(self.get_ps_data(lmin_ss_s4=lmin_ss_s4, lmax_ss_s4=lmax_ss_s4)[-1])
 
+    def get_bamc(self):
+        """Binned additive MC correction, with crude error bars.
+
+            This compares the reconstruction on the simulations to the FFP10 input lensing spectrum.
+
+        """
+        assert self.k1[0] == 'p' and self.k2[0] == 'p' and self.ksource == 'p', (self.k1, self.k2, self.ksource)
+        ss2 = 2 * self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
+        cl_pred =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp'][:len(ss2)]
+        qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
+        bp_stats = utils.stats(self.nbins)
+        bp_n1 = self.get_n1()
+        for i, idx in utils.enumerate_progress(self.parfile.mc_sims_var, label='collecting BP stats'):
+            dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
+            bp_stats.add(self._get_binnedcl(utils.cli(qc_resp) *(dd - ss2) - cl_pred) - bp_n1)
+        return  bp_stats.mean(), bp_stats.sigmas()
+
     def get_bmmc(self):
         """Binned multiplicative MC correction.
 
