@@ -224,6 +224,6 @@ class ffp10_binner:
         ss = self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
         cl_pred =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp']
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
-        bps = self._get_binnedcl(utils.cli(qc_resp) *(dd - 2 * ss - cl_pred[:len(dd)])) - self.get_n1()
+        bps = self._get_binnedcl(utils.cli(qc_resp) *(dd - 2 * ss) - cl_pred[:len(dd)]) - self.get_n1()
         return  1. / (1 + bps / self.fid_bandpowers)
 
