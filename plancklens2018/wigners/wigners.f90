@@ -210,3 +210,15 @@ subroutine get_rspace(xi, cl, x, m1, m2, nx, lmax)
     end do
     xi = xi * (0.25d0 / 3.14159265358979323846d0)
 end subroutine get_rspace
+
+subroutine wignercoeff(h, cl1, cl2, s1i, s1o, s2i, s2o, lmax1, lmax2, Lmax)
+    implicit None
+    integer, intent(in) :: s1i, s2i, s1o, s2o, lmax1, lmax2, Lmax
+    double precision, intent(in) :: cl1(0:lmax1), cl2(0:lmax2)
+    double precision, intent(out) :: h(0:Lmax)
+    double precision :: xi1( (lmax1 + lmax2 + Lmax) / 2), xi2( (lmax1 + lmax2 + Lmax) / 2)
+
+    !lmaxtot = lmax1 + lmax2 + lmax_out
+    !N = (lmaxtot + 2 - lmaxtot%2) // 2
+
+end subroutine wignercoeff
