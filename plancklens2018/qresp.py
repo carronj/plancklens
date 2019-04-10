@@ -550,7 +550,7 @@ def get_hl(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
         xi1 = wigners.wignerpos(cl1, xg, sp1, s1)
         xi2 = wigners.wignerpos(cl2, xg, sp2, s2)
         return wigners.wignercoeff(xi1 * xi2 * wg, xg, sp1 + sp2, s1 + s2, lmax_out)
-     else:
+    else:
         xi1 = gaujac.get_rspace(cl1, xg, sp1, s1)
         xi2 = gaujac.get_rspace(cl2, xg, sp2, s2)
         return 2. * np.pi * np.dot(gaujac.get_wignerd(lmax_out, xg, sp1 + sp2, s1 + s2), wg * xi1 * xi2)
