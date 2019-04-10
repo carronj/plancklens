@@ -543,7 +543,7 @@ def get_hl(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
     lmaxtot = lmax1 + lmax2 + lmax_out
     N = (lmaxtot + 2 - lmaxtot % 2) // 2
     if not 'xg wg %s' % N in GL_cache.keys():
-        GL_cache['xg wg %s' % N] = wigners.get_xgwg(-1., 1., N)
+        GL_cache['xg wg %s' % N] = wigners.get_xgwg(-1., 1., N) if HASWIGNER else gauleg.get_xgwg(N)
     xg, wg = GL_cache['xg wg %s' % N]
 
     if HASWIGNER:
