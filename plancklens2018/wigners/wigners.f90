@@ -86,74 +86,7 @@ subroutine get_xgwg(x1, x2, x, w, n)
   end do
 end subroutine get_xgwg
 
-subroutine get_legpn(p, x, np, nx)
-    ! Legendre polynomials at x up to order np.
-    implicit None
-    integer, intent(in) :: np, nx
-    double precision, intent(in) :: x(nx)
-    double precision, intent(out) :: p(nx, np + 1)
-    integer :: i, j
-    ! After f2py implicit argument wrapping: p = wigners.get_legpn(x, np)
-    p(:, 1) = 1.d0
-    if (np == 0) return
-    p(:, 2) = x
-    if (np == 1) return
-    do i = 1, np - 1
-        p(:, i + 2) = 2.* x * p(:, i + 1) - p(:, i) - (x * p(:, i + 1)- p(:, i) )/(i + 1.)
-    end do
-end subroutine get_legpn
-
-subroutine get_wignerd(d, x, lmax, m1, m2, nx)
-    ! Small-d Wigner matrices d^l_{mp, m}(x) for l from 0 to lmax.
-    ! Uses their Jacobi orthogonal polynomials representation.
-    implicit None
-    integer, intent(in) :: m1, m2, lmax, nx
-    double precision, intent(in) :: x(nx)
-    double precision, intent(out) ::  d(nx, 0:lmax)
-    double precision, external :: lngamma
-    integer :: a, b, lmin, n, ix, in, sgn
-    double precision :: alfbet, a2, b2, n2_ab2, norm, a0, ak_km1, akm1_km2
-
-    lmin = max(abs(m1), abs(m2))
-    if (lmin == -m2) then
-        a = m1 - m2
-        sgn = (-1) ** (m1 - m2)
-    else if (lmin == m2) then
-        a = m2 - m1
-        sgn = 1
-    else if (lmin == -m1) then
-        a = m2 - m1
-        sgn = 1
-    else
-        a = m1 - m2
-        sgn = (-1) ** (m1 - m2)
-    end if
-    b = 2 * lmin - a
-    n = max(lmax, lmin) - lmin
-
-    alfbet= a + b
-    a2 = a * a
-    b2 = b * b
-
-    a0 = exp(0.5d0 * (lngamma(2d0 * lmin + 1d0) - lngamma(a + 1d0) - lngamma(2 * lmin - a + 1d0)))
-    ak_km1 = sqrt((1.d0 + 2 * lmin) / (1.d0 + a) / (1.d0 + b))
-    !  a1 / a0. (ak is coefficient relating Jacobi to Wigner)
-    d(:, 0:lmin) = 0d0
-    d(:, lmin) = sgn * a0 * ((1.d0 - x) * 0.5d0) ** (0.5d0 * a) * ((1. + x) * 0.5d0) ** (b * 0.5d0)
-    if (n > 0) then
-        d(:, lmin + 1) = ak_km1 * d(:, lmin) * 0.5d0 * (2 * (a + 1) +  (alfbet + 2d0) * (x - 1d0))
-    end if
-    do in = 1, n -1
-        akm1_km2 = ak_km1
-        ak_km1 = sqrt((1d0 + lmin * 2d0 / (in + 1d0)) / (1d0 + a / (in + 1d0)) / (1d0 + b/(in + 1d0)))
-        n2_ab2 = 2 * in + alfbet
-        norm = 2 * (in + 1) * (in + 1 + alfbet) * n2_ab2
-        d(:, lmin + in + 1) = (((n2_ab2 + 1.d0) * ((n2_ab2 + 2.d0) * n2_ab2 * x + a2 - b2)) * ak_km1 * d(:, lmin + in) &
-        - 2 * ( in + a) * (in + b) * (n2_ab2 + 2d0) * akm1_km2 * ak_km1 * d(:, lmin + in - 1)) / norm
-    end do
-end subroutine get_wignerd
-
-subroutine get_rspace(xi, cl, x, m1, m2, nx, lmax)
+subroutine wignerpos(xi, cl, x, m1, m2, nx, lmax)
     ! Position-space representation
     ! sum_l Cl (2l + 1) / 4pi d^l_{m1,m2}(x)
     implicit None
@@ -162,7 +95,7 @@ subroutine get_rspace(xi, cl, x, m1, m2, nx, lmax)
     double precision, intent(out) ::  xi(nx)
     double precision :: d0(nx), d1(nx), d2(nx)
     double precision, external :: lngamma
-    integer :: a, b, lmin, n, ix, in, sgn
+    integer :: a, b, lmin, n, in, sgn
     double precision :: alfbet, a2, b2, n2_ab2, norm, a0, ak_km1, akm1_km2
     lmin = max(abs(m1), abs(m2))
     if (lmin == -m2) then
@@ -209,16 +142,67 @@ subroutine get_rspace(xi, cl, x, m1, m2, nx, lmax)
         d1 = d2
     end do
     xi = xi * (0.25d0 / 3.14159265358979323846d0)
-end subroutine get_rspace
+end subroutine wignerpos
 
-subroutine wignercoeff(h, cl1, cl2, s1i, s1o, s2i, s2o, lmax1, lmax2, Lmax)
+subroutine wignercoeff(h, xiw, x, m1, m2, lmax, nx)
+    ! Returns 2pi * sum_i xiw[i] d^l_{m1, m2}(x_i) for 0 <= l <= lmax.
+    ! If xiw is the product of Gauss-Legend quadrature weights, x the GL quadrature points,
+    ! then this is  the Wigner transform harmonic coefficient cl = 2pi \int_{-1}^{1} dx d^l_{m1,m2}(x) xi(x),
+    ! with xi(x) = sum_l cl (2l + 1) / 4pi d^l_{m1, m2}.
+
     implicit None
-    integer, intent(in) :: s1i, s2i, s1o, s2o, lmax1, lmax2, Lmax
-    double precision, intent(in) :: cl1(0:lmax1), cl2(0:lmax2)
-    double precision, intent(out) :: h(0:Lmax)
-    double precision :: xi1( (lmax1 + lmax2 + Lmax) / 2), xi2( (lmax1 + lmax2 + Lmax) / 2)
+    integer, intent(in) :: lmax, nx, m1, m2
+    double precision, intent(in) :: x(nx), xiw(nx)
+    double precision, intent(out) :: h(0:lmax)
+    double precision :: d0(nx), d1(nx), d2(nx)
+    double precision, external :: lngamma
+    integer :: a, b, lmin, n, in, sgn
+    double precision :: alfbet, a2, b2, n2_ab2, norm, a0, ak_km1, akm1_km2
 
-    !lmaxtot = lmax1 + lmax2 + lmax_out
-    !N = (lmaxtot + 2 - lmaxtot%2) // 2
+    lmin = max(abs(m1), abs(m2))
+    if (lmin == -m2) then
+        a = m1 - m2
+        sgn = (-1) ** (m1 - m2)
+    else if (lmin == m2) then
+        a = m2 - m1
+        sgn = 1
+    else if (lmin == -m1) then
+        a = m2 - m1
+        sgn = 1
+    else
+        a = m1 - m2
+        sgn = (-1) ** (m1 - m2)
+    end if
+    b = 2 * lmin - a
+    n = max(Lmax, lmin) - lmin
+
+    alfbet= a + b
+    a2 = a * a
+    b2 = b * b
+
+    a0 = exp(0.5d0 * (lngamma(2d0 * lmin + 1d0) - lngamma(a + 1d0) - lngamma(2 * lmin - a + 1d0)))
+    ak_km1 = sqrt((1.d0 + 2 * lmin) / (1.d0 + a) / (1.d0 + b))
+    !  a1 / a0. (ak is coefficient relating Jacobi to Wigner)
+    ! lmin
+    d0 = sgn * a0 * ((1.d0 - x) * 0.5d0) ** (0.5d0 * a) * ((1. + x) * 0.5d0) ** (b * 0.5d0)
+    h(lmin) = sum(xiw * d0)
+    if (n > 0) then
+        ! lmin + 1
+        d1 = ak_km1 * d0 * 0.5d0 * (2 * (a + 1) +  (alfbet + 2d0) * (x - 1d0))
+        h(lmin + 1) = sum(xiw * d1)
+    end if
+    do in = 1, n -1
+        akm1_km2 = ak_km1
+        ak_km1 = sqrt((1d0 + lmin * 2d0 / (in + 1d0)) / (1d0 + a / (in + 1d0)) / (1d0 + b/(in + 1d0)))
+        n2_ab2 = 2 * in + alfbet
+        norm = 2 * (in + 1) * (in + 1 + alfbet) * n2_ab2
+        !lmin + in + 1
+        d2 = (((n2_ab2 + 1.d0) * ((n2_ab2 + 2.d0) * n2_ab2 * x + a2 - b2)) * ak_km1 * d1 &
+        - 2 * ( in + a) * (in + b) * (n2_ab2 + 2d0) * akm1_km2 * ak_km1 * d0) / norm
+        h(lmin + in + 1) = sum(xiw * d2)
+        d0 = d1
+        d1 = d2
+    end do
+    h = h *  (2d0 * 3.14159265358979323846d0)
 
 end subroutine wignercoeff
