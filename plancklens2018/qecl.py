@@ -35,7 +35,7 @@ class library(object):
                     for j in [1, 2, 3, 4][i - 1:]:
                         fskies[10 * i + j] = np.mean(ms[i] * ms[j])
                 fskies[1234] = np.mean(ms[1] * ms[2] * ms[3] * ms[3])
-                with open(fsname, 'wb') as f:
+                with open(fsname, 'w') as f:
                     for lab, _f in zip(np.sort(fskies.keys()), np.array(fskies.values())[np.argsort(fskies.keys())]):
                         f.write('%4s %.5f \n' % (lab, _f))
             if not os.path.exists(hname):
