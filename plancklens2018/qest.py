@@ -57,7 +57,7 @@ class library:
                 for i in [1, 2]:
                     for j in [1, 2][i - 1:]:
                         fskies[10 * i + j] = np.mean(ms[i] * ms[j])
-                with open(lib_dir + '/fskies.dat', 'wb') as f:
+                with open(lib_dir + '/fskies.dat', 'w') as f:
                     for lab, _f in zip(np.sort(list(fskies.keys())), np.array(list(fskies.values()))[np.argsort(list(fskies.keys()))]):
                         f.write('%4s %.5f \n' % (lab, _f))
         mpi.barrier()
