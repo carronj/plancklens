@@ -51,7 +51,7 @@ class library_cinv_sepTP(filt_simple.library_sepTP):
                 hp.write_map(fname_mask, fmask)
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'r')), self.hashdict())
+        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
 
     def hashdict(self):
         return {'cinv_t': self.cinv_t.hashdict(),
@@ -167,7 +167,7 @@ class cinv_t(cinv):
                 os.makedirs(lib_dir)
 
             if not os.path.exists(os.path.join(lib_dir, "filt_hash.pk")):
-                pk.dump(self.hashdict(), open(os.path.join(lib_dir, "filt_hash.pk"), 'w'))
+                pk.dump(self.hashdict(), open(os.path.join(lib_dir, "filt_hash.pk"), 'wb'))
 
             if not os.path.exists(os.path.join(self.lib_dir, "ftl.dat")):
                 np.savetxt(os.path.join(self.lib_dir, "ftl.dat"), self._calc_ftl())
@@ -179,7 +179,7 @@ class cinv_t(cinv):
                 hp.write_map(os.path.join(self.lib_dir, "fmask.fits.gz"), self._calc_mask())
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'r')), self.hashdict())
+        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
 
     def _ninv_hash(self):
         ret = []
@@ -264,7 +264,7 @@ class cinv_p(cinv):
                 os.makedirs(lib_dir)
 
             if not os.path.exists(os.path.join(lib_dir, "filt_hash.pk")):
-                pk.dump(self.hashdict(), open(os.path.join(lib_dir, "filt_hash.pk"), 'w'))
+                pk.dump(self.hashdict(), open(os.path.join(lib_dir, "filt_hash.pk"), 'wb'))
 
             if not os.path.exists(os.path.join(self.lib_dir, "fbl.dat")):
                 fel, fbl = self._calc_febl()
@@ -278,7 +278,7 @@ class cinv_p(cinv):
                 hp.write_map(os.path.join(self.lib_dir,  "fmask.fits.gz"),  self._calc_mask())
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'r')), self.hashdict())
+        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
 
     def hashdict(self):
         return {'lmax': self.lmax,
