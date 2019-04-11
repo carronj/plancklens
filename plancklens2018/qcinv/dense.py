@@ -58,7 +58,7 @@ class pre_op_dense_tt:
     """Constructs a low-l, low-nside dense preconditioner by brute force. """
     def __init__(self, lmax, fwd_op, cache_fname=None):
         if (cache_fname is not None) and os.path.exists(cache_fname):
-            [cache_lmax, cache_hashdict, cache_minv] = pk.load(open(cache_fname, 'r'))
+            [cache_lmax, cache_hashdict, cache_minv] = pk.load(open(cache_fname, 'rb'))
             self.minv = cache_minv
             if (lmax != cache_lmax) or (self.hashdict(lmax, fwd_op) != cache_hashdict):
                 print("WARNING: PRE_OP_DENSE CACHE: hashcheck failed. recomputing.")
@@ -105,7 +105,7 @@ class pre_op_dense_tt:
         self.minv = np.dot(np.dot(eigw, np.diag(eigv_inv)), np.transpose(eigw))
 
         if cache_fname is not None:
-            pk.dump([lmax, self.hashdict(lmax, fwd_op), self.minv], open(cache_fname, 'w'))
+            pk.dump([lmax, self.hashdict(lmax, fwd_op), self.minv], open(cache_fname, 'wb'))
 
     @staticmethod
     def hashdict(lmax, fwd_op):
@@ -123,7 +123,7 @@ class pre_op_dense_pp:
     """Missing doc. """
     def __init__(self, lmax, fwd_op, cache_fname=None):
         if (cache_fname is not None) and os.path.exists(cache_fname):
-            [cache_lmax, cache_hashdict, cache_minv] = pk.load(open(cache_fname, 'r'))
+            [cache_lmax, cache_hashdict, cache_minv] = pk.load(open(cache_fname, 'rb'))
             self.minv = cache_minv
 
             if (lmax != cache_lmax) or (self.hashdict(lmax, fwd_op) != cache_hashdict):
@@ -185,7 +185,7 @@ class pre_op_dense_pp:
         self.minv = np.dot(np.dot(eigw, np.diag(eigv_inv)), np.transpose(eigw))
 
         if cache_fname is not None:
-            pk.dump([lmax, self.hashdict(lmax, fwd_op), self.minv], open(cache_fname, 'w'))
+            pk.dump([lmax, self.hashdict(lmax, fwd_op), self.minv], open(cache_fname, 'wb'))
 
     @staticmethod
     def hashdict(lmax, fwd_op):
