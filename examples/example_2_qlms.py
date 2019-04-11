@@ -15,11 +15,12 @@ lmax_ivf = 2048
 lmax_qlm = 4096
 nside = 2048
 clte = example_1_filtering.cl_len['te']
+
 #FIXME: paths
-fal = pk.load(open('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/ftls/smicadx12_PR3M_ftl.pk', 'r'))
-ftl = fal['t'][:lmax_ivf + 1] * (np.arange(lmax_ivf + 1) >= lmin_ivf)
-fel = fal['e'][:lmax_ivf + 1] * (np.arange(lmax_ivf + 1) >= lmin_ivf)
-fbl = fal['b'][:lmax_ivf + 1] * (np.arange(lmax_ivf + 1) >= lmin_ivf)
+fal =np.loadtxt('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/ftls/smicadx12_PR3M_ftl.dat').transpose()
+ftl = fal[0][:lmax_ivf + 1] * (np.arange(lmax_ivf + 1) >= lmin_ivf)
+fel = fal[1][:lmax_ivf + 1] * (np.arange(lmax_ivf + 1) >= lmin_ivf)
+fbl = fal[2][:lmax_ivf + 1] * (np.arange(lmax_ivf + 1) >= lmin_ivf)
 
 # This remaps idx -> idx + 1 by blocks of 60 up to 300:
 ss_dict = { k : v for k, v in zip( np.concatenate( [ range(i*60, (i+1)*60) for i in range(0,5) ] ),
