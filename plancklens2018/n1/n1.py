@@ -99,8 +99,8 @@ if HASN1F:
             if not os.path.exists(lib_dir):
                 os.makedirs(lib_dir)
             if not os.path.exists(os.path.join(lib_dir, 'n1_hash.pk')):
-                pk.dump(self.hashdict(), open(os.path.join(lib_dir, 'n1_hash.pk'), 'w'))
-            hash_check(self.hashdict(), pk.load(open(os.path.join(lib_dir, 'n1_hash.pk'), 'r')))
+                pk.dump(self.hashdict(), open(os.path.join(lib_dir, 'n1_hash.pk'), 'wb'))
+            hash_check(self.hashdict(), pk.load(open(os.path.join(lib_dir, 'n1_hash.pk'), 'rb')))
             self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
             self.fpdb = sql.fpdb(os.path.join(lib_dir, 'fpdb.db'))
 
