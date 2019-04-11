@@ -5,7 +5,7 @@ from plancklens2018 import qecl
 from plancklens2018 import qresp
 from plancklens2018 import nhl
 from plancklens2018 import utils
-from plancklens2018 import n1
+from plancklens2018.n1 import n1
 import example_2_qlms as qlms
 
 assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'

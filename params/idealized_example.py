@@ -1,5 +1,4 @@
-#FIXME: mask paths and sims
-"""
+"""Parameter file for lensing reconstrution on a idealized, full-sky simulation library.
 
 """
 
@@ -8,7 +7,10 @@ import healpy as hp
 import numpy as np
 
 from plancklens2018.filt import filt_simple, filt_util
-from plancklens2018 import utils, qest, qecl, qresp, n1, nhl
+from plancklens2018 import utils
+from plancklens2018 import qest, qecl, qresp
+from plancklens2018 import nhl
+from plancklens2018.n1 import n1
 from plancklens2018.sims import planck2018_sims, phas, maps, utils as maps_utils
 
 assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'

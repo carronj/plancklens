@@ -14,8 +14,8 @@ parser.add_argument('-ds', dest='ds', action='store_true', help='perform ds qlms
 parser.add_argument('-ss', dest='ss', action='store_true', help='perform ss qlms library QEs')
 
 args = parser.parse_args()
-
 par = imp.load_source('run_qlms_parfile', args.parfile[0])
+
 #--- filtering
 jobs =  [ (idx, 't') for idx in range(args.imin, args.imax + 1)]
 jobs += [ (idx, 'p') for idx in range(args.imin, args.imax + 1)]
