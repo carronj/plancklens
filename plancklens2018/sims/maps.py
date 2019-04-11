@@ -16,9 +16,9 @@ class cmb_maps(object):
         self.nside = nside
         if lib_dir is not None:
             if mpi.rank == 0 and not os.path.exists(lib_dir + '/sim_hash.pk'):
-                pk.dump(self.hashdict(), open(lib_dir + '/sim_hash.pk', 'w'))
+                pk.dump(self.hashdict(), open(lib_dir + '/sim_hash.pk', 'wb'))
             mpi.barrier()
-            hash_check(self.hashdict(), pk.load(open(lib_dir + '/sim_hash.pk', 'r')))
+            hash_check(self.hashdict(), pk.load(open(lib_dir + '/sim_hash.pk', 'rb')))
 
     def hashdict(self):
         return {'sims_cmb_len':self.sims_cmb_len.hashdict(),'nside':self.nside,'cl_transf':clhash(self.cl_transf)}

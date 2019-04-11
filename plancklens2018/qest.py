@@ -45,10 +45,10 @@ class library:
         assert lmax_qlm['T'] == lmax_qlm['P'], 'implement this'
         if (mpi.rank == 0) and (not os.path.exists(self.lib_dir + "/qe_sim_hash.pk")):
             if not os.path.exists(self.lib_dir): os.makedirs(self.lib_dir)
-            pk.dump(self.hashdict(), open(self.lib_dir + "/qe_sim_hash.pk", 'w'))
+            pk.dump(self.hashdict(), open(self.lib_dir + "/qe_sim_hash.pk", 'wb'))
         mpi.barrier()
 
-        utils.hash_check(pk.load(open(self.lib_dir + "/qe_sim_hash.pk", 'r')), self.hashdict())
+        utils.hash_check(pk.load(open(self.lib_dir + "/qe_sim_hash.pk", 'rb')), self.hashdict())
         if mpi.rank == 0:
             if not os.path.exists(lib_dir + '/fskies.dat'):
                 print("Caching sky fractions...")
