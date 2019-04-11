@@ -23,6 +23,7 @@ except:
     print('try f2py -c -m n1f n1f.f90 from the command line in n1 directory')
     print("Falling back on python2 weave implementation")
     HASN1F = False
+    from . import n1_weave
 
 estimator_keys = ['ptt', 'pte', 'pet', 'pee', 'peb', 'pbe', 'ptb', 'pbt',
                   'xtt', 'xte', 'xet', 'xee', 'xeb', 'xbe', 'xtb', 'xbt',
@@ -67,7 +68,6 @@ if HASN1F:
         """
 
         """
-
         def __init__(self, lib_dir, cltt, clte, clee, lmaxphi=2500, dL=10, lps=None):
             """
 
@@ -209,8 +209,8 @@ if HASN1F:
                 if kA < kB:
                     return self._get_n1_L(L, cl_kind, kA=kB, kB=kA, k_ind=k_ind)
                 else:
-                    lmin_ftlA = np.min([np.where(fal > 0.)[0] for fal in [self.ftlA, self.felA, self.fblA]])
-                    lmin_ftlB = np.min([np.where(fal > 0.)[0] for fal in [self.ftlB, self.felB, self.fblB]])
+                    lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [self.ftlA, self.felA, self.fblA]])
+                    lmin_ftlB = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [self.ftlB, self.felB, self.fblB]])
                     lmax_ftl = np.max([len(fal) for fal in [self.ftlA, self.felA, self.fblA, self.ftlB, self.felB, self.fblB]]) - 1
                     assert len(self.clttfid) > lmax_ftl and len(self.cltt) > lmax_ftl
                     assert len(self.cltefid) > lmax_ftl and len(self.clte) > lmax_ftl
@@ -238,5 +238,4 @@ if HASN1F:
                     return self.fpdb.get(idx)
             assert 0
 else:
-    from . import n1_weave
     library_n1 =  n1_weave.library_n1
