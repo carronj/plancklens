@@ -23,7 +23,6 @@ except:
     print('try f2py -c -m n1f n1f.f90 from the command line in n1 directory')
     print("Falling back on python2 weave implementation")
     HASN1F = False
-    from . import n1_weave
 
 estimator_keys = ['ptt', 'pte', 'pet', 'pee', 'peb', 'pbe', 'ptb', 'pbt',
                   'xtt', 'xte', 'xet', 'xee', 'xeb', 'xbe', 'xtb', 'xbt',
@@ -239,4 +238,5 @@ if HASN1F:
                     return self.fpdb.get(idx)
             assert 0
 else:
+    from . import n1_weave
     library_n1 =  n1_weave.library_n1
