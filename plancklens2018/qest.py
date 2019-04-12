@@ -43,26 +43,27 @@ class library:
             self.f2map1 = lib_filt2map_sepTP(ivfs1, nside, clte)
             self.f2map2 = lib_filt2map_sepTP(ivfs2, nside, clte)
         assert lmax_qlm['T'] == lmax_qlm['P'], 'implement this'
-        if (mpi.rank == 0) and (not os.path.exists(self.lib_dir + "/qe_sim_hash.pk")):
+        fnhash = os.path.join(self.lib_dir, "qe_sim_hash.pk")
+        if (mpi.rank == 0) and (not os.path.exists(fnhash)):
             if not os.path.exists(self.lib_dir): os.makedirs(self.lib_dir)
-            pk.dump(self.hashdict(), open(self.lib_dir + "/qe_sim_hash.pk", 'wb'))
+            pk.dump(self.hashdict(), open(fnhash, 'wb'))
         mpi.barrier()
 
-        utils.hash_check(pk.load(open(self.lib_dir + "/qe_sim_hash.pk", 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(fnhash, 'rb')), self.hashdict())
         if mpi.rank == 0:
-            if not os.path.exists(lib_dir + '/fskies.dat'):
+            if not os.path.exists(os.path.join(lib_dir, 'fskies.dat')):
                 print("Caching sky fractions...")
                 ms = {1: self.get_mask(1), 2: self.get_mask(2)}
                 fskies = {}
                 for i in [1, 2]:
                     for j in [1, 2][i - 1:]:
                         fskies[10 * i + j] = np.mean(ms[i] * ms[j])
-                with open(lib_dir + '/fskies.dat', 'w') as f:
+                with open(os.path.join(lib_dir, 'fskies.dat'), 'w') as f:
                     for lab, _f in zip(np.sort(list(fskies.keys())), np.array(list(fskies.values()))[np.argsort(list(fskies.keys()))]):
                         f.write('%4s %.5f \n' % (lab, _f))
         mpi.barrier()
         fskies = {}
-        with open(lib_dir + '/fskies.dat') as f:
+        with open(os.path.join(lib_dir, 'fskies.dat')) as f:
             for line in f:
                 (key, val) = line.split()
                 fskies[int(key)] = float(val)
@@ -135,7 +136,7 @@ class library:
             return rethp
 
         assert k in self.keys_fund, (k, self.keys_fund)
-        fname = self.lib_dir + '/sim_%s_%04d.fits' % (k, idx) if idx != -1 else self.lib_dir + '/dat_%s.fits' % k
+        fname = os.path.join(self.lib_dir, 'sim_%s_%04d.fits'%(k, idx) if idx != -1 else 'dat_%s.fits'%k)
         if not os.path.exists(fname):
             if k in ['ptt', 'xtt']: self._build_sim_Tgclm(idx)
             elif k in ['p_p', 'x_p']: self._build_sim_Pgclm(idx)
@@ -253,10 +254,9 @@ class library:
             del _G
             C = 0.5 * (C + _C)
             del _C
-        fnameG = self.lib_dir + '/sim_ptt_%04d.fits'%idx if idx != -1 else self.lib_dir + '/dat_ptt.fits'
-        fnameC = self.lib_dir + '/sim_xtt_%04d.fits'%idx if idx != -1 else self.lib_dir + '/dat_xtt.fits'
-        hp.write_alm(fnameG, G)
-        hp.write_alm(fnameC, C)
+        hp.write_alm(os.path.join(self.lib_dir, 'sim_ptt_%04d.fits'%idx if idx != -1 else 'dat_ptt.fits'), G)
+        hp.write_alm(os.path.join(self.lib_dir, 'sim_xtt_%04d.fits'%idx if idx != -1 else 'dat_xtt.fits'), C)
+
 
     def _build_sim_Pgclm(self, idx):
         """ Pol. only lensing potentials estimators """
@@ -267,10 +267,9 @@ class library:
             del _G
             C = 0.5 * (C + _C)
             del _C
-        fnameG = self.lib_dir + '/sim_p_p_%04d.fits'%idx if idx != -1 else self.lib_dir + '/dat_p_p.fits'
-        fnameC = self.lib_dir + '/sim_x_p_%04d.fits'%idx if idx != -1 else self.lib_dir + '/dat_x_p.fits'
-        hp.write_alm(fnameG, G)
-        hp.write_alm(fnameC, C)
+        hp.write_alm(os.path.join(self.lib_dir, 'sim_p_p_%04d.fits'%idx if idx != -1 else 'dat_p_p.fits'), G)
+        hp.write_alm(os.path.join(self.lib_dir, 'sim_x_p_%04d.fits'%idx if idx != -1 else 'dat_x_p.fits'), C)
+
 
     def _build_sim_MVgclm(self, idx):
         """ MV. lensing potentials estimators """
@@ -288,10 +287,8 @@ class library:
             del _G
             CT = 0.5 * (CT + _C)
             del _C
-        fnameG = self.lib_dir + '/sim_p_%04d.fits'%idx if idx != -1 else self.lib_dir + '/dat_p.fits'
-        fnameC = self.lib_dir + '/sim_x_%04d.fits'%idx if idx != -1 else self.lib_dir + '/dat_x.fits'
-        hp.write_alm(fnameG, G + GT)
-        hp.write_alm(fnameC, C + CT)
+        hp.write_alm(os.path.join(self.lib_dir, 'sim_p_%04d.fits'%idx if idx != -1 else 'dat_p.fits'), G + GT)
+        hp.write_alm(os.path.join(self.lib_dir, 'sim_x_%04d.fits'%idx if idx != -1 else 'dat_x.fits'), C + CT)
 
     def _build_sim_xfiltMVgclm(self, idx, k):
         """
@@ -318,8 +315,8 @@ class library:
             del _G
             CT = 0.5 * (CT + _C)
             del _C
-        fnameG = self.lib_dir + '/sim_p%s_%04d.fits' % (k[1:], idx) if idx != -1 else self.lib_dir + '/dat_p%s.fits'%k[1:]
-        fnameC = self.lib_dir + '/sim_x%s_%04d.fits' % (k[1:], idx) if idx != -1 else self.lib_dir + '/dat_x%s.fits'%k[1:]
+        fnameG = os.path.join(self.lib_dir, 'sim_p%s_%04d.fits' % (k[1:], idx) if idx != -1 else 'dat_p%s.fits'%k[1:])
+        fnameC = os.path.join(self.lib_dir, 'sim_x%s_%04d.fits' % (k[1:], idx) if idx != -1 else 'dat_x%s.fits'%k[1:])
         hp.write_alm(fnameG, G + GT)
         hp.write_alm(fnameC, C + CT)
 
@@ -328,16 +325,14 @@ class library:
         if not self.f2map1.ivfs == self.f2map2.ivfs:
             pass  # No need to swap, this thing is symmetric anyways
             # sLM = 0.5 * (sLM + self._get_sim_stt(idx, swapped=True))
-        fname = self.lib_dir + '/sim_stt_%04d.fits' % (idx) if idx != -1 else self.lib_dir + '/dat_stt.fits'
-        hp.write_alm(fname, sLM)
+        hp.write_alm(os.path.join(self.lib_dir, 'sim_stt_%04d.fits'%idx if idx != -1 else 'dat_stt.fits'), sLM)
 
     def _build_sim_ntt(self, idx):
         sLM = self._get_sim_ntt(idx)
         if not self.f2map1.ivfs == self.f2map2.ivfs:
             pass  # No need to swap, this thing is symmetric anyways
             # nLM = 0.5 * (nLM + self._get_sim_ntt(idx, swapped=True))
-        fname = self.lib_dir + '/sim_ntt_%04d.fits' % (idx) if idx != -1 else self.lib_dir + '/dat_ntt.fits'
-        hp.write_alm(fname, sLM)
+        hp.write_alm(os.path.join(self.lib_dir, 'sim_ntt_%04d.fits'%idx if idx != -1 else 'dat_ntt.fits'), sLM)
 
     def _build_sim_ftt(self, idx):
         fLM = self._get_sim_ftt(idx)
@@ -345,8 +340,7 @@ class library:
             _fLM = self._get_sim_ftt(idx,swapped=True)
             fLM = 0.5 * (fLM + _fLM)
             del _fLM
-        fname = self.lib_dir + '/sim_ftt_%04d.fits' % (idx) if idx != -1 else self.lib_dir + '/dat_ftt.fits'
-        hp.write_alm(fname, fLM)
+        hp.write_alm(os.path.join(self.lib_dir, 'sim_ftt_%04d.fits'%idx if idx != -1 else 'dat_ftt.fits'), fLM)
 
     def get_response(self, k1, k2, recache=False):
         return self.resplib.get_response(k1, k2, recache=recache)
