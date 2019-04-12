@@ -105,7 +105,6 @@ subroutine n1(ret, Ls, nL, cl_kI, kA, kB, kI, cltt, clte, clee, clttfid, cltefid
     end do
     !$OMP ENDDO
     !$OMP END PARALLEL
-
 end
 
 double precision function n1L(L, cl_kI, kA, kB, kI, cltt, clte, clee, clttfid, cltefid, cleefid, &
@@ -187,7 +186,6 @@ double precision function n1L(L, cl_kI, kA, kB, kI, cltt, clte, clee, clttfid, c
         write(*,*) 'Failed to find cmb filter '//kB
     end if
 
-    !FIXME: get dlps
     n1L = 0d0
     do L1i =  max(lminA, dL / 2), lmaxA, dL
         L1 = float(L1i)

@@ -20,7 +20,7 @@ try:
     HASN1F = True
 except:
     print("n1f.so fortran shared object not found")
-    print('try f2py -c -m n1f n1f.f90 from the command line in n1 directory')
+    print('try f2py -c -m n1f ./n1f.f90 --f90flags="-fopenmp" -lgomp from the command line in n1 directory')
     print("Falling back on python2 weave implementation")
     HASN1F = False
     from . import n1_weave
