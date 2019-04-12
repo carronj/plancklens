@@ -79,6 +79,35 @@ double precision function wf(k, l1x, l2x, l1y, l2y, l1abs, l2abs, cltt, clte, cl
     end if
 end
 
+subroutine n1(ret, Ls, nL, cl_kI, kA, kB, kI, cltt, clte, clee, clttfid, cltefid, cleefid, &
+                    ftlA, felA, fblA, ftlB, felB, fblB, lminA, lmaxA, lminB, lmaxB, lmaxI, &
+                    lmaxtt, lmaxte, lmaxee, lmaxttfid, lmaxtefid, lmaxeefid, dL, lps, nlps)
+    implicit None
+    integer, intent(in) :: Ls(nL), lmaxA, lmaxB, lmaxI, lminA, lminB, dL, nL
+    integer, intent(in) :: lmaxtt, lmaxte, lmaxee, lmaxttfid, lmaxtefid, lmaxeefid
+    integer, intent(in) :: nlps, lps(0:nlps-1)
+    double precision, intent(out) :: ret(nL)
+    character(len=3), intent(in) :: kA, kB ! QE keys
+    character(len=1), intent(in) :: kI     ! anisotropy source key
+    double precision, intent(in) :: cltt(lmaxtt), clee(lmaxee), clte(lmaxte), cl_kI(lmaxI)
+    double precision, intent(in) :: clttfid(lmaxttfid), cleefid(lmaxeefid), cltefid(lmaxtefid)
+    double precision, intent(in) :: ftlA(lmaxA), felA(lmaxA), fblA(lmaxA)
+    double precision, intent(in) :: ftlB(lmaxB), felB(lmaxB), fblB(lmaxB)
+    double precision, external :: n1L
+    integer iL
+
+    !$OMP PARALLEL
+    !$OMP DO SCHEDULE(DYNAMIC,1)
+    do iL = 1, nL
+        ret(iL) = n1L(Ls(iL), cl_kI, kA, kB, kI, cltt, clte, clee, clttfid, cltefid, cleefid, &
+                    ftlA, felA, fblA, ftlB, felB, fblB, lminA, lmaxA, lminB, lmaxB, lmaxI, &
+                    lmaxtt, lmaxte, lmaxee, lmaxttfid, lmaxtefid, lmaxeefid, dL, lps, nlps)
+    end do
+    !$OMP ENDDO
+    !$OMP END PARALLEL
+
+end
+
 double precision function n1L(L, cl_kI, kA, kB, kI, cltt, clte, clee, clttfid, cltefid, cleefid, &
                     ftlA, felA, fblA, ftlB, felB, fblB, lminA, lmaxA, lminB, lmaxB, lmaxI, &
                     lmaxtt, lmaxte, lmaxee, lmaxttfid, lmaxtefid, lmaxeefid, dL, lps, nlps)

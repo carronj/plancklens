@@ -12,7 +12,7 @@ import numpy as np
 import pickle as pk
 from scipy.interpolate import UnivariateSpline as spline
 
-from plancklens2018.utils import hash_check, clhash
+from plancklens2018.utils import hash_check, clhash, cli
 from plancklens2018 import sql
 
 try:
@@ -110,11 +110,8 @@ if HASN1F:
             return {'cltt': clhash(self.cltt), 'clte': clhash(self.clte), 'clee': clhash(self.clee),
                     'dL': self.dL, 'lps': self.lps}
 
-        def AisB(self):
-            return np.all([np.all(self.ftlA == self.ftlB), np.all(self.felA == self.felB), np.all(self.fblA == self.fblB)])
-
         def get_n1(self, kA, k_ind, cl_kind, ftlA, felA, fblA, Lmax, kB=None, ftlB=None, felB=None, fblB=None,
-                   clttfid=None, cltefid=None, cleefid=None, n1_flat=lambda ell: np.ones(len(ell)) * 1.):
+                   clttfid=None, cltefid=None, cleefid=None, n1_flat=lambda ell: np.ones(len(ell), dtype=float), sglLmode=True):
             """
 
             """
@@ -126,50 +123,50 @@ if HASN1F:
             if felB is None: felB = felA
             if fblB is None: fblB = fblA
 
-            self.clttfid = self.cltt if clttfid is None else clttfid
-            self.cltefid = self.clte if cltefid is None else cltefid
-            self.cleefid = self.clee if cleefid is None else cleefid
-
-            self.ftlA = ftlA
-            self.felA = felA
-            self.fblA = fblA
-
-            self.ftlB = ftlB
-            self.felB = felB
-            self.fblB = fblB
+            clttfid = self.cltt if clttfid is None else clttfid
+            cltefid = self.clte if cltefid is None else cltefid
+            cleefid = self.clee if cleefid is None else cleefid
 
 
             if kA in estimator_keys and kB in estimator_keys:
                 if kA < kB:
                     return self.get_n1(kB, k_ind, cl_kind, ftlA, felA, fblA, Lmax, ftlB=ftlB, felB=felB, fblB=fblB, kB=kA,
-                                       clttfid=clttfid, cltefid=cltefid, cleefid=cleefid)
+                                       clttfid=clttfid, cltefid=cltefid, cleefid=cleefid, n1_flat=n1_flat)
 
                 idx = 'splined_kA' + kA + '_kB' + kB + '_ind' + k_ind
-                idx += '_clpp' + clhash(cl_kind[:])
+                idx += '_clpp' + clhash(cl_kind)
                 idx += '_ftlA' + clhash(ftlA)
                 idx += '_felA' + clhash(felA)
                 idx += '_fblA' + clhash(fblA)
                 idx += '_ftlB' + clhash(ftlB)
                 idx += '_felB' + clhash(felB)
                 idx += '_fblB' + clhash(fblB)
-                idx += '_clttfid' + clhash(self.clttfid)
-                idx += '_cltefid' + clhash(self.cltefid)
-                idx += '_cleefid' + clhash(self.cleefid)
+                idx += '_clttfid' + clhash(clttfid)
+                idx += '_cltefid' + clhash(cltefid)
+                idx += '_cleefid' + clhash(cleefid)
                 idx += '_Lmax%s' % Lmax
 
                 if self.npdb.get(idx) is None:
-                    ret = []
-                    ells = np.unique(
-                        np.concatenate([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.arange(1, Lmax + 1)[::10], [Lmax]]))
-                    for L in ells:
-                        print("n1: doing L %s kA %s kB %s kind %s" % (L, kA, kB, k_ind))
-                        ret.append(self._get_n1_L(L, cl_kind, kA=kA, kB=kB, k_ind=k_ind))
-                    _ret = np.zeros(Lmax + 1)
-                    _ret[1:] = spline(ells, np.array(ret) * n1_flat(ells), s=0., ext='raise', k=3)(np.arange(1, Lmax + 1) * 1.) / n1_flat(np.arange(1, Lmax + 1) * 1.)
-                    self.npdb.add(idx, _ret)
+                    Ls = np.unique(np.concatenate([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.arange(1, Lmax + 1)[::10], [Lmax]]))
+                    if sglLmode:
+                        n1L = np.zeros(len(Ls), dtype=float)
+                        for i, L in enumerate(Ls):
+                            print("n1: doing L %s kA %s kB %s kind %s" % (L, kA, kB, k_ind))
+                            n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid))
+                    else: # entire vector from f90 openmp call
+                        lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlA, felA, fblA]])
+                        lmin_ftlB = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlB, felB, fblB]])
+                        n1L = n1f.n1(Ls, cl_kind, kA, kB, k_ind, self.cltt, self.clte, self.clee,
+                                     clttfid, cltefid, cleefid,  ftlA, felA, fblA, ftlB, felB, fblB,
+                                      lmin_ftlA, lmin_ftlB,  self.dL, self.lps)
+                    ret = np.zeros(Lmax + 1)
+                    ret[1:] =  spline(Ls, np.array(n1L) * n1_flat(Ls), s=0., ext='raise', k=3)(np.arange(1, Lmax + 1) * 1.)
+                    ret[1:] *= cli(n1_flat(np.arange(1, Lmax + 1) * 1.))
+                    self.npdb.add(idx, ret)
                 return self.npdb.get(idx)
 
-            assert self.AisB(), 'check the est. breakdown is OK for non-identical legs'
+            assert  np.all([np.all(ftlA == ftlB), np.all(felA == felB), np.all(fblA == fblB)]), \
+                    'check the est. breakdown is OK for non-identical legs'
             if (kA in estimator_keys_derived) and (kB in estimator_keys_derived):
                 ret = 0.
                 for (tk1, cl1) in _get_est_derived(kA, Lmax):
@@ -201,37 +198,37 @@ if HASN1F:
                 return ret
             assert 0
 
-        def _get_n1_L(self, L, cl_kind, kA='ptt', kB=None, k_ind='p'):
+        def _get_n1_L(self, L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid):
             if kB is None: kB = kA
             assert kA in estimator_keys and kB in estimator_keys
             assert len(cl_kind) > self.lmaxphi
             if kA in estimator_keys and kB in estimator_keys:
                 if kA < kB:
-                    return self._get_n1_L(L, cl_kind, kA=kB, kB=kA, k_ind=k_ind)
+                    return self._get_n1_L(L, kB, kA, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid)
                 else:
-                    lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [self.ftlA, self.felA, self.fblA]])
-                    lmin_ftlB = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [self.ftlB, self.felB, self.fblB]])
-                    lmax_ftl = np.max([len(fal) for fal in [self.ftlA, self.felA, self.fblA, self.ftlB, self.felB, self.fblB]]) - 1
-                    assert len(self.clttfid) > lmax_ftl and len(self.cltt) > lmax_ftl
-                    assert len(self.cltefid) > lmax_ftl and len(self.clte) > lmax_ftl
-                    assert len(self.cleefid) > lmax_ftl and len(self.clee) > lmax_ftl
+                    lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlA, felA, fblA]])
+                    lmin_ftlB = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlB, felB, fblB]])
+                    lmax_ftl = np.max([len(fal) for fal in [ftlA, felA, fblA, ftlB, felB, fblB]]) - 1
+                    assert len(clttfid) > lmax_ftl and len(self.cltt) > lmax_ftl
+                    assert len(cltefid) > lmax_ftl and len(self.clte) > lmax_ftl
+                    assert len(cleefid) > lmax_ftl and len(self.clee) > lmax_ftl
 
                     idx = str(L) + 'kA' + kA + '_kB' + kB + '_ind' + k_ind
-                    idx += '_clpp' + clhash(cl_kind[:])
-                    idx += '_ftlA' + clhash(self.ftlA)
-                    idx += '_felA' + clhash(self.felA)
-                    idx += '_fblA' + clhash(self.fblA)
-                    idx += '_ftlB' + clhash(self.ftlB)
-                    idx += '_felB' + clhash(self.felB)
-                    idx += '_fblB' + clhash(self.fblB)
-                    idx += '_clttfid' + clhash(self.clttfid)
-                    idx += '_cltefid' + clhash(self.cltefid)
-                    idx += '_cleefid' + clhash(self.cleefid)
+                    idx += '_clpp' + clhash(cl_kind)
+                    idx += '_ftlA' + clhash(ftlA)
+                    idx += '_felA' + clhash(felA)
+                    idx += '_fblA' + clhash(fblA)
+                    idx += '_ftlB' + clhash(ftlB)
+                    idx += '_felB' + clhash(felB)
+                    idx += '_fblB' + clhash(fblB)
+                    idx += '_clttfid' + clhash(clttfid)
+                    idx += '_cltefid' + clhash(cltefid)
+                    idx += '_cleefid' + clhash(cleefid)
 
                     if self.fpdb.get(idx) is None:
                         n1_L = n1f.n1l(L, cl_kind, kA, kB, k_ind,
-                                      self.cltt, self.clte, self.clee, self.clttfid, self.cltefid, self.cleefid,
-                                      self.ftlA, self.felA, self.fblA, self.ftlB, self.felB, self.fblB,
+                                      self.cltt, self.clte, self.clee, clttfid, cltefid, cleefid,
+                                      ftlA, felA, fblA, ftlB, felB, fblB,
                                       lmin_ftlA, lmin_ftlB,  self.dL, self.lps)
                         self.fpdb.add(idx, n1_L)
                         return n1_L
