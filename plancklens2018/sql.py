@@ -64,7 +64,7 @@ class npdb:
         else:
             return data[0].flatten()
 
-class fpdb:
+class fldb:
     """A simple wrapper class to store floats in an sqlite3 database.
 
      """
@@ -72,7 +72,7 @@ class fpdb:
         if not os.path.exists(fname) and mpi.rank == 0:
             con = sqlite3.connect(fname, detect_types=sqlite3.PARSE_DECLTYPES, timeout=3600)
             cur = con.cursor()
-            cur.execute("CREATE TABLE npdb (id %s PRIMARY KEY, fl REAL)" % idtype)
+            cur.execute("CREATE TABLE fldb (id %s PRIMARY KEY, fl REAL)" % idtype)
             con.commit()
         mpi.barrier()
 
@@ -81,22 +81,22 @@ class fpdb:
     def add(self, idx, fl):
         try:
             assert self.get(idx) is None
-            self.con.execute("INSERT INTO npdb (id,  fl) VALUES (?,?)", (idx, fl))
+            self.con.execute("INSERT INTO fldb (id,  fl) VALUES (?,?)", (idx, fl))
             self.con.commit()
         except:
-            print("npdb add failed!")
+            print("fldb add failed!")
 
     def remove(self, idx):
         try:
             assert self.get(idx) is not None
-            self.con.execute("DELETE FROM npdb WHERE id=?", (idx,))
+            self.con.execute("DELETE FROM fldb WHERE id=?", (idx,))
             self.con.commit()
         except:
-            print("npdb remove failed!")
+            print("fldb remove failed!")
 
     def get(self, idx):
         cur = self.con.cursor()
-        cur.execute("SELECT fl FROM npdb WHERE id=?", (idx,))
+        cur.execute("SELECT fl FROM fldb WHERE id=?", (idx,))
         data = cur.fetchone()
         cur.close()
         if data is None:
