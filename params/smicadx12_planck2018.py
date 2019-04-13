@@ -1,4 +1,4 @@
-"""Parameter file for lensing reconstrution on a Planck public release 3 SMICA cmb map.
+"""Parameter file for lensing reconstrution on the Planck public release 3 SMICA cmb map.
 
 """
 
@@ -25,9 +25,9 @@ nlev_p = 55.
 nsims = 300
 
 transf = hp.gauss_beam(5. / 60. / 180. * np.pi, lmax=lmax_ivf) * hp.pixwin(nside)[:lmax_ivf + 1]
-cl_unl = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))
-cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
-cl_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
+cl_unl = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lenspotentialCls.dat'))
+cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lensedCls.dat'))
+cl_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lensedCls.dat'))
 cl_weight['bb'] *= 0.
 
 # Masks
