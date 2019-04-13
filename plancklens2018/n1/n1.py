@@ -19,11 +19,7 @@ try:
     from . import n1f
     HASN1F = True
 except:
-    print("n1f.so fortran shared object not found")
-    print('try f2py -c -m n1f ./n1f.f90 --f90flags="-fopenmp" -lgomp from the command line in n1 directory')
-    print("Falling back on python2 weave implementation")
     HASN1F = False
-    from . import n1_weave
 
 estimator_keys = ['ptt', 'pte', 'pet', 'pee', 'peb', 'pbe', 'ptb', 'pbt',
                   'xtt', 'xte', 'xet', 'xee', 'xeb', 'xbe', 'xtb', 'xbt',
@@ -63,7 +59,14 @@ def _get_est_derived(k, lmax):
         assert 0, k
     return ret
 
-if HASN1F:
+
+if not HASN1F:
+    print("*** n1f.so fortran shared object did not load properly")
+    print('*** try f2py -c -m n1f ./n1f.f90 --f90flags="-fopenmp" -lgomp from the command line in n1 directory')
+    print("*** Now falling back on python2 weave implementation")
+    from . import n1_weave
+    library_n1 =  n1_weave.library_n1
+else:
     class library_n1:
         """
 
@@ -102,7 +105,7 @@ if HASN1F:
                 pk.dump(self.hashdict(), open(os.path.join(lib_dir, 'n1_hash.pk'), 'wb'))
             hash_check(self.hashdict(), pk.load(open(os.path.join(lib_dir, 'n1_hash.pk'), 'rb')))
             self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
-            self.fpdb = sql.fpdb(os.path.join(lib_dir, 'fpdb.db'))
+            self.fldb = sql.fldb(os.path.join(lib_dir, 'fldb.db'))
 
             self.lib_dir = lib_dir
 
@@ -225,14 +228,12 @@ if HASN1F:
                     idx += '_cltefid' + clhash(cltefid)
                     idx += '_cleefid' + clhash(cleefid)
 
-                    if self.fpdb.get(idx) is None:
+                    if self.fldb.get(idx) is None:
                         n1_L = n1f.n1l(L, cl_kind, kA, kB, k_ind,
                                       self.cltt, self.clte, self.clee, clttfid, cltefid, cleefid,
                                       ftlA, felA, fblA, ftlB, felB, fblB,
                                       lmin_ftlA, lmin_ftlB,  self.dL, self.lps)
-                        self.fpdb.add(idx, n1_L)
+                        self.fldb.add(idx, n1_L)
                         return n1_L
-                    return self.fpdb.get(idx)
+                    return self.fldb.get(idx)
             assert 0
-else:
-    library_n1 =  n1_weave.library_n1
