@@ -9,7 +9,7 @@ def configuration(parent_package='', top_path=''):
     config = Configuration('', parent_package, top_path)
     config.add_extension('plancklens2018.wigners.wigners', ['plancklens2018/wigners/wigners.f90'])
     config.add_extension('plancklens2018.n1.n1f', ['plancklens2018/n1/n1f.f90'],
-                         libraries=['gomp'],  extra_compile_args=['-Xpreprocessor -fopenmp'])
+                         libraries=['gomp'],  extra_compile_args=['-Xpreprocessor', '-fopenmp'])
     return config
 
 
