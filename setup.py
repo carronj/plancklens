@@ -12,12 +12,15 @@ def configuration(parent_package='', top_path=''):
                          libraries=['gomp'],  extra_compile_args=['-Xpreprocessor', '-fopenmp'])
     return config
 
-
+#FIXME: put cls files under plancklens2018 and use package_data? or inputs -> plancklens2018/inputs?
 setup(
     name='Plancklens2018',
     version='0.0.1',
     packages=['plancklens2018', 'plancklens2018.n1', 'plancklens2018.filt', 'plancklens2018.sims',
-              'plancklens2018.qcinv', 'plancklens2018.wigners'],
+              'plancklens2018.qcinv', 'plancklens2018.wigners', 'plancklens2018.wigners'],
+    data_files=[('inputs/cls', ['inputs/cls/FFP10_wdipole_lensedCls.dat',
+                                'inputs/cls/FFP10_wdipole_lenspotentialCls.dat',
+                                'inputs/cls/FFP10_wdipole_params.ini'])],
     url='',
     license='',
     author='Julien Carron',
