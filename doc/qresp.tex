@@ -83,15 +83,52 @@ Then
 \subsection{QE response calculation}
 
 
-	
-Let the estimator respond to a source with spin-weight $r \ge 0$ as follows
-\begin{equation}
-	_{s}\delta X(\hn) = \:_{r}\alpha(\hn) \left( \sum_{\ell m}\: R_\ell^{r s} \:_sX_{\ell m} \Ylm {s- r}(\hn)\right) + \:_{-r}\alpha(\hn) \left( \sum_{\ell m}\: R_\ell^{-r s} \:_sX_{\ell m} \Ylm {s + r}(\hn) \right)
+Let the covariance of the CMB data respond as follows to a spin-$r$  ($r \ge 0$) anisotropy source $\alpha$:
+\begin{equation}\label{eq:covresp}
+	\delta  \av{_sX(\hn) \:_tX^*(\hn')} =   \sum_{\ell m, a = \pm r}\:_{a}\alpha(\hn) W_\ell^{a, st} \:_{s - r}Y_{\ell m}(\hn)  \:_{t}Y^*_{\ell m}(\hn')  +   W_\ell^{a, ts} \:_{s}Y_{\ell m}(\hn)  \:_{t-r}Y^*_{\ell m}(\hn')\:_{-a}\alpha(\hn')
 \end{equation}
-for some harmonic space responses $R_\ell^{rs}$. Let further the isotropic limit of the filtering procedure be the matrix $F$, defined through
+for some weights functions $W_\ell^{a, st}$. For instance, if the anisotropy can be described at the level of the CMB maps, such as for lensing, with
+\begin{equation}
+	_{s}\delta X(\hn) = \sum_{a = \pm r}\:_{a}\alpha(\hn) \left( \sum_{\ell m}\: R_\ell^{a, s} \:_sX_{\ell m} \Ylm {s- a}(\hn)\right)
+\end{equation}
+for harmonic responses $R$, then holds
+\begin{equation}
+	W_\ell^{a, st} = R^{a, s} C_\ell^{st}.
+\end{equation}
+However, Eq.~\eqref{eq:covresp} is more general.
+Examples include:
+\begin{itemize}
+	\item Lensing: The source of anisotropy is the spin-1 field $_1\alpha(\hn)$, with response
+	\begin{equation}
+		\delta _sX(\hn) =  -\frac 12 \alpha_1 \eth _{s}X(\hn) - \frac 12 \alpha_{-1} \bar \eth \:_sX(\hn) 
+	\end{equation}
+	where $\eth$ and $\bar \eth$ are the spin lowering and spin raising operator \JC{check notation } respectively. Hence
+	\begin{equation}
+		R_\ell^{1, s} =  ... R_\ell^{-1, s} =
+	\end{equation}
+	\item Modulation estimator: The source is spin 0, with response
+	\begin{equation}
+	\delta _sX(\hn) = \:_0\alpha(\hn) _{s}X(\hn)	
+	\end{equation}
+	Hence,
+	\begin{equation}
+		R_\ell^{st} = \delta_{st}
+	\end{equation}
+	\item Point sources in temperature:
+	\begin{equation}
+	W^{r, st}_\ell = \frac 14\delta_{r0}\delta_{s0}\delta_{t0} 
+	\end{equation}
+	\item Noise anisotropies (same as point sources but acting on beam deconvovled maps):
+	\begin{equation}
+	W^{r, st}_\ell = \frac 14\delta_{r0}\delta_{s0}\delta_{t0}  \frac{1}{b_\ell^2}
+	\end{equation}
+\end{itemize}
+
+Let further the isotropic limit of the filtering procedure be the matrix $F$, defined through
 \begin{equation}
 	_{s}\bar X_{\ell m} = \sum_{s_2 = 0,2,-2}F_\ell^{s s_2} \:_{s_2}X_{\ell m} \quad \textrm{(isotropic approximation)}.
-\end{equation} Then the gradient and curl responses of estimator~\eqref{QE} are
+\end{equation} 
+Then the gradient and curl responses of estimator~\eqref{QE} are
 \begin{equation}\boxed{
 	\begin{split}
 		\resp^{gg}_L &= R_L^{st, r} + (-1)^r R_L^{st, -r}\\
@@ -102,98 +139,15 @@ for some harmonic space responses $R_\ell^{rs}$. Let further the isotropic limit
 where $R_L^{st, r}$ is
 \begin{equation}
 \begin{split}
-R_L^{st, r} &= (-1)^{\so + \to}2\pi  \int_{-1}^1 d \mu\: d^L_{-\so - \to, -r}(\mu)\sum_{\tilde s_i,\tilde t_i = 0,2,-2}  \left[\xi^{\so \si \tilde s_i} (\mu)\psi^{\to \ti \tilde t_i \tilde s_i, r }(\mu) +  \xi^{\to \ti \tilde t_i}(\mu) \psi^{\so \si \tilde s_i \tilde t_i, r }(\mu) \right]
+R_L^{st, r} &= (-1)^{\so + \to }2\pi  \int_{-1}^1 d \mu\: d^L_{-\so - \to, -r}(\mu)\sum_{\tilde s_i,\tilde t_i = 0,2,-2}  \left[\xi^{\so \si \tilde s_i} (\mu)\psi^{\to \ti \tilde t_i \tilde s_i, r }(\mu) +  \xi^{\to \ti \tilde t_i}(\mu) \psi^{\so \si \tilde s_i \tilde t_i, r }(\mu) \right]
 \end{split}
 \end{equation}
 with
 \begin{equation}
 \begin{split}
 \xi^{\so\si \tilde s_i}(\mu) &\equiv  \sum_\ell \left(\frac{2\ell + 1}{4\pi}\right)w^{\so\si}_\ell F_\ell^{\si \tilde \si} d^\ell_{\so,\tilde \si}(\mu) \\
-\psi^{\so\si \tilde \si \tilde \ti, r}(\mu) &\equiv  \sum_\ell \left(\frac{2\ell + 1}{4\pi}\right)w^{\so \si}F^{\si \tilde \si}_\ell R^{r\ti}_\ell C_\ell^{\tilde \si- \tilde\ti} d^\ell_{\so,-\tilde \ti + r}(\mu) 
+\psi^{\so\si \tilde \si \tilde \ti, r}(\mu) &\equiv  (-1)^r \sum_\ell \left(\frac{2\ell + 1}{4\pi}\right)w^{\so \si}F^{\si \tilde \si}_\ell W_\ell^{-r, -\tilde \ti \tilde \si} d^\ell_{\so,-\tilde \ti + r}(\mu) 
 \end{split}
 \end{equation}
-
-\clearpage
-
-\newpage \subsection{QE responses calculation}
- \JC{should define the response at the covariance matrix level...}
- The covariance matrices is
- \begin{equation}
- 	\av{_sX(\hn)\:_tX^*(\hn')} =\av{_sX(\hn)\:_{-t}X(\hn')} = \sum_{\ell m} C^{s t}_\ell \Ylm s(\hn) \Ylms {t}(\hn')
- \end{equation}
- How does this responds to a source of anisotropy (with spin $r$), $_r\alpha(\hn)$? For all cases in this work, we can parametrize this as follows
-  \begin{equation}
- 	\delta \av{_sX(\hn)\:_{t}X(\hn')} = \:_r\alpha(\hn')\sum_{\ell m}\: _rR^{st}_\ell \Ylm s(\hn) \Ylms {r - t}(\hn') + ( (-t, \hn') \leftrightarrow (s,\hn))
- \end{equation}
-for some set of isotropic response functions $R_\ell$. What is the response to the estimator Eq.~\eqref{QE}?
-
-Examples include:
-\begin{itemize}
-	\item Lensing: The source of anisotropy is the spin-1 field $_1\alpha(\hn)$, with response
-	\begin{equation}
-		\delta _sX(\hn) =  \frac 12 \alpha_1 \eth _{s}X(\hn) + \frac 12 \alpha_{-1} \bar \eth \:_sX(\hn) 
-	\end{equation}
-	where $\eth$ and $\bar \eth$ are the spin lowering and spin raising operator \JC{check notation } respectively. From their action on the spin-weighted harmonics, the harmonic space responses are\JC{...}
-	\begin{equation}
-		s_r = s-1, s+ 1 \quad R^{s,s-1} = \JC{...}, R^{s,s+1} = \JC{...}
-	\end{equation}
-	\item Modulation estimator: The source is spin 0, with response
-	\begin{equation}
-	\delta _sX(\hn) = _0\alpha(\hn) _{s}X(\hn)	
-	\end{equation}
-	Hence,
-	\begin{equation}
-		s_r = s\quad, R_\ell^{ss} = 1
-	\end{equation}
-	\item Point source:
-	\begin{equation}
-	\delta _sX(\hn) = \:_0\alpha(\hn) \delta^D(\hn)
-	\end{equation}
-	\item Noise anisotropies:
-\end{itemize} 
-\paragraph{intermediate steps for response calc.}
-Then $\left( R_\ell^{-r, -s} = (-1)^r R_\ell^{r,s} \right)$
-\begin{equation}
-	_{\so + \to} \hat d_{LM} = \mathcal R^{st, r}_L \: _{-r}\alpha_{LM} +   \mathcal R_L^{ts, -r} \: _{r}\alpha_{LM} \textrm{  with  } \mathcal R_L^{st, r} = 2\pi \int_{-1}^1d\mu\:\Xi^{st, r}(\mu)\:\Xi^{t}(\mu) \:d^L_{r, \so + \to}(\mu)
-\end{equation}
-where
-\begin{equation}
-	\Xi^{st, r}(\mu) = \sum_{l}\left(\frac{2\ell + 1}{4\pi}\right) C_\ell^{\si,-\ti} R^{r - \ti}_\ell w^{\si,\so}_\ell d^\ell_{\ti + r, \so}(\mu) \textrm{  and   } \Xi^{t}(\mu) = \sum_{l}\left(\frac{2\ell + 1}{4\pi}\right) w^{\ti,\to}_\ell d^\ell_{-\ti, \to}(\mu)
-\end{equation}
-
-\section{New derivation of generic response}
-Let 
-\begin{equation}
-	_{s}X(\hn') = \:_{a}\alpha(\hn') \left( \sum_{\ell'' m''}\: R_{\ell''}^{a, s} \:_sX_{\ell'' m''}\: _{s- a}Y_{\ell'' m''}(\hn')\right) 
-\end{equation}
-where a sum over spin $a$ is implicit.
-Let further the spin-weight spectra $C_\ell^{s_1s_2}$ be defined as
-\begin{equation}
-	\av{_{s_1}X_{\ell m}\: _{s_2}X^\dagger_{\ell' m'}} \equiv C_\ell^{s_1s_2} \delta_{\ell, \ell'} \delta_{m, m'}
-\end{equation}
-Let further be the filtering $\mathcal B^\dagger \Cov^{-1}$ defined by a matrix
-\begin{equation}
-_s 	\bar X_{\ell m} = F^{s s'}_\ell \:_{s'} X_{\ell m}
-\end{equation}
-and the QE be (\JC{NB: not exactly as above})
-\begin{equation}
- _{\so + \to}\hat d(\hn) \equiv  \left(\sum_{\ell m}\: w^{\so\si}_\ell \:_{\si} \bar X_{\ell m} \:_\so Y_{\ell m}(\hn)\right)\left(\sum_{\ell' m'}\:w^{\to\ti}_{\ell'}  \:_{\ti} \bar X_{\ell' m'} \:_\to Y_{\ell' m'}(\hn)\right).
-\end{equation}
-Then, with $A \equiv wF$,
-\begin{equation}
-\begin{split}
-	_{s_0 + t_0}\hat d_{LM}& =\:_a\alpha_{L'M'} R^{a, \si}_{\ell''}  A^{\so \si}_\ell  A^{\to \ti}_{\ell'} \av{\:_{\si}X_{\ell'' m''} \:_{\ti} X_{\ell' m'} }  \int d^2n \:_{\so}Y_{\ell m}\:_{\to}Y_{\ell' m'}\:_{\so + \to}Y^*_{LM} \int d^2n'   \:_{\si}Y^*_{\ell m}\:_{\si -a}Y_{\ell'' m''} \:_{a}Y_{L'M'}\\ 
-	&+\:_a\alpha_{L'M'} R^{a, \ti}_{\ell''}  A^{\so \si}_\ell  A^{\to \ti}_{\ell'} \av{\:_{\ti}X_{\ell'' m''} \:_{\si} X_{\ell m} }  \int d^2n \:_{\so}Y_{\ell m}\:_{\to}Y_{\ell' m'}\:_{\so + \to}Y^*_{LM} \int d^2n' \:_{\ti -a}Y_{\ell'' m''} \:_{\ti}Y^*_{\ell' m'} \:_{a}Y_{L'M'}\\
-	&= \:_a\alpha_{L'M'} R^{a, \si}_{\ell''}  A^{\so \si}_\ell  A^{\to \ti}_{\ell'} (-1)^{\si - m'}C_{\ell'}^{\ti, -\si}\int d^2n \:_{\so}Y_{\ell m}\:_{\to}Y_{\ell' m'}\:_{\so + \to}Y^*_{LM} \int d^2n'   \:_{\si}Y^*_{\ell m}\:_{\si -a}Y_{\ell', -m'} \:_{a}Y_{L'M'}\\
-	&+\:_a\alpha_{L'M'} R^{a, \ti}_{\ell''}  A^{\so \si}_\ell  A^{\to \ti}_{\ell'} (-1)^{\ti-m}C_\ell^{\si,-\ti}  \int d^2n \:_{\so}Y_{\ell m}\:_{\to}Y_{\ell' m'}\:_{\so + \to}Y^*_{LM} \int d^2n' \:_{\ti -a}Y_{\ell, -m} \:_{\ti}Y^*_{\ell' m'} \:_{a}Y_{L'M'}\\
-		&= \:_a\alpha_{L'M'} R^{a, \si}_{\ell'}  A^{\so \si}_\ell  A^{\to \ti}_{\ell'} (-1)^{a}C_{\ell'}^{\ti, -\si}\int d^2n \:_{\so}Y_{\ell m}\:_{\to}Y_{\ell' m'}\:_{\so + \to}Y^*_{LM} \int d^2n'   \:_{\si}Y^*_{\ell m}\:_{-\si +a}Y^*_{\ell'm'} \:_{a}Y_{L'M'}\\
-	&+\:_a\alpha_{L'M'} R^{a, \ti}_{\ell}  A^{\so \si}_\ell  A^{\to \ti}_{\ell'} (-1)^{a}C_\ell^{\si,-\ti}  \int d^2n \:_{\so}Y_{\ell m}\:_{\to}Y_{\ell' m'}\:_{\so + \to}Y^*_{LM} \int d^2n' \:_{-\ti +a}Y^*_{\ell m} \:_{\ti}Y^*_{\ell' m'} \:_{a}Y_{L'M'}\\
-	&= (-1)^{M-M'}\:_a\alpha_{L'M'} R^{a, \si}_{\ell'}  A^{\so \si}_\ell  A^{\to \ti}_{\ell'} (-1)^{\so+\to}C_{\ell'}^{\ti, -\si}\int d^2n \:_{\so}Y_{\ell m}\:_{\to}Y_{\ell' m'}\:_{-\so - \to}Y_{L-M} \int d^2n'   \:_{\si}Y^*_{\ell m}\:_{-\si +a}Y^*_{\ell'm'} \:_{-a}Y^*_{L'-M'}\\
-	&+(-1)^{M-M'}\:_a\alpha_{L'M'} R^{a, \ti}_{\ell}  A^{\so \si}_\ell  A^{\to \ti}_{\ell'} (-1)^{\so + \to}C_\ell^{\si,-\ti}  \int d^2n \:_{\so}Y_{\ell m}\:_{\to}Y_{\ell' m'}\:_{-\so - \to}Y_{L-M} \int d^2n' \:_{-\ti +a}Y^*_{\ell m} \:_{\ti}Y^*_{\ell' m'} \:_{-a}Y^*_{L'-M'}\\
-	&= \delta_{LL,MM'}\:_a\alpha_{L'M'} R^{a, \si}_{\ell'}  A^{\so \si}_\ell  A^{\to \ti}_{\ell'} (-1)^{\so+\to}C_{\ell'}^{\ti, -\si}  \left( \frac{2\ell + 1}{4\pi}\right) \left(\frac{2\ell' + 1}{4\pi} \right) 2\pi \int_{-1}^{1} d\mu \:d_{\so\si}^\ell (\mu)\: d_{\to,-\si + a}^{\ell'} (\mu)\:d_{-\so -\to,-a}^L(\mu) \\
-	&+\delta_{LL,MM'}\:_a\alpha_{L'M'} R^{a, \ti}_{\ell}  A^{\so \si}_\ell  A^{\to \ti}_{\ell'} (-1)^{\so + \to}C_\ell^{\si,-\ti}\left(\frac{2\ell + 1}{4\pi} \right)\left(\frac{2\ell' + 1}{4\pi} \right) 2\pi \int_{-1}^{1} d\mu \:d_{\so,-\ti + a}^\ell (\mu)\: d_{\to,\ti}^{\ell'} (\mu)\:d_{-\so -\to,-a}^L(\mu)  \\
-	\end{split}
-\end{equation}
-
 
 \end{document}
