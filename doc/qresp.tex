@@ -58,7 +58,7 @@ The formulae exposed here can be derived through simple application of this rela
 \begin{equation}
 \sum_{m_1,m_2}\int d^2n\: \prod_{i = 1}^3\:_{s_i} Y_{\ell_i m_i}(\hn)\int d^2n'\: \prod_{i = 1}^3\:_{t_i} Y_{\ell_i m_i}(\hn') = \frac{2\ell_1 + 1}{4\pi}\frac{2\ell_2 + 1} {4\pi} 2\pi \int_{-1}^{1} d\mu \prod_{i = 1}^3 d^{\ell_i}_{s_i, t_i}(\mu)
 \end{equation}
-\subsection{Semi-analytical QE $N^{(0)}_L$ calculations}
+\subsection{(Semi-)analytical QE Gaussian noise bias.}
 Q.E. noise (co)-variance can be evaluated very easily as was first demonstrated by Ref.~\cite{}. For two generic estimators as defined in Eq.~\eqref{QE}, we can jointly obtain their G and C co-variances with 4 one-dimensional integrals as we now describe.
 
 Let $s = (\si, \so, w^{\si\so})$ collectively describes the in and out spins and weight function, and similarly for $t, u$ and $v$. Let the covariance function $N^{st, uv}_L$ be defined through
@@ -80,12 +80,12 @@ Then
 	\left.\av{\hat G^{\so + \to}_{LM} \hat C^{*, \uo + \vo}_{L' M'} }\right|_{\rm Gauss.} &=0
 \end{split}}
 \end{equation}
-\subsection{QE response calculation}
+\subsection{QE responses}
 
 
 Let the covariance of the CMB data respond as follows to a spin-$r$  ($r \ge 0$) anisotropy source $\alpha$:
 \begin{equation}\label{eq:covresp}
-	\delta  \av{_sX(\hn) \:_tX^*(\hn')} =   \sum_{\ell m, a = \pm r}\:_{a}\alpha(\hn) W_\ell^{a, st} \:_{s - r}Y_{\ell m}(\hn)  \:_{t}Y^*_{\ell m}(\hn')  +   W_\ell^{a, ts} \:_{s}Y_{\ell m}(\hn)  \:_{t-r}Y^*_{\ell m}(\hn')\:_{-a}\alpha(\hn')
+	\delta  \av{_sX(\hn) \:_tX^*(\hn')} =   \sum_{\ell m, a = \pm r}\:_{a}\alpha(\hn) W_\ell^{a, st} \:_{s - a}Y_{\ell m}(\hn)  \:_{t}Y^*_{\ell m}(\hn')  +   W_\ell^{a, ts} \:_{s}Y_{\ell m}(\hn)  \:_{t-a}Y^*_{\ell m}(\hn')\:_{-a}\alpha(\hn')
 \end{equation}
 for some weights functions $W_\ell^{a, st}$. For instance, if the anisotropy can be described at the level of the CMB maps, such as for lensing, with
 \begin{equation}
@@ -100,7 +100,7 @@ Examples include:
 \begin{itemize}
 	\item Lensing: The source of anisotropy is the spin-1 field $_1\alpha(\hn)$, with response
 	\begin{equation}
-		\delta _sX(\hn) =  -\frac 12 \alpha_1 \eth _{s}X(\hn) - \frac 12 \alpha_{-1} \bar \eth \:_sX(\hn) 
+		\delta _sX(\hn) =  -\frac 12 \alpha_1(\hn) \eth _{s}X(\hn) - \frac 12 \alpha_{-1}(\hn) \bar \eth \:_sX(\hn) 
 	\end{equation}
 	where $\eth$ and $\bar \eth$ are the spin lowering and spin raising operator \JC{check notation } respectively. Hence
 	\begin{equation}
@@ -118,7 +118,7 @@ Examples include:
 	\begin{equation}
 	W^{r, st}_\ell = \frac 14\delta_{r0}\delta_{s0}\delta_{t0} 
 	\end{equation}
-	\item Noise anisotropies (same as point sources but acting on beam deconvovled maps):
+	\item Noise anisotropies (same as point sources but acting on beam deconvovled maps) \JC{does picking a fiducial noise value matter?}:
 	\begin{equation}
 	W^{r, st}_\ell = \frac 14\delta_{r0}\delta_{s0}\delta_{t0}  \frac{1}{b_\ell^2}
 	\end{equation}
@@ -150,4 +150,13 @@ with
 \end{split}
 \end{equation}
 
+\subsection{Optimal QE weights}Optimal QE weights are easily gained from the representation in Eq.~\ref{eq:covresp} of the anisotropy. Let
+\begin{equation}
+	_{\pm r}\hat g^\alpha(\hn) = \frac{\delta }{\delta _{\mp r}\alpha (\hn)} -\frac 12\: _{s_1}X^{\rm dat} \Cov^{-1}_{s_1s_2} \:_{s_2}X^{\rm dat}.
+\end{equation}
+where $\Cov_{s_1 s_2}(\hn, \hn') \equiv \av{_{s_1}X^{\rm dat}(\hn) \:_{s_2}X^{\rm dat}(\hn') }$
+We find
+\begin{equation}\boxed{
+	w_\ell^{st} = \delta_{st} \textrm{   (1st leg)  } \quad 	w_\ell^{s + r, t} = W^{-r, st}_\ell \textrm{   (2nd leg)  }}
+\end{equation}
 \end{document}
