@@ -52,7 +52,7 @@ Lensing and others quadratic estimators used in Ref.~\cite{Aghanim:2018oex} are 
 		g^{r}_{LM} &= -\frac 12\left(\:_{|r|} \alpha_{LM} + (-1)^r \:_{-|r|} \alpha_{LM}\right)\\
 		c^{r}_{LM} &=-\frac 1{2i} \left( \:_{|r|} \alpha_{LM} - (-1)^r \:_{-|r|} \alpha_{LM} \right) .
 \end{eqnarray*}
-where  $_{\pm r} \alpha_{LM} \equiv \int d^n \:_{\pm r}\alpha(\hn) \:_{\pm r}Y^*_{LM}(\hn)$.
+where  $_{\pm r} \alpha_{LM} \equiv \int d^2n \:_{\pm r}\alpha(\hn) \:_{\pm r}Y^*_{LM}(\hn)$.
 Prior to projection onto gradient and curl modes, and prior to proper normalization, the quadratic estimators can all be written in the form \begin{equation}\label{QE}
  _{r}\hat \alpha(\hn) \equiv  \left(\sum_{\ell m}\: w^{\so\si}_\ell \:_{\si} \bar X_{\ell m} \:_\so Y_{\ell m}(\hn)\right)\left(\sum_{\ell m}\:w^{\to\ti}_\ell  \:_{\ti} \bar X_{\ell m} \:_\to Y_{\ell m}(\hn)\right)
 \end{equation}
@@ -86,6 +86,7 @@ The formulae exposed in this document can be derived through simple application 
 &\sum_{m_1,m_2}\int d^2n\:_{s_1} Y_{\ell_1 m_1}(\hn)\:_{s_2} Y_{\ell_2 m_2}(\hn)\:_{r_1} Y_{L M}(\hn)\int d^2n'\:_{t_1} Y_{\ell_1 m_1}(\hn')\:_{t_2} Y_{\ell_2 m_2}(\hn')\:_{r_2} Y_{L' M'}(\hn')  \\&= \delta_{LL'}\delta_{MM'}\frac{2\ell_1 + 1}{4\pi}\frac{2\ell_2 + 1} {4\pi} 2\pi \int_{-1}^{1} d\mu \: d^{\ell_1}_{s_1,t_1}(\mu)d^{\ell_2}_{s_2 t_2}(\mu)d^{L}_{r_1 r_2}(\mu) \quad (s_1 + s_2 + r_1  = 0 = t_1 + t_2 + r_2).
 \end{split}
 \end{equation}
+where $d^\ell_{mm'}$ are Wigner small d-matrices.
 \subsection{Gaussian noise covariance}
 Q.E. noise covariance can be evaluated with a series of one-dimensional integrals as was first demonstrated by Ref.~\cite{}. For two generic estimators as defined in Eq.~\eqref{QE}, we now obtain their gradient (g) and curl (c) covariances with four integrals as follows.
 
@@ -98,9 +99,8 @@ n_L^{stuv} & = (-1)^{r + r'}2\pi  \int_{-1}^1 d \mu\:  d^L_{-r -r'}(\mu) \left[\
 \end{equation}
 where $\xi$ are position-space correlation functions
 \begin{equation}\boxed{
-\xi^{st}(\mu) \equiv  \sum_\ell \left(\frac{2\ell + 1}{4\pi}\right)w^{\so\si}_\ell w^{\to\ti}_\ell \bar C_\ell^{\si \ti} d^\ell_{\so,\to}(\mu)\textrm{ with } \bar C_\ell^{\si \ti} \equiv \av{ _{\si}\bar X_{\ell m}\: _{\ti} \bar X^*_{\ell m} }} 
+\xi^{st}(\mu) \equiv  \sum_\ell \left(\frac{2\ell + 1}{4\pi}\right)w^{\so\si}_\ell w^{\to\ti}_\ell \bar C_\ell^{\si \ti} d^\ell_{\so,\to}(\mu)\textrm{ with } \bar C_\ell^{\si \ti} \equiv \av{ _{\si}\bar X_{\ell m}\: _{\ti} \bar X^*_{\ell m} }}.
 \end{equation}
-and $d^\ell_{mm'}$ are Wigner small d-matrices.
 Projecting onto gradient and curl modes results in
 \begin{equation} \boxed{
 \begin{split}
