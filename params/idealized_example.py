@@ -124,9 +124,11 @@ qcls_ss = qecl.library(libdir_qcls_ss, qlms_ss, qlms_ss, mc_sims_mf_ss)
 #---- semi-analytical Gaussian lensing bias library
 libdir_nhl_dd = os.path.join(PL2018, 'temp', 'idealized_example', 'nhl_dd')
 nhl_dd = nhl.nhl_lib_simple(libdir_nhl_dd, ivfs, cl_weight, lmax_qlm)
+
 #---- N1 lensing bias library
 libdir_n1_dd = os.path.join(PL2018, 'temp', 'n1_ffp10')
 n1_dd = n1.library_n1(libdir_n1_dd,cl_len['tt'],cl_len['te'],cl_len['ee'])
+
 #---- QE response calculation library.
 libdir_resp_dd = os.path.join(PL2018, 'temp', 'idealized_example', 'qresp')
 qresp_dd = qresp.resp_lib_simple(libdir_resp_dd, lmax_ivf, cl_weight, cl_len,{'t': ivfs.get_ftl(), 'e':ivfs.get_fel(), 'b':ivfs.get_fbl()}, lmax_qlm)
