@@ -11,7 +11,7 @@ Then in the project root directory type
     
 to build the f90 shared objects.
 
-To use the examples, you will need further to define the env. variable 2018.
+To use the examples, you will need further to define the env. variable $PL2018.
     
     export PL2018=/put/here/the/plancklens2018/root/directory
     
