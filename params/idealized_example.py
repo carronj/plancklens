@@ -1,4 +1,4 @@
-"""Parameter file for lensing reconstrution on a idealized, full-sky simulation library.
+"""Parameter file for lensing reconstruction on a idealized, full-sky simulation library.
 
     The CMB simulations are the FFP10 lensed CMB simulations, together with homogeneous, Gaussian noise maps.
 
