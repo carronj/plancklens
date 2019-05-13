@@ -36,10 +36,10 @@ PL2018 = os.environ['PL2018']
 lmax_ivf = 2048
 lmin_ivf = 100  # We will use in the QE only CMB modes between lmin_ivf and lmax_ivf
 lmax_qlm = 4096 # We will calculate lensing estimates until multipole lmax_qlm.
-nside = 2048 # Healpix resolution of the data
-nlev_t = 35. # Filtering noise level in temperature (also used for the noise simulation generation)
-nlev_p = 55. # Filtering noise level in polarization (also used for the noise simulation generation)
-nsims = 300  # Total number of simulations in the set.
+nside = 2048 # Healpix resolution of the data and sims.
+nlev_t = 35. # Filtering noise level in temperature (here also used for the noise simulations generation).
+nlev_p = 55. # Filtering noise level in polarization (here also used for the noise simulations generation).
+nsims = 300  # Total number of simulations to consider.
 
 transf = hp.gauss_beam(5. / 60. / 180. * np.pi, lmax=lmax_ivf) * hp.pixwin(nside)[:lmax_ivf + 1]
 #: CMB transfer function. Here a 5' Gaussian beam and healpix pixel window function.
