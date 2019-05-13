@@ -305,7 +305,7 @@ def get_response_jtTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fabl_leg1, f
     """
 
 
-def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None, ret_terms=False):
+def get_response_sepTP_old(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None, ret_terms=False):
     #FIXME Curl lensign l=1 response non-zero
     lmax_source = lmax_qe # I think that's fine as long as we the same lmax on both legs.
     qes = get_qe_sepTP(qe_key, lmax_qe, cls_weight)
@@ -372,67 +372,8 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, f
             Rggcc += (-1) ** (ti + si) * prefac * add(-abs(si), -abs(ti), so, to, fla, flb)
     return Rggcc if not ret_terms else (Rggcc, terms)
 
-def get_response_sepTP_v2(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1,
-                          fal_leg2=None, lmax_out=None):
-    lmax_source = lmax_qe
-    qes = get_qe_sepTP(qe_key, lmax_qe, cls_weight)
-    resps = get_resp_legs(source, lmax_source)
-    lmax_qlm= 2 * lmax_qe if lmax_out is None else lmax_out
-    fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
-    RGG= np.zeros(lmax_qlm + 1, dtype=float)
-    RCC = np.zeros(lmax_qlm + 1, dtype=float)
-    
-    def _joincls(cls_list):
-        lmaxp1 = np.min([len(cl) for cl in cls_list])
-        return np.prod(np.array([cl[:lmaxp1] for cl in cls_list]), axis=0)
-    def get_F(s1, s2, leg):
-        # Returns matrix element B^t Cov^{-1} in spin-space, for independ. T E B filtering (i.e. neglecting C_\ell^TE)).
-        assert s1 in [0, -2, 2] and s2 in [0, -2, 2] and leg in [1, 2]
-        fal = fal_leg1 if leg == 1 else fal_leg2
-        if s1 == 0:
-            return fal['t'] if s2 == 0 else None
-        if s1 in [-2, 2]:
-            if not s2 in [-2, 2]: return None
-            return 0.5 * (fal['e'] + fal['b'])  if s1 == s2 else 0.5 * (fal['e'] - fal['b'])
-        else:
-            assert 0
 
-    for qe in qes: # loop over all quadratic terms in estimator
-        si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
-        so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
-        # We want R^{a, st}  and R^{-a, st}
-        for s2 in ([0] if si == 0 else [-2, 2]):
-            FA = get_F(si, s2, 1)
-            if FA is not None:
-                r_s2, prR_s2, mrR_s2, s_cL_s2 = resps[-s2]  # There should always be a single term here.
-                for t2 in ([0] if ti == 0 else [-2, 2]):
-                    FB = get_F(ti, t2, 2)
-                    if FB is not None:
-                        r_t2, prR_t2, mrR_t2, s_cL_t2 = resps[-t2]  # There should always be a single term here.
-                        assert r_t2 == r_s2, (r_s2, r_t2) # source spin
-                        #FIXME: for source spin zero do not need to do minus r
-                        clA = _joincls([qe.leg_a.cl, FA])
-                        clB = _joincls([qe.leg_b.cl, FB, prR_s2, get_coupling(t2, -s2, cls_cmb)])
-                        Rpr_st = get_hl(clA, clB, so, s2, to, -s2 + r_s2, lmax_out=lmax_qlm) * s_cL_s2[:lmax_qlm + 1]
-
-                        clA = _joincls([qe.leg_a.cl, FA, get_coupling(s2, -t2, cls_cmb), prR_t2])
-                        clB = _joincls([qe.leg_b.cl, FB])
-                        Rpr_st += get_hl(clA, clB, so, -t2 + r_t2, to, t2, lmax_out=lmax_qlm) * s_cL_t2[:lmax_qlm + 1]
-
-                        clA = _joincls([qe.leg_a.cl, FA])
-                        clB = _joincls([qe.leg_b.cl, FB, mrR_s2, get_coupling(t2, -s2, cls_cmb)])
-                        Rmr_st = get_hl(clA, clB, so, s2, to, -s2 - r_s2, lmax_out=lmax_qlm) * s_cL_s2[:lmax_qlm + 1]
-
-                        clA = _joincls([qe.leg_a.cl, FA, get_coupling(s2, -t2, cls_cmb), mrR_t2])
-                        clB = _joincls([qe.leg_b.cl, FB])
-                        Rmr_st += get_hl(clA, clB, so, -t2 - r_t2, to, t2, lmax_out=lmax_qlm) * s_cL_t2[:lmax_qlm + 1]
-
-                        RGG += (-1) ** (so + to) * (Rpr_st +  Rmr_st * (-1) ** r_t2) * qe.cL[:lmax_qlm + 1]
-                        RCC += (-1) ** (so + to) * (Rpr_st -  Rmr_st * (-1) ** r_t2) * qe.cL[:lmax_qlm + 1]
-    return RGG, RCC
-
-
-def get_response_sepTP_v3(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1,
+def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1,
                           fal_leg2=None, lmax_out=None):
     """
     Version based on cov-variations instead of field variation.
@@ -488,68 +429,6 @@ def get_response_sepTP_v3(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1
                         RGG += (-1) ** (so + to + rW_ts) * (Rpr_st + Rmr_st * (-1) ** rW_st) * qe.cL[:lmax_qlm + 1]
                         RCC += (-1) ** (so + to + rW_ts) * (Rpr_st - Rmr_st * (-1) ** rW_st) * qe.cL[:lmax_qlm + 1]
     return RGG, RCC
-
-
-def get_nhl_old(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, ret_terms=None, lmax_out=None,
-              cls_ivfs_bb=None, cls_ivfs_ab=None):
-    """(Semi-)Analytical noise level calculation.
-
-    """
-    #FIXME: works for ptt p_p p jtTP, but overall mignus sign w.r.t. PDF?
-    #FIXME: sign wrong for non-id spin?! (ptt stt) etc
-    qes1 = get_qe_sepTP(qe_key1, lmax_qe, cls_weights)
-    qes2 = get_qe_sepTP(qe_key2, lmax_qe, cls_weights)
-    lmax_out = 2 * lmax_qe if lmax_out is None else lmax_out
-    G_N0 = np.zeros(lmax_out + 1, dtype=float)
-    C_N0 = np.zeros(lmax_out + 1, dtype=float)
-    cls_ivfs_aa = cls_ivfs
-    cls_ivfs_bb = cls_ivfs if cls_ivfs_bb is None else cls_ivfs_bb
-    cls_ivfs_ab = cls_ivfs if cls_ivfs_ab is None else cls_ivfs_ab
-    cls_ivfs_ba = cls_ivfs_ab
-
-    def _joincls(cls_list):
-        lmaxp1 = np.min([len(cl) for cl in cls_list])
-        return np.prod(np.array([cl[:lmaxp1] for cl in cls_list]), axis=0)
-    terms = []
-    for qe1 in qes1:
-        for qe2 in qes2:
-            si, ti, ui, vi = (qe1.leg_a.spin_in, qe1.leg_b.spin_in, qe2.leg_a.spin_in, qe2.leg_b.spin_in)
-            so, to, uo, vo = (qe1.leg_a.spin_ou, qe1.leg_b.spin_ou, qe2.leg_a.spin_ou, qe2.leg_b.spin_ou)
-            assert so + to >= 0
-            assert uo + vo >= 0
-
-            sgn = -1
-            sgn2 = 1
-            #FIXME::
-            sgn_fix = (-1) ** (so + to)
-
-            sgn_R = (-1) ** (uo + vo + ui + vi)
-            clsu = _joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(si, -ui, cls_ivfs_aa)])
-            cltv = _joincls([qe1.leg_b.cl, qe2.leg_b.cl, get_coupling(ti, -vi, cls_ivfs_bb)])
-            R_sutv = sgn_R * _joincls([get_hl(clsu ,cltv, sgn*uo, sgn2*so, sgn*vo, sgn2*to, lmax_out=lmax_out), qe1.cL, qe2.cL])
-
-            clsv = _joincls([qe1.leg_a.cl, qe2.leg_b.cl, get_coupling(si, -vi, cls_ivfs_ab)])
-            cltu = _joincls([qe1.leg_b.cl, qe2.leg_a.cl, get_coupling(ti, -ui, cls_ivfs_ba)])
-            R_svtu = sgn_R * _joincls([get_hl(clsv ,cltu, sgn*vo, sgn2*so, sgn*uo, sgn2*to, lmax_out=lmax_out), qe1.cL, qe2.cL])
-
-            # s and t goes to -s, -t. We have mabe a minus sign (-1)**(si + so + ti + to) on top from the change in weights
-            sgnms = (-1) ** (si + so)
-            sgnmt = (-1) ** (ti + to)
-            clmsu = _joincls([qe1.leg_a.cl * sgnms, qe2.leg_a.cl, get_coupling(-si, -ui, cls_ivfs_aa)])
-            clmtv = _joincls([qe1.leg_b.cl * sgnmt, qe2.leg_b.cl, get_coupling(-ti, -vi, cls_ivfs_bb)])
-            R_msumtv =  sgn_R * _joincls([get_hl(clmsu ,clmtv, sgn*uo, -sgn2*so, sgn*vo, -sgn2*to, lmax_out=lmax_out), qe1.cL, qe2.cL])
-
-            clmsv = _joincls([qe1.leg_a.cl * sgnms, qe2.leg_b.cl, get_coupling(-si, -vi, cls_ivfs_ab)])
-            clmtu = _joincls([qe1.leg_b.cl * sgnmt, qe2.leg_a.cl, get_coupling(-ti, -ui, cls_ivfs_ba)])
-            R_msvmtu = sgn_R * _joincls([get_hl(clmsv ,clmtu, sgn*vo, -sgn2*so, sgn*uo, -sgn2*to, lmax_out=lmax_out), qe1.cL, qe2.cL])
-        
-            G_N0 += sgn_fix *  0.5 *  (R_sutv + R_svtu)
-            G_N0 += sgn_fix *  0.5 * (-1) ** (to + so) * (R_msumtv  + R_msvmtu)
-        
-            C_N0 -= sgn_fix * 0.5 *  (R_sutv + R_svtu)
-            C_N0 += sgn_fix * 0.5 * (-1) ** (to + so) * (R_msumtv  + R_msvmtu)
-            terms = terms + [ 0.5 *R_sutv,  0.5 *R_svtu,  0.5 *R_msumtv,  0.5 *R_msvmtu]
-    return (G_N0, C_N0) if not ret_terms else (G_N0, C_N0, terms)
 
 
 def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
@@ -768,13 +647,21 @@ def get_hl(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
 
 
 def get_alpha_raise(s, lmax):
-    """Response coefficient of spin-s spherical harmonic to spin raising operator. """
+    """Response coefficient of spin-s spherical harmonic to spin raising operator.
+
+        +\sqrt{ (l - s) (l + s + 1) } for abs(s) <= l <= lmax
+
+    """
     ret = np.zeros(lmax + 1, dtype=float)
     ret[abs(s):] = np.sqrt(np.arange(abs(s) -s, lmax - s + 1) * np.arange(abs(s) + s + 1, lmax + s + 2))
     return ret
 
 def get_alpha_lower(s, lmax):
-    """Response coefficient of spin-s spherical harmonic to spin lowering operator. """
+    """Response coefficient of spin-s spherical harmonic to spin lowering operator.
+
+        -\sqrt{ (l + s) (l - s + 1) } for abs(s) <= l <= lmax
+
+    """
     ret = np.zeros(lmax + 1, dtype=float)
     ret[abs(s):] = -np.sqrt(np.arange(s + abs(s), lmax + s + 1) * np.arange(abs(s) - s + 1, lmax - s + 2))
     return ret
