@@ -4,7 +4,7 @@
 
     The CMB simulations are located on NERSC systems project directory, hence this may only be used there.
 
-    The file instantiate
+    The parameter files should instantiate
         * the simulation library 'sims'
         * the inverse-variance filtered simulation library 'ivfs'
         * the 3 quadratic estimator libraries, 'qlms_dd', 'qlms_ds', 'qlms_ss'.
@@ -53,10 +53,8 @@ cl_weight['bb'] *= 0.
 #: CMB spectra entering the QE weights (the spectra multplying the inverse-variance filtered maps in the QE legs)
 
 libdir_pixphas = os.path.join(PL2018, 'temp', 'pix_phas_nside%s'%nside)
-#: Directories for the noise simulation random phases.
-
 pix_phas = phas.pix_lib_phas(libdir_pixphas, 3, (hp.nside2npix(nside),))
-#: Noise simulation T, Q, U phases instance.
+#: Noise simulation T, Q, U random phases instance.
 
 sims = maps_utils.sim_lib_shuffle(maps.cmb_maps_nlev(planck2018_sims.cmb_len_ffp10(), transf, nlev_t, nlev_p, nside,
                             pix_lib_phas=pix_phas), {idx: nsims if idx == -1 else idx for idx in range(-1, nsims)})
