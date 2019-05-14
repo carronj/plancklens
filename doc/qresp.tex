@@ -78,6 +78,18 @@ where
 F_\ell^{X} = \frac{1}{C_\ell^{XX,\rm fid} + N_\ell^{\rm X} /b_\ell^2}, \quad X = T,E,B.
 \end{equation}
 In Ref~\cite{Aghanim:2018oex}, $F_\ell^{X}$ is set to zero outside $100 \le \ell \le 2048$, $N^T_\ell$ is $35 \mu$K-amin, $N^P_\ell$ is $55 \mu$K-amin, $b_\ell$ is Gaussian beam of FWHM $5$-amin, and $F_\ell^X$ contains further an additional small rescaling. 
+For joint temperature and polarization filtering, the $F$ matrix becomes:
+\begin{equation}
+	F = \begin{pmatrix}
+		F^{TT}_\ell &  \frac 12 F^{TE} &  \frac 12 F^{TE} \\  F^{TE} & \frac 12 \left( F^{EE}_\ell  + F^{B}_\ell\right) & \frac 12 \left( F^{EE}_\ell  - F^{B}_\ell\right) \\ F^{TE}& \frac 12 \left( F^{EE}_\ell  - F^{B}_\ell\right) & \frac 12 \left( F^{EE}_\ell  + F^{B}_\ell\right)
+	\end{pmatrix}
+\end{equation}
+where the entries $F^{T, E, B}$ are the elements of
+\begin{equation}
+ \begin{pmatrix}  C_\ell^{TT} + N_\ell^T &C^{TE}_\ell &  0 \\ C^{TE}_\ell & C_\ell^{EE} + N_\ell^E  & 0\\  0 & 0 &  C_\ell^{BB} + N_\ell^B
+ 	
+ \end{pmatrix}^{-1}
+\end{equation}
 \newline
 \newline
 The formulae exposed in this document can be derived through simple application of this formal relation,
@@ -109,7 +121,7 @@ Projecting onto gradient and curl modes results in
 	\left.\av{\hat g^{r}_{LM} \hat c^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &=0 = \left.\av{\hat c^{r}_{LM} \hat g^{*, r'}_{L' M'} }\right|_{\rm Gauss.}
 \end{split}}
 \end{equation}
-Ref.~\cite{Aghanim:2018oex} calculate the covariance matrix based on these equations using the empirical, realisation dependent power spectra $\bar C_\ell^{s_i,t_i}$.
+Ref.~\cite{Aghanim:2018oex} calculates the covariance matrix based on these equations using the empirical, realisation dependent power spectra $\bar C_\ell^{s_i,t_i}$.
 \subsection{Responses}
 We now turn to the calculation of the response of the estimator to a source of anisotropy. Anisotropy can sometimes be parametrized at the level of the CMB maps, (for example for lensing), with
 \begin{equation}\label{eq:mapresp}
