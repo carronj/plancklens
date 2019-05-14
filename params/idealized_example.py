@@ -62,7 +62,8 @@ sims = maps_utils.sim_lib_shuffle(maps.cmb_maps_nlev(planck2018_sims.cmb_len_ffp
                             pix_lib_phas=pix_phas), {idx: nsims if idx == -1 else idx for idx in range(-1, nsims)})
 #: Simulation library. Here this combines the ffp10 lensed CMBs together with the transfer function
 #  and homogeneous noise as defined by the phase library.
-#  The funny dictionary in the last argument is just a way.
+#  A sim library expect the index -1 to point to the data map: the use of 'sim_lib_shuffle' with the funny dictionary
+#  in the last argument is just a way to define the data map as one of the simulation (outside of the set used for the analysis).
 
 
 # --- We turn to the inverse-variance filtering library. In this file we use trivial isotropic filtering,
