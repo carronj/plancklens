@@ -4,7 +4,7 @@
 
     The CMB simulations are located on NERSC systems project directory, hence this may only be used there.
 
-    The parameter files should instantiate
+    To enable complete reconstruction, a parameter file should instantiate
         * the simulation library 'sims'
         * the inverse-variance filtered simulation library 'ivfs'
         * the 3 quadratic estimator libraries, 'qlms_dd', 'qlms_ds', 'qlms_ss'.
@@ -13,6 +13,8 @@
         * the quadratic estimator response library 'qresp_dd'
         * the semi-analytical Gaussian lensing bias library 'nhl_dd'
         * the N1 lensing bias library 'n1_dd'.
+
+    The module bandpowers.py shows how these elements are used to build the reconstructed bandpowers.
 
     On the first call the this module a couple of things will be cached in the directories defined below.
 
@@ -75,7 +77,7 @@ fbl[:lmin_ivf] *= 0.
 
 libdir_ivfs  = os.path.join(PL2018, 'temp', 'idealized_example', 'ivfs')
 ivfs    = filt_simple.library_fullsky_sepTP(libdir_ivfs, sims, nside, transf, cl_len, ftl, fel, fbl, cache=True)
-#: Inverse-variance filtering instance.
+#: Inverse-variance filtering instance. Here a trivial isotropic inverse variance weighting.
 
 #---- QE libraries instances. For the MCN0 and RDN0 calculation, we need in general three of them,
 # which we called qlms_dd, qlms_ds, qlms_ss.
@@ -103,10 +105,7 @@ qlms_ss = qest.library_sepTP(libdir_qlmsss, ivfs, ivfs_s, cl_len['te'], nside, l
 
 #---- QE spectra libraries instances:
 # This takes power spectra of the QE maps from the QE libraries, after subtracting a mean-field.
-# Only qlms_dd needs a mean-field subtraction.
-libdir_qcls_dd = os.path.join(PL2018, 'temp', 'idealized_example', 'qcls_dd')
-libdir_qcls_ds = os.path.join(PL2018, 'temp', 'idealized_example', 'qcls_ds')
-libdir_qcls_ss = os.path.join(PL2018, 'temp', 'idealized_example', 'qcls_ss')
+# Only qcls_dd needs a mean-field subtraction.
 
 mc_sims_bias = np.arange(60) #: The mean-field will be calculated from these simulations.
 mc_sims_var  = np.arange(60, 300) #: The covariance matrix will be calculated from these simulations
@@ -115,18 +114,21 @@ mc_sims_mf_dd = mc_sims_bias
 mc_sims_mf_ds = np.array([])
 mc_sims_mf_ss = np.array([]) #:By construction, only qcls_dd needs a mean-field subtraction.
 
+libdir_qcls_dd = os.path.join(PL2018, 'temp', 'idealized_example', 'qcls_dd')
+libdir_qcls_ds = os.path.join(PL2018, 'temp', 'idealized_example', 'qcls_ds')
+libdir_qcls_ss = os.path.join(PL2018, 'temp', 'idealized_example', 'qcls_ss')
 qcls_dd = qecl.library(libdir_qcls_dd, qlms_dd, qlms_dd, mc_sims_mf_dd)
 qcls_ds = qecl.library(libdir_qcls_ds, qlms_ds, qlms_ds, mc_sims_mf_ds)
 qcls_ss = qecl.library(libdir_qcls_ss, qlms_ss, qlms_ss, mc_sims_mf_ss)
 
-#---- semi-analytical Gaussian lensing bias library
+#---- semi-analytical Gaussian lensing bias library:
 libdir_nhl_dd = os.path.join(PL2018, 'temp', 'idealized_example', 'nhl_dd')
 nhl_dd = nhl.nhl_lib_simple(libdir_nhl_dd, ivfs, cl_weight, lmax_qlm)
 
-#---- N1 lensing bias library
+#---- N1 lensing bias library:
 libdir_n1_dd = os.path.join(PL2018, 'temp', 'n1_ffp10')
 n1_dd = n1.library_n1(libdir_n1_dd,cl_len['tt'],cl_len['te'],cl_len['ee'])
 
-#---- QE response calculation library.
+#---- QE response calculation library:
 libdir_resp_dd = os.path.join(PL2018, 'temp', 'idealized_example', 'qresp')
 qresp_dd = qresp.resp_lib_simple(libdir_resp_dd, lmax_ivf, cl_weight, cl_len,{'t': ivfs.get_ftl(), 'e':ivfs.get_fel(), 'b':ivfs.get_fbl()}, lmax_qlm)
