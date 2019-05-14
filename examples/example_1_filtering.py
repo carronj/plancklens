@@ -1,5 +1,5 @@
 #FIXME: mask paths and sims
-"""
+"""This example script computes the inverse-variance filtered maps.
 
     NB: on first call, the dense temperature and polarization pre-conditioners will be computed and cached.
 """
@@ -34,8 +34,6 @@ Tmaskpaths = ['/global/cscratch1/sd/jcarron/jpipe/inputs/PR3vApr6_temp_lensingma
 
 #dcl:
 #FIXME:
-#dcl = pk.load(open('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/dcls/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.pk','r'))
-#dcl_dat = pk.load(open('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/dcls_dat/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.pk','r'))
 dcl = np.loadtxt('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/dcls/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.dat').transpose()
 dcl_dat = np.loadtxt('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/dcls_dat/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.dat').transpose()
 

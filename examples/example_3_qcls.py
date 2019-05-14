@@ -1,3 +1,8 @@
+"""This example script computes the quadratic estimates power spectra.
+
+    It will also obtain the inverse-variance filtered maps and quadratic estimates if they were not already.
+
+"""
 import os
 import numpy as np
 

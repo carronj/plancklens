@@ -1,6 +1,10 @@
+"""This example script computes the quadratic estimates.
+
+    It will also obtain the inverse-variance filtered maps if they were not already.
+
+"""
 import os
 import numpy as np
-import pickle as pk
 
 from plancklens2018.filt import filt_util
 from plancklens2018 import qest
