@@ -73,7 +73,7 @@ class library:
         self.fsky22 = fskies[22]
 
         self.resplib = resplib
-        self.keys_fund = ['ptt', 'xtt', 'p_p', 'x_p', 'p', 'x', 'stt', 'ftt', 'dtt', 'ntt',
+        self.keys_fund = ['ptt', 'xtt', 'p_p', 'x_p', 'p', 'x', 'stt', 'ftt','f_p', 'f','dtt', 'ntt',
                           'pte', 'pet', 'ptb', 'pbt', 'pee', 'peb', 'pbe', 'pbb',
                           'xte', 'xet', 'xtb', 'xbt', 'xee', 'xeb', 'xbe', 'xbb']
         self.keys = self.keys_fund + ['p_tp', 'x_tp', 'p_te', 'p_tb', 'p_eb', 'x_te', 'x_tb', 'x_eb', 'ptt_bh_n',
@@ -141,8 +141,10 @@ class library:
             if k in ['ptt', 'xtt']: self._build_sim_Tgclm(idx)
             elif k in ['p_p', 'x_p']: self._build_sim_Pgclm(idx)
             elif k in ['p', 'x']: self._build_sim_MVgclm(idx)
+            elif k in ['f']: self._build_sim_f(idx)
             elif k in ['stt']: self._build_sim_stt(idx)
             elif k in ['ftt']: self._build_sim_ftt(idx)
+            elif k in ['f_p']: self._build_sim_f_p(idx)
             elif k in ['ntt']: self._build_sim_ntt(idx)
             elif k in ['ptt', 'pte', 'pet', 'ptb', 'pbt', 'pee', 'peb', 'pbe', 'pbb',
                        'xtt', 'xte', 'xet', 'xtb', 'xbt', 'xee', 'xeb', 'xbe', 'xbb']:
@@ -239,11 +241,17 @@ class library:
         tmap1 = f1.get_wirestmap(idx, f1.ivfs.get_tal('t')[:]) * f2.get_wirestmap(idx, f2.ivfs.get_tal('t')[:])
         return -0.5 * hp.map2alm(tmap1, lmax=self.get_lmax_qlm('T'),iter=0)
 
-    def _get_sim_ftt(self, idx, swapped=False):
-        """ Modulation estimator """
+    def _get_sim_ftt(self, idx, joint=False, swapped=False):
+        """Modulation estimator, temperature only."""
         tmap1 = self.f2map1.get_irestmap(idx) if not swapped else self.f2map2.get_irestmap(idx)  # healpy map
-        tmap1 *= (self.f2map2.get_tmap(idx) if not swapped else self.f2map1.get_tmap(idx))  # healpy map
+        tmap1 *= (self.f2map2.get_tmap(idx, joint=joint) if not swapped else self.f2map1.get_tmap(idx, joint=joint))  # healpy map
         return hp.map2alm(tmap1, lmax=self.get_lmax_qlm('T'), iter = 0)
+
+    def _get_sim_f_p(self, idx, joint=False, swapped=False):
+        """Modulation estimator, polarization only."""
+        Q1, U1 = self.f2map1.get_irespmap(idx) if not swapped else self.f2map2.get_irespmap(idx)
+        Q2, U2 = (self.f2map2.get_pmap(idx, joint=joint) if not swapped else self.f2map1.get_pmap(idx, joint=joint))
+        return hp.map2alm(2 * Q1 * Q2 + 2 * U1 * U2 , lmax=self.get_lmax_qlm('P'), iter=0)
 
     def _build_sim_Tgclm(self, idx):
         """ T only lensing potentials estimators """
@@ -289,6 +297,16 @@ class library:
             del _C
         hp.write_alm(os.path.join(self.lib_dir, 'sim_p_%04d.fits'%idx if idx != -1 else 'dat_p.fits'), G + GT)
         hp.write_alm(os.path.join(self.lib_dir, 'sim_x_%04d.fits'%idx if idx != -1 else 'dat_x.fits'), C + CT)
+
+    def _build_sim_f(self, idx):
+        """ MV. modulation estimators. """
+        G= self._get_sim_f_p(idx, joint=True)
+        if not self.f2map1.ivfs == self.f2map2.ivfs:
+            G = 0.5 * (G + self._get_sim_f_p(idx, joint=True, swapped=True))
+        GT  = self._get_sim_ftt(idx, joint=True)
+        if not self.f2map1.ivfs == self.f2map2.ivfs:
+            GT = 0.5 * (GT + self._get_sim_ftt(idx, joint=True, swapped=True))
+        hp.write_alm(os.path.join(self.lib_dir, 'sim_f_%04d.fits'%idx if idx != -1 else 'dat_f.fits'), G + GT)
 
     def _build_sim_xfiltMVgclm(self, idx, k):
         """
@@ -342,6 +360,14 @@ class library:
             del _fLM
         hp.write_alm(os.path.join(self.lib_dir, 'sim_ftt_%04d.fits'%idx if idx != -1 else 'dat_ftt.fits'), fLM)
 
+    def _build_sim_f_p(self, idx):
+        fLM = self._get_sim_f_p(idx)
+        if not self.f2map1.ivfs == self.f2map2.ivfs:
+            _fLM = self._get_sim_f_p(idx,swapped=True)
+            fLM = 0.5 * (fLM + _fLM)
+            del _fLM
+        hp.write_alm(os.path.join(self.lib_dir, 'sim_f_p_%04d.fits'%idx if idx != -1 else 'dat_f_p.fits'), fLM)
+
     def get_response(self, k1, k2, recache=False):
         return self.resplib.get_response(k1, k2, recache=recache)
 
@@ -370,12 +396,20 @@ class lib_filt2map(object):
         Glm = hp.almxfl(mliktlm, -np.sqrt(np.arange(lmax + 1, dtype=float) * (np.arange(1, lmax + 2))))
         return hp.alm2map_spin([Glm, np.zeros_like(Glm)], self.nside, 1, lmax)
 
-    def get_tmap(self, idx, k=None):
+    def get_tmap(self, idx):
         """Real-space Wiener filtered tmap.
 
         \sum_{lm} MAP_talm _0 Ylm(n).
         """
         return hp.alm2map(self.ivfs.get_sim_tmliklm(idx),self.nside)
+
+    def get_pmap(self, idx):
+        """Real-space Wiener filtered polarization.
+
+        """
+        Glm = self.ivfs.get_sim_emliklm(idx)
+        Clm = self.ivfs.get_sim_bmliklm(idx)
+        return hp.alm2map_spin([Glm, Clm], self.nside, 2, hp.Alm.getlmax(Glm.size))
 
     def get_gpmap(self, idx, spin, k=None, xfilt=None):
         """
@@ -438,6 +472,26 @@ class lib_filt2map_sepTP(lib_filt2map):
     def hashdict(self):
         return {'ivfs': self.ivfs.hashdict(), 'nside': self.nside,
                 'clte': utils.clhash(self.clte)}
+
+    def get_tmap(self, idx, joint=False):
+        """Real-space Wiener filtered tmap.
+
+        \sum_{lm} MAP_talm _0 Ylm(n).
+        """
+        tlm = self.ivfs.get_sim_tmliklm(idx)
+        if joint:
+            tlm += hp.almxfl(self.ivfs.get_sim_elm(idx), self.clte)
+        return hp.alm2map(tlm, self.nside)
+
+    def get_pmap(self, idx, joint=False):
+        """Real-space Wiener filtered polarization.
+
+        """
+        Glm = self.ivfs.get_sim_emliklm(idx)
+        Clm = self.ivfs.get_sim_bmliklm(idx)
+        if joint:
+            Glm += hp.almxfl(self.ivfs.get_sim_tlm(idx), self.clte)
+        return hp.alm2map_spin([Glm, Clm], self.nside, 2, hp.Alm.getlmax(Glm.size))
 
     def get_gtmap(self, idx, k=None, xfilt=None):
         """

@@ -191,7 +191,7 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
 
             qes = get_qe_sepTP('ptt', lmax, cls_weight) + get_qe_sepTP('p_p', lmax, cls_weight)
 
-            # Here Wiener-filtered T contains c_\ell^{TE} \bar E
+            # Here Wiener-filtered T contains c_\ell^{TE} \bar E for sep_TP
             lega = qeleg( 0, 0,  np.ones(lmax + 1, dtype=float))
             legb = qeleg( 2, 1,  -0.5 * np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * clte)
             qes.append(qe(lega, legb, cL_out))
@@ -211,11 +211,57 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
             return qes
 
     elif qe_key[0] == 'f':
+        cL_out = np.ones(2 * lmax + 1, dtype=float)
         if qe_key == 'ftt':
             lega = qeleg(0, 0, -np.ones(lmax + 1, dtype=float))
             legb = qeleg(0, 0, -cls_weight['tt'][:lmax + 1])
-            cL_out = np.ones(2 * lmax + 1, dtype=float)
             return [qe(lega, legb, cL_out)]
+
+        elif qe_key == 'f_p':
+            qes = []
+            clee = cls_weight['ee'][:lmax + 1]
+            clbb = cls_weight['bb'][:lmax + 1]
+            assert np.all(clbb == 0.), 'not implemented (but easy)'
+            # E-part. G = -1/2 _{2}P - 1/2 _{-2}P
+            lega = qeleg(2, 2, 0.5 * np.ones(lmax + 1, dtype=float))
+            legb = qeleg(2, -2,  0.5 * clee)
+            qes.append(qe(lega, legb, cL_out))
+
+            lega = qeleg(2, 2,  0.5 *np.ones(lmax + 1, dtype=float))
+            legb = qeleg(-2, -2, 0.5 * clee)
+            qes.append(qe(lega, legb, cL_out))
+
+            lega = qeleg(-2, -2, 0.5 *  np.ones(lmax + 1, dtype=float))
+            legb = qeleg(2, 2, 0.5  * clee)
+            qes.append(qe(lega, legb, cL_out))
+
+            lega = qeleg(-2, -2, 0.5 *  np.ones(lmax + 1, dtype=float))
+            legb = qeleg(-2, 2, 0.5 * clee)
+            qes.append(qe(lega, legb, cL_out))
+            return qes
+
+        elif qe_key == 'f':
+            clte = cls_weight['te'][:lmax + 1] #: _0X_{lm} convention
+            qes = get_qe_sepTP('ftt', lmax, cls_weight) + get_qe_sepTP('f_p', lmax, cls_weight)
+
+            # Here Wiener-filtered T contains c_\ell^{TE} \bar E
+            lega = qeleg( 0, 0,  np.ones(lmax + 1, dtype=float))
+            legb = qeleg( 2, 0,  -0.5  * clte)
+            qes.append(qe(lega, legb, cL_out))
+            legb = qeleg(-2, 0,  -0.5  * clte)
+            qes.append(qe(lega, legb, cL_out))
+
+            # E-mode contains C_\ell^{te} \bar T
+            lega = qeleg(2,  2, 0.5 * np.ones(lmax + 1, dtype=float))
+            legb = qeleg(0, -2, - clte)
+            qes.append(qe(lega, legb, cL_out))
+
+
+            lega = qeleg(-2, -2, 0.5 * np.ones(lmax + 1, dtype=float))
+            legb = qeleg( 0,  2, - clte)
+            qes.append(qe(lega, legb, cL_out))
+            return qes
+
         else:
             assert 0
 
