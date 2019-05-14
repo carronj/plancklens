@@ -36,9 +36,9 @@ class ffp10_binner:
         the Planck 2018 lensing analysis.
 
         This uses the various QE and QE spectra libraries defined in a parameter file, in particular:
-         - qcls_dd  (for data band-powers, to build covariance matrix, point-source correction)
+         - qcls_dd  (for data band-powers, to build covariance matrix, Monte-Carlo and point-source correction)
          - qcls_ds  (for RDN0 and point-source correction)
-         - qcls_ss  (for MCN0 and RDN0 and point-source correction)
+         - qcls_ss  (for MCN0, RDN0, Monte-Carlo and point-source correction)
          - qresp_dd (for the estimator normalization)
          - n1_dd (for the N1 bias substraction)
          - nhl_dd (to build the covariance matrix)
@@ -50,6 +50,18 @@ class ffp10_binner:
 
     """
     def __init__(self, k1, k2, parfile, btype, ksource='p'):
+        """Band-power construction library using the FFP10 fiducial cosmology.
+
+            This library can be used to build the cross power spectra of two anisotropy estimators, calculates biases,
+            obtain MC and point-source corrections and the covariance matrix.
+
+            k1 (string): First quadratic estimator key. See the qest.py module for the key definitions.
+            k2 (string): Second quadratic estimator key. See the qest.py module for the key definitions.
+            parfile (string): parameter file where the relevant QE libraries are defined
+            btype (string): bin type descriptor ('consext8' or 'arg2' were the Planck 2018 lensing analysis defaults)
+            ksource: anisotropy source (defaults to 'p', lensing)
+
+        """
         assert ksource == 'p', ksource +  ' source not implemented'
 
         lmaxphi = 2048
