@@ -62,7 +62,7 @@ sims = maps_utils.sim_lib_shuffle(maps.cmb_maps_nlev(planck2018_sims.cmb_len_ffp
                             pix_lib_phas=pix_phas), {idx: nsims if idx == -1 else idx for idx in range(-1, nsims)})
 #: Simulation library. Here this combines the ffp10 lensed CMBs together with the transfer function
 #  and homogeneous noise as defined by the phase library.
-#  A sim library expect the index -1 to point to the data map: the use of 'sim_lib_shuffle' with the funny dictionary
+#  A sim library expects the index -1 to point to the data map: the use of 'sim_lib_shuffle' with the funny dictionary
 #  in the last argument is just a way to define the data map as one of the simulation (outside of the set used for the analysis).
 
 
@@ -80,7 +80,7 @@ libdir_ivfs  = os.path.join(PL2018, 'temp', 'idealized_example', 'ivfs')
 ivfs    = filt_simple.library_fullsky_sepTP(libdir_ivfs, sims, nside, transf, cl_len, ftl, fel, fbl, cache=True)
 #: Inverse-variance filtering instance. Here a trivial isotropic inverse variance weighting.
 
-#---- QE libraries instances. For the MCN0 and RDN0 calculation, we need in general three of them,
+#---- QE libraries instances. For the MCN0, RDN0, MC-correction etc calculation, we need in general three of them,
 # which we called qlms_dd, qlms_ds, qlms_ss.
 # qlms_dd is the QE library which builds a lensing estimate with the same simulation on both legs
 # qlms_ds is the QE library which builds a lensing estimate with a simulation on one leg and the data on the second.
