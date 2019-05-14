@@ -1,11 +1,16 @@
-import os
+"""Band-powers construction module.
 
+    This module is used to combine reconstruction band-powers from a parameter file.
+
+"""
+import os
 import numpy as np
 
 from plancklens2018 import utils
 from plancklens2018 import qresp
 
 PL2018 = os.environ['PL2018']
+
 
 def get_blbubc(bin_type):
     if bin_type == 'consext8':
@@ -23,7 +28,27 @@ def get_blbubc(bin_type):
         assert 0, bin_type + ' not implemented'
     return bins_l, bins_u, 0.5 * (bins_l + bins_u)
 
+
 class ffp10_binner:
+    """Band-power construction library using the FFP10 fiducial cosmology.
+
+        This combines lensing (or anisotropy) estimates spectra to build band-powers in the exact same way than
+        the Planck 2018 lensing analysis.
+
+        This uses the various QE and QE spectra libraries defined in a parameter file, in particular:
+         - qcls_dd  (for data band-powers, to build covariance matrix, point-source correction)
+         - qcls_ds  (for RDN0 and point-source correction)
+         - qcls_ss  (for MCN0 and RDN0 and point-source correction)
+         - qresp_dd (for the estimator normalization)
+         - n1_dd (for the N1 bias substraction)
+         - nhl_dd (to build the covariance matrix)
+         - ivfs (for the N1 bias and point-source correction)
+
+         In each of the methods defined here (e.g. MCN0, RDN0...),  if the relevant QE, QE spectra, etc cannot be found
+         precomputed, this will be performed on the fly. Hence in a realistic configuration it is always advisable
+         to build them all previously.
+
+    """
     def __init__(self, k1, k2, parfile, btype, ksource='p'):
         assert ksource == 'p', ksource +  ' source not implemented'
 
@@ -40,7 +65,7 @@ class ffp10_binner:
 
         fid_bandpowers = np.ones(len(bin_centers))  # We will renormalize that as soon as l_av is calculated.
 
-        def _get_BiL(i, L):  # Bin i window function to be applied to cLpp-like arrays as just described
+        def _get_bil(i, L):  # Bin i window function to be applied to cLpp-like arrays as just described
             ret = (fid_bandpowers[i] / vlpp_den[i]) * vlpp_inv[L] * clkk_fid[L] * kappaswitch[L]
             ret *= (L >= bin_lmins[i]) * (L <= bin_lmaxs[i])
             return ret
@@ -48,8 +73,8 @@ class ffp10_binner:
         lav = np.zeros(len(bin_centers))
         for i, (lmin, lmax) in enumerate(zip(bin_lmins, bin_lmaxs)):
             w_lav = 1. / np.arange(lmin, lmax + 1) ** 2 / np.arange(lmin + 1, lmax + 2) ** 2
-            lav[i] = np.sum(np.arange(lmin, lmax + 1) * w_lav * _get_BiL(i, np.arange(lmin, lmax + 1))) / np.sum(
-                w_lav * _get_BiL(i, np.arange(lmin, lmax + 1)))
+            lav[i] = np.sum(np.arange(lmin, lmax + 1) * w_lav * _get_bil(i, np.arange(lmin, lmax + 1))) / np.sum(
+                w_lav * _get_bil(i, np.arange(lmin, lmax + 1)))
 
         self.k1 = k1
         self.k2 = k2
@@ -67,7 +92,7 @@ class ffp10_binner:
         self.clkk_fid = clkk_fid
         self.kappaswitch = kappaswitch
 
-    def _get_BiL(self, i, L):
+    def _get_bil(self, i, L):
         ret = (self.fid_bandpowers[i] / self.vlpp_den[i]) * self.vlpp_inv[L] * self.clkk_fid[L] * self.kappaswitch[L]
         ret *= (L >= self.bin_lmins[i]) * (L <= self.bin_lmaxs[i])
         return ret
@@ -76,19 +101,24 @@ class ffp10_binner:
         assert len(cl) > self.bin_lmaxs[-1], (len(cl), self.bin_lmaxs[-1])
         ret = np.zeros(self.nbins)
         for i, (lmin, lmax) in enumerate(zip(self.bin_lmins, self.bin_lmaxs)):
-            ret[i] = np.sum(self._get_BiL(i, np.arange(lmin, lmax + 1)) * cl[lmin:lmax + 1])
+            ret[i] = np.sum(self._get_bil(i, np.arange(lmin, lmax + 1)) * cl[lmin:lmax + 1])
         return ret
 
     def get_fid_bandpowers(self):
+        """Expected band-powers in the FFP10 fiducial cosmology.
+
+        """
         return np.copy(self.fid_bandpowers)
 
     def get_dat_bandpowers(self):
+        """Data raw band-powers, prior to any biases subtraction or correction.
+
+        """
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
         return self._get_binnedcl(utils.cli(qc_resp) * self.parfile.qcls_dd.get_sim_qcl(self.k1, -1, k2=self.k2))
 
     def get_mcn0(self):
         """Monte-Carlo N0 lensing bias.
-
 
         """
         ss = self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
@@ -97,8 +127,6 @@ class ffp10_binner:
 
     def get_rdn0(self):
         """Realization-dependent N0 lensing bias RDN0.
-
-            Mixes data and simulations.
 
         """
         ds = self.parfile.qcls_ds.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
@@ -109,7 +137,7 @@ class ffp10_binner:
     def get_dat_nhl(self):
         """N0 lensing bias, semi-analytical version.
 
-            This is not accurate on the cut-sky.
+            This is not highly accurate on the cut-sky.
 
         """
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
@@ -146,7 +174,6 @@ class ffp10_binner:
         n1pp = self.parfile.n1_dd.get_n1(k1, self.ksource, clpp_fid, ftlA, felA, fblA, len(qc_resp) - 1,
                                          kB=k2, ftlB=ftlB, felB=felB, fblB=fblB)
         return self._get_binnedcl(utils.cli(qc_resp) * n1pp) if not unnormed else n1pp
-
 
     def get_ps_data(self,lmin_ss_s4=100,lmax_ss_s4=2048,mc_sims_ss=None,mc_sims_ds=None):
         """Point source correction.
@@ -228,7 +255,7 @@ class ffp10_binner:
         for i, idx in utils.enumerate_progress(self.parfile.mc_sims_var, label='collecting BP stats'):
             dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
             bp_stats.add(self._get_binnedcl(utils.cli(qc_resp) *(dd - ss2) - cl_pred) - bp_n1)
-        return  bp_stats.mean(), bp_stats.sigmas_on_mean()
+        return bp_stats.mean(), bp_stats.sigmas_on_mean()
 
     def get_bmmc(self):
         """Binned multiplicative MC correction.
@@ -242,5 +269,5 @@ class ffp10_binner:
         cl_pred =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp']
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
         bps = self._get_binnedcl(utils.cli(qc_resp) *(dd - 2 * ss) - cl_pred[:len(dd)]) - self.get_n1()
-        return  1. / (1 + bps / self.fid_bandpowers)
+        return 1. / (1 + bps / self.fid_bandpowers)
 
