@@ -26,7 +26,7 @@ setup(
     author='Julien Carron',
     author_email='j.carron@sussex.ac.uk',
     description='Planck 2018 lensing python pipeline',
-    requires=['numpy', 'healpy'],
+    requires=['numpy', 'healpy', 'six'],
     long_description=long_description,
     configuration=configuration)
 
