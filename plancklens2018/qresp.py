@@ -1,8 +1,6 @@
-"""
+"""Module for QE response calculations.
 
 FIXME: spin-0 QE sign conventions (stt, ftt, ...)
-
-FIXME: joint_TP response through F matrix
 """
 
 from __future__ import absolute_import
@@ -29,10 +27,6 @@ except:
 verbose = False
 
 
-def _joincls(cls_list):
-    lmaxp1 = np.min([len(cl) for cl in cls_list])
-    return np.prod(np.array([cl[:lmaxp1] for cl in cls_list]), axis=0)
-
 class qeleg:
     def __init__(self, spin_in, spin_out, cl):
         self.spin_in = spin_in
@@ -51,10 +45,7 @@ class qe:
 
     def __call__(self, lega_dlm, legb_dlm, nside):
         pass
-        # FIXME: finish this
-        #m = hp.alm2map_spin(lega_dlm, nside, self.leg_a.spin_ou, self.leg_a.get_lmax())
-        #m *= hp.alm2map_spin(legb_dlm, nside, self.leg_b.spin_ou, self.leg_b.get_lmax())
-
+        # FIXME
     def get_lmax_a(self):
         return self.leg_a.get_lmax()
 
@@ -81,10 +72,10 @@ class resp_leg:
         self.RL = RL
 
 def get_resp_legs(source, lmax):
-    """ Defines the responses terms for an anisotropy source.
+    """Defines the responses terms for a CMB map anisotropy source.
 
     Args:
-        source (str): anisotropy source (e.g. 'p', 'f', 's', ...).
+        source (str): anisotropy source (e.g. 'p', 'f', ...).
         lmax (int): responses are given up to lmax.
 
     Returns:
@@ -105,7 +96,7 @@ def get_resp_legs(source, lmax):
     assert 0, source + ' response legs not implemented'
 
 def get_covresp(source, s1, s2, cls, lmax):
-    """Covariance matrix response functions in spin space.
+    """Defines the responses terms for a CMB covariance anisotropy source.
 
         \delta < s_d(n) _td^*(n')> \equiv
         _r\alpha(n) W^{r, st}_l _{s - r}Y_{lm}(n) _tY^*_{lm}(n') +
@@ -308,8 +299,8 @@ class resp_lib_simple:
     def get_response(self, k, ksource, recache=False):
         fn = 'qe_' + k[1:] + '_source_%s'%ksource + ('_G' if k[0] != 'x' else '_C')
         if self.npdb.get(fn) is None or recache:
-            G, C = get_response_sepTP(k, self.lmax_qe, ksource, self.cls_weight, self.cls_cmb, self.fal,
-                                      lmax_out=self.lmax_qlm)
+            G, C = get_response(k, self.lmax_qe, ksource, self.cls_weight, self.cls_cmb, self.fal,
+                                lmax_out=self.lmax_qlm)
             if recache and self.npdb.get(fn) is not None:
                 self.npdb.remove('qe_' + k[1:] + '_source_%s' % ksource + '_G')
                 self.npdb.remove('qe_' + k[1:] + '_source_%s' % ksource + '_C')
@@ -319,7 +310,7 @@ class resp_lib_simple:
 
 
 def get_response(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
-    """QE isortropic response.
+    """QE isotropic response.
 
     #FIXME: explain fal here
 
@@ -328,7 +319,7 @@ def get_response(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg
     return _get_response(qes, lmax_qe, source, cls_cmb, fal_leg1, fal_leg2=fal_leg2, lmax_out=lmax_out)
 
 
-get_response_sepTP = get_response #historical
+get_response_sepTP = get_response # Here for historical reasons.
 
 def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1,
                           fal_leg2=None, lmax_out=None):
@@ -363,84 +354,27 @@ def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1,
                         rW_st, prW_st, mrW_st, s_cL_st = get_covresp(source, -s2, t2, cls_cmb, len(FB) - 1)
                         clA = _joincls([qe.leg_a.cl, FA])
                         clB = _joincls([qe.leg_b.cl, FB, mrW_st])
-                        Rpr_st = get_hl(clA, clB, so, s2, to, -s2 + rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
+                        Rpr_st = wignerc(clA, clB, so, s2, to, -s2 + rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
 
                         rW_ts, prW_ts, mrW_ts, s_cL_ts = get_covresp(source, -t2, s2, cls_cmb, len(FA) - 1)
                         clA = _joincls([qe.leg_a.cl, FA, mrW_ts])
                         clB = _joincls([qe.leg_b.cl, FB])
-                        Rpr_st += get_hl(clA, clB, so, -t2 + rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
+                        Rpr_st += wignerc(clA, clB, so, -t2 + rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
                         assert rW_st == rW_ts and rW_st >= 0, (rW_st, rW_ts)
                         if rW_st > 0:
                             clA = _joincls([qe.leg_a.cl, FA])
                             clB = _joincls([qe.leg_b.cl, FB, prW_st])
-                            Rmr_st = get_hl(clA, clB, so, s2, to, -s2 - rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
+                            Rmr_st = wignerc(clA, clB, so, s2, to, -s2 - rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
 
                             clA = _joincls([qe.leg_a.cl, FA, prW_ts])
                             clB = _joincls([qe.leg_b.cl, FB])
-                            Rmr_st += get_hl(clA, clB, so, -t2 - rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
+                            Rmr_st += wignerc(clA, clB, so, -t2 - rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
                         else:
                             Rmr_st = Rpr_st
                         RGG += (-1) ** (so + to + rW_ts) * (Rpr_st + Rmr_st * (-1) ** rW_st) * qe.cL[:lmax_qlm + 1]
                         RCC += (-1) ** (so + to + rW_ts) * (Rpr_st - Rmr_st * (-1) ** rW_st) * qe.cL[:lmax_qlm + 1]
     return RGG, RCC
 
-def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivfs, lmax_out=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
-    """(Semi-)Analytical noise level calculation for the cross-spectrum of two QE keys.
-
-    #FIXME: explain cls_ivfs here
-
-    """
-    qes1 = get_qes(qe_key1, lmax_ivfs, cls_weights)
-    qes2 = get_qes(qe_key2, lmax_ivfs, cls_weights)
-    return  _get_nhl(qes1, qes2, cls_ivfs, lmax_ivfs,
-                     lmax_out=lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab)
-
-def _get_nhl(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
-
-    lmax_out = 2 * lmax_qe if lmax_out is None else lmax_out
-    G_N0 = np.zeros(lmax_out + 1, dtype=float)
-    C_N0 = np.zeros(lmax_out + 1, dtype=float)
-    cls_ivfs_aa = cls_ivfs
-    cls_ivfs_bb = cls_ivfs if cls_ivfs_bb is None else cls_ivfs_bb
-    cls_ivfs_ab = cls_ivfs if cls_ivfs_ab is None else cls_ivfs_ab
-    cls_ivfs_ba = cls_ivfs_ab
-
-    for qe1 in qes1:
-        for qe2 in qes2:
-            si, ti, ui, vi = (qe1.leg_a.spin_in, qe1.leg_b.spin_in, qe2.leg_a.spin_in, qe2.leg_b.spin_in)
-            so, to, uo, vo = (qe1.leg_a.spin_ou, qe1.leg_b.spin_ou, qe2.leg_a.spin_ou, qe2.leg_b.spin_ou)
-            assert so + to >= 0 and uo + vo >= 0, (so, to, uo, vo)
-            sgn_R = (-1) ** (uo + vo + uo + vo)
-
-            clsu = _joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(si, ui, cls_ivfs_aa)])
-            cltv = _joincls([qe1.leg_b.cl, qe2.leg_b.cl, get_coupling(ti, vi, cls_ivfs_bb)])
-            R_sutv = sgn_R * _joincls(
-                [get_hl(clsu, cltv, so, uo, to, vo, lmax_out=lmax_out), qe1.cL, qe2.cL])
-
-            clsv = _joincls([qe1.leg_a.cl, qe2.leg_b.cl, get_coupling(si, vi, cls_ivfs_ab)])
-            cltu = _joincls([qe1.leg_b.cl, qe2.leg_a.cl, get_coupling(ti, ui, cls_ivfs_ba)])
-            R_sutv += sgn_R * _joincls(
-                [get_hl(clsv, cltu, so, vo, to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
-
-            # we now need -s-t uv
-            sgnms = (-1) ** (si + so)
-            sgnmt = (-1) ** (ti + to)
-            clsu = _joincls([sgnms * qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(-si, ui, cls_ivfs_aa)])
-            cltv = _joincls([sgnmt * qe1.leg_b.cl, qe2.leg_b.cl, get_coupling(-ti, vi, cls_ivfs_bb)])
-            R_msmtuv = sgn_R * _joincls(
-                [get_hl(clsu, cltv, -so, uo, -to, vo, lmax_out=lmax_out), qe1.cL, qe2.cL])
-
-            clsv = _joincls([sgnms * qe1.leg_a.cl, qe2.leg_b.cl, get_coupling(-si, vi, cls_ivfs_ab)])
-            cltu = _joincls([sgnmt * qe1.leg_b.cl, qe2.leg_a.cl, get_coupling(-ti, ui, cls_ivfs_ba)])
-            R_msmtuv += sgn_R * _joincls(
-                [get_hl(clsv, cltu, -so, vo, -to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
-
-            G_N0 +=  0.5 * R_sutv
-            G_N0 +=  0.5 * (-1) ** (to + so) * R_msmtuv
-
-            C_N0 += 0.5 * R_sutv
-            C_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv
-    return G_N0, C_N0
 
 def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     """Deflection-induced mean-field response calculation.
@@ -488,9 +422,8 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
                 for a in [-1, 1]:
                     ai = get_alpha_lower(s2, lmax_cmb) if a == - 1 else get_alpha_raise(s2, lmax_cmb)
                     for b in [1]: # a, b symmetry
-                        fac = 2
                         aj = get_alpha_lower(-s1, lmax_cmb) if b == 1 else get_alpha_raise(-s1, lmax_cmb)
-                        hL = fac * (-1) ** (s1 + s2) * get_hl(cl1, cl2 * ai * aj, s2, s1, -s2 - a, -s1 - b, lmax_out=lmax_out)
+                        hL = 2 * (-1) ** (s1 + s2) * wignerc(cl1, cl2 * ai * aj, s2, s1, -s2 - a, -s1 - b, lmax_out=lmax_out)
                         GL += (- a * b) * hL
                         CL += (-1) * hL
 
@@ -503,9 +436,8 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
                 for a in [-1, 1]:
                     ai = get_alpha_lower(s2, lmax_qe) if a == -1 else get_alpha_raise(s2, lmax_qe)
                     for b in [1]:
-                        fac = 2
                         aj = get_alpha_lower(s1, lmax_qe) if b == 1 else get_alpha_raise(s1, lmax_qe)
-                        hL = fac * (-1) ** (s1 + s2) * get_hl(cl1 * ai, cl2 * aj, -s2 - a, -s1, s2, s1 -b, lmax_out=lmax_out)
+                        hL = 2 * (-1) ** (s1 + s2) * wignerc(cl1 * ai, cl2 * aj, -s2 - a, -s1, s2, s1 - b, lmax_out=lmax_out)
                         FisherGII += (- a * b) * hL
                         FisherCII += (-1) * hL
     GL -= FisherGII
@@ -522,7 +454,7 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
 
 GL_cache = {}
 
-def get_hl(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
+def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
     """Legendre coeff. of $ (\\xi_{sp1,s1} * \\xi_{sp2,s2})(\\cos \\theta)$ from their harmonic series.
 
         The integrand is always a polynomial, of max. degree lmax1 + lmax2 + lmax_out.

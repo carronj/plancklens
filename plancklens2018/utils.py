@@ -131,6 +131,10 @@ def cli(cl):
     ret[np.where(cl > 0)] = 1. / cl[np.where(cl > 0)]
     return ret
 
+def joincls(cls_list):
+    lmaxp1 = np.min([len(cl) for cl in cls_list])
+    return np.prod(np.array([cl[:lmaxp1] for cl in cls_list]), axis=0)
+
 def hash_check(hash1, hash2, ignore=['lib_dir', 'prefix'], keychain=[]):
     keys1 = hash1.keys()
     keys2 = hash2.keys()
@@ -276,3 +280,4 @@ def camb_clfile(fname, lmax=None):
         cls['pt'][ell[idc]] = cols[6][idc] / wptpe(ell[idc])
         cls['pe'][ell[idc]] = cols[7][idc] / wptpe(ell[idc])
     return cls
+
