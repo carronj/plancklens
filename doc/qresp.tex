@@ -79,9 +79,10 @@ F_\ell^{X} = \frac{1}{C_\ell^{XX,\rm fid} + N_\ell^{\rm X} /b_\ell^2}, \quad X =
 \end{equation}
 In Ref~\cite{Aghanim:2018oex}, $F_\ell^{X}$ is set to zero outside $100 \le \ell \le 2048$, $N^T_\ell$ is $35 \mu$K-amin, $N^P_\ell$ is $55 \mu$K-amin, $b_\ell$ is Gaussian beam of FWHM $5$-amin, and $F_\ell^X$ contains further an additional small rescaling. 
 For joint temperature and polarization filtering, the $F$ matrix becomes:
+\JC{Why minus sign again?}
 \begin{equation}
 	F = \begin{pmatrix}
-		F^{TT}_\ell &  \frac 12 F^{TE} &  \frac 12 F^{TE} \\  F^{TE} & \frac 12 \left( F^{EE}_\ell  + F^{B}_\ell\right) & \frac 12 \left( F^{EE}_\ell  - F^{B}_\ell\right) \\ F^{TE}& \frac 12 \left( F^{EE}_\ell  - F^{B}_\ell\right) & \frac 12 \left( F^{EE}_\ell  + F^{B}_\ell\right)
+		F^{TT}_\ell &  -\frac 12 F^{TE} &  - \frac12 F^{TE} \\  -F^{TE} & \frac 12 \left( F^{EE}_\ell  + F^{B}_\ell\right) & \frac 12 \left( F^{EE}_\ell  - F^{B}_\ell\right) \\ -F^{TE}& \frac 12 \left( F^{EE}_\ell  - F^{B}_\ell\right) & \frac 12 \left( F^{EE}_\ell  + F^{B}_\ell\right)
 	\end{pmatrix}
 \end{equation}
 where the entries $F^{T, E, B}$ are the elements of
