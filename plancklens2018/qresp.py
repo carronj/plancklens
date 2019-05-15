@@ -2,7 +2,7 @@
 
 FIXME: spin-0 QE sign conventions (stt, ftt, ...)
 
-
+FIXME: joint_TP response through F matrix
 """
 
 from __future__ import absolute_import
@@ -130,7 +130,7 @@ def get_covresp(source, s1, s2, cls, lmax):
         assert 0, 'source ' + source + ' not implemented'
 
 
-def get_qe_sepTP(qe_key, lmax, cls_weight):
+def get_qes(qe_key, lmax, cls_weight):
     """ Defines the quadratic estimator weights for quadratic estimator key.
 
     Args:
@@ -187,10 +187,9 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
             return qes
         elif qe_key in ['p', 'x']:
             cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
+            qes = get_qes('ptt', lmax, cls_weight) + get_qes('p_p', lmax, cls_weight)
+
             clte = cls_weight['te'][:lmax + 1] #: _0X_{lm} convention
-
-            qes = get_qe_sepTP('ptt', lmax, cls_weight) + get_qe_sepTP('p_p', lmax, cls_weight)
-
             # Here Wiener-filtered T contains c_\ell^{TE} \bar E for sep_TP
             lega = qeleg( 0, 0,  np.ones(lmax + 1, dtype=float))
             legb = qeleg( 2, 1,  -0.5 * np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * clte)
@@ -242,7 +241,7 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
 
         elif qe_key == 'f':
             clte = cls_weight['te'][:lmax + 1] #: _0X_{lm} convention
-            qes = get_qe_sepTP('ftt', lmax, cls_weight) + get_qe_sepTP('f_p', lmax, cls_weight)
+            qes = get_qes('ftt', lmax, cls_weight) + get_qes('f_p', lmax, cls_weight)
 
             # Here Wiener-filtered T contains c_\ell^{TE} \bar E
             lega = qeleg( 0, 0,  np.ones(lmax + 1, dtype=float))
@@ -275,6 +274,7 @@ def get_qe_sepTP(qe_key, lmax, cls_weight):
             assert 0
     else:
         assert 0
+
 
 class resp_lib_simple:
     def __init__(self, lib_dir, lmax_qe, cls_weight, cls_cmb, fal, lmax_qlm):
@@ -317,127 +317,35 @@ class resp_lib_simple:
             self.npdb.add('qe_' + k[1:] + '_source_%s' % ksource + '_C', C)
         return self.npdb.get(fn)
 
-class nhl_lib_simple:
-    """Analytical unnormalized-N0 library.
+
+def get_response(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
+    """QE isortropic response.
+
+    #FIXME: explain fal here
 
     """
-    def __init__(self, lib_dir, lmax_qe, cls_weight, cls_ivfs):
-        self.lmax_qe = lmax_qe
-        self.cls_weight = cls_weight
-        self.cls_ivfs = cls_ivfs
-        self.lib_dir = lib_dir
-        self.npdb = sql.npdb(os.path.join(lib_dir))
-        #FIXME: hashdict
-
-    def get_nhl(self, k1, k2, recache=False):
-        #FIXME: GC
-        assert k1[0] in ['p', 'x'] and k2[0] in ['p', 'x'], 'FIXME'
-        if k1[0] != k2[0]: return np.zeros(2 * self.lmax_qe + 1, dtype=float)
-        fn = 'anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + ('_G' if k1[0] != 'x' else '_C')
-        if self.npdb.get(fn) is None or recache:
-            G, C = get_nhl(k1, k2, self.cls_weight, self.cls_ivfs, self.lmax_qe)
-            if recache and self.npdb.get(fn) is not None:
-                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_G')
-                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_C')
-            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_G', G)
-            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_C', C)
-        return self.npdb.get(fn)
+    qes = get_qes(qe_key, lmax_qe, cls_weight)
+    return _get_response(qes, lmax_qe, source, cls_cmb, fal_leg1, fal_leg2=fal_leg2, lmax_out=lmax_out)
 
 
-def get_response_jtTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fabl_leg1, fabl_leg2=None, lmax_out=None, ret_terms=False):
-    """QE. response assuming joint T-P filering.
+get_response_sepTP = get_response #historical
 
-        Instead of a T, E or B array, the filtering isotropic approximation is a 3x3 matrix.
-    """
-
-
-def get_response_sepTP_old(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None, ret_terms=False):
-    #FIXME Curl lensign l=1 response non-zero
-    lmax_source = lmax_qe # I think that's fine as long as we the same lmax on both legs.
-    qes = get_qe_sepTP(qe_key, lmax_qe, cls_weight)
-    resps = get_resp_legs(source, lmax_source)
-    lmax_qlm= 2 * lmax_qe if lmax_out is None else lmax_out
-    fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
-    Rggcc = np.zeros((2, lmax_qlm+ 1), dtype=float)
-    terms = []
-    def _joincls(cls_list):
-        lmaxp1 = np.min([len(cl) for cl in cls_list])
-        return np.prod(np.array([cl[:lmaxp1] for cl in cls_list]), axis=0)
-    for qe in qes: # loop over all quadratic terms in estimator
-        si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
-        so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
-        # Rst,r involves R^r, -ti}
-        def add(si, ti, so, to, fla, flb):
-            if np.all(fla == 0.) or np.all(flb == 0.):
-                return np.zeros((2, lmax_qlm + 1), dtype=float)
-            si = si * -1
-            ti = ti * -1 # FIXME: why this sign flip here?
-            cpling = get_coupling(si, -ti, cls_cmb)[:lmax_qe + 1]
-
-            r, prR, mrR, s_cL = resps[-ti]  # There should always be a single term here.
-            Rst_pr = get_hl(_joincls([prR, cpling, qe.leg_a.cl, fla]), _joincls([qe.leg_b.cl, flb]), ti - r, so, -ti, to, lmax_out=lmax_qlm) * s_cL[:lmax_qlm + 1]
-            Rst_mr = get_hl(_joincls([mrR, cpling, qe.leg_a.cl, fla]), _joincls([qe.leg_b.cl, flb]), ti + r, so, -ti, to, lmax_out=lmax_qlm) * s_cL[:lmax_qlm + 1]
-            # Swap s and t all over
-            cpling *= (-1) ** (si - ti)
-            r2, prR, mrR, s_cL = resps[-si]
-            assert r2 == r, (r, r2)
-            Rts_pr = get_hl(_joincls([prR, cpling, qe.leg_b.cl, flb]), _joincls([qe.leg_a.cl, fla]), si - r, to, -si, so, lmax_out=lmax_qlm) * s_cL[:lmax_qlm + 1]
-            Rts_mr = get_hl(_joincls([mrR, cpling, qe.leg_b.cl, flb]), _joincls([qe.leg_a.cl, fla]), si + r, to, -si, so, lmax_out=lmax_qlm) * s_cL[:lmax_qlm + 1]
-            gg = (Rst_mr + Rts_mr + (-1) ** r * (Rst_pr + Rts_pr)) * qe.cL[:lmax_qlm + 1]
-            cc = (Rst_mr + Rts_mr - (-1) ** r * (Rst_pr + Rts_pr)) * qe.cL[:lmax_qlm + 1]
-            terms.append(Rst_mr * qe.cL[:lmax_qlm + 1])
-            terms.append(Rst_pr * qe.cL[:lmax_qlm + 1])
-            terms.append(Rts_mr * qe.cL[:lmax_qlm + 1])
-            terms.append(Rts_pr * qe.cL[:lmax_qlm + 1])
-            return np.array([gg, cc])
-
-        if si == 0 and ti == 0:
-            Rggcc += add(si, ti, so, to, fal_leg1['t'], fal_leg2['t'])
-
-        else:
-            # Here we use _{\pm |s|}X = \pm^{s} 1/2 [ _{|s|} d_{lm}(f^g \pm f^c) _{|s|}d_{lm} + (-1)^{s} _{-|s|} d_{lm}(f^g \mp f^c) _{-|s|}d_{lm}
-            #TODO: can simplify if one spin is zero
-            sgs = 1 if si > 0 else (1 if abs(si)%2 == 0 else -1)
-            sgt = 1 if ti > 0 else (1 if abs(ti)%2 == 0 else -1)
-
-            prefac = 0.25 * sgs * sgt
-            fla = fal_leg1['e'] + np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal_leg1['t']
-            flb = fal_leg2['e'] + np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal_leg2['t']
-            Rggcc += prefac * add(abs(si), abs(ti), so, to, fla, flb)
-
-            fla = fal_leg1['e'] + np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal_leg1['t']
-            flb = fal_leg2['e'] - np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal_leg2['t']
-            Rggcc += (-1) ** ti *  prefac * add(abs(si), -abs(ti), so, to, fla, flb)
-
-            fla = fal_leg1['e'] - np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal_leg1['t']
-            flb = fal_leg2['e'] + np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal_leg2['t']
-            Rggcc += (-1) ** si * prefac * add(-abs(si), abs(ti), so, to, fla, flb)
-
-            fla = fal_leg1['e'] - np.sign(si) * fal_leg1['b'] if abs(si) == 2 else fal_leg1['t']
-            flb = fal_leg2['e'] - np.sign(ti) * fal_leg2['b'] if abs(ti) == 2 else fal_leg2['t']
-            Rggcc += (-1) ** (ti + si) * prefac * add(-abs(si), -abs(ti), so, to, fla, flb)
-    return Rggcc if not ret_terms else (Rggcc, terms)
-
-
-def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1,
+def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1,
                           fal_leg2=None, lmax_out=None):
-    """
-    Version based on cov-variations instead of field variation.
-    """
-    qes = get_qe_sepTP(qe_key, lmax_qe, cls_weight)
+
     lmax_qlm = min(2 * lmax_qe,  2 * lmax_qe if lmax_out is None else lmax_out)
     fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
     RGG = np.zeros(lmax_qlm + 1, dtype=float)
     RCC = np.zeros(lmax_qlm + 1, dtype=float)
 
     def get_F(s1, s2, leg):
-        # Returns matrix element B^t Cov^{-1} in spin-space, for independ. T E B filtering (i.e. neglecting C_\ell^TE)).
+        # Matrix \bar _{s_1} X = F_{s_1,s_2} _{s_2} X
         assert s1 in [0, -2, 2] and s2 in [0, -2, 2] and leg in [1, 2]
         fal = fal_leg1 if leg == 1 else fal_leg2
         if s1 == 0:
-            return fal['t'] if s2 == 0 else None
+            return fal['t'] if s2 == 0 else (-0.5 * fal['te'] if 'te' in fal.keys() else None)
         if s1 in [-2, 2]:
-            if not s2 in [-2, 2]: return None
+            if s2 == 0: return -1 * fal['te'] if 'te' in fal.keys() else None
             return 0.5 * (fal['e'] + fal['b']) if s1 == s2 else 0.5 * (fal['e'] - fal['b'])
         else:
             assert 0
@@ -446,10 +354,10 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1,
         si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
         so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
         # We want R^{a, st}  and R^{-a, st}
-        for s2 in ([0] if si == 0 else [-2, 2]):
+        for s2 in ([0, -2, 2]):
             FA = get_F(si, s2, 1)
             if FA is not None:
-                for t2 in ([0] if ti == 0 else [-2, 2]):
+                for t2 in ([0, -2, 2]):
                     FB = get_F(ti, t2, 2)
                     if FB is not None:
                         rW_st, prW_st, mrW_st, s_cL_st = get_covresp(source, -s2, t2, cls_cmb, len(FB) - 1)
@@ -476,13 +384,19 @@ def get_response_sepTP(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1,
                         RCC += (-1) ** (so + to + rW_ts) * (Rpr_st - Rmr_st * (-1) ** rW_st) * qe.cL[:lmax_qlm + 1]
     return RGG, RCC
 
+def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivfs, lmax_out=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
+    """(Semi-)Analytical noise level calculation for the cross-spectrum of two QE keys.
 
-def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
-    """(Semi-)Analytical noise level calculation.
+    #FIXME: explain cls_ivfs here
 
     """
-    qes1 = get_qe_sepTP(qe_key1, lmax_qe, cls_weights)
-    qes2 = get_qe_sepTP(qe_key2, lmax_qe, cls_weights)
+    qes1 = get_qes(qe_key1, lmax_ivfs, cls_weights)
+    qes2 = get_qes(qe_key2, lmax_ivfs, cls_weights)
+    return  _get_nhl(qes1, qes2, cls_ivfs, lmax_ivfs,
+                     lmax_out=lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab)
+
+def _get_nhl(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
+
     lmax_out = 2 * lmax_qe if lmax_out is None else lmax_out
     G_N0 = np.zeros(lmax_out + 1, dtype=float)
     C_N0 = np.zeros(lmax_out + 1, dtype=float)
@@ -527,65 +441,6 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_qe, lmax_out=None, cls
             C_N0 += 0.5 * R_sutv
             C_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv
     return G_N0, C_N0
-
-
-def get_mf_respv2(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, ret_terms=None):
-    print("Check accuracy not good enough at low-ell!")
-    assert qe_key in ['p_p', 'ptt'], qe_key
-    GL = np.zeros(lmax_out + 1, dtype=float)
-    CL = np.zeros(lmax_out + 1, dtype=float)
-    #GCL = np.zeros(lmax_out + 1, dtype=float)
-    #CGL = np.zeros(lmax_out + 1, dtype=float)
-    cst_term = 0.
-
-    if qe_key == 'ptt':
-        lmax_cmb = len(cls_cmb['tt']) - 1
-        spins = [0]
-    elif qe_key == 'p_p':
-        lmax_cmb = min(len(cls_cmb['ee']) - 1, len(cls_cmb['bb'] - 1))
-        spins = [-2, 2]
-    elif qe_key == 'p':
-        lmax_cmb = min(len(cls_cmb['ee']) - 1, len(cls_cmb['bb']) - 1, len(cls_cmb['tt']) - 1, len(cls_cmb['te']) - 1)
-        spins = [0, -2, 2]
-    else:
-        assert 0, qe_key + ' not implemented'
-
-    for s1 in spins:
-        for s2 in spins:
-            cl1 = get_coupling(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
-            # These 1/2 factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to T E B.
-            cl2 = get_coupling(s2, s1, cls_cmb)[:lmax_cmb + 1]
-            if np.any(cl1) and np.any(cl2):
-                for a in [-1, 1]:
-                    ai = get_alpha_lower(s2, lmax_cmb) if a == - 1 else get_alpha_raise(s2, lmax_cmb)
-                    for b in [-1, 1]:
-                        aj = get_alpha_lower(-s1, lmax_cmb) if b == 1 else get_alpha_raise(-s1, lmax_cmb)
-                        hL = (-1) ** (s1 + s2) * get_hl(cl1, cl2 * ai * aj, s2, s1, -s2 - a, -s1 - b, lmax_out=lmax_out)
-                        GL += (-1) * (1  if a == b else -1) * hL
-                        CL += (-1) * hL
-                        #GCL += (-1) * a * hL
-                        #CGL += (-1) * b * hL
-
-                        if a == b: # cst term
-                            b1 =  get_alpha_lower(s1, lmax_qe) if a == -1 else get_alpha_raise(s1, lmax_qe)
-                            b2  = get_alpha_lower(s1 + a, lmax_qe) if b == 1 else get_alpha_raise(s1 + a, lmax_qe)
-                            cst_term += np.sum(cl1 * cl2[:lmax_qe+1] * b1 * b2 * (2 * np.arange(lmax_qe + 1) + 1)) * (-1) ** s1 /(4. * np.pi)
-
-    print(-CL[1], cst_term)
-    print(-CL[1] / cst_term - 1.)
-
-    GL -= CL[1]
-    CL -= CL[1]
-    GL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
-    CL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
-
-    assert qe_key in ['ptt', 'p_p'],'FIXME: need MV (not sepTP quantities)'
-
-    GLR, CLR = get_response_sepTP(qe_key, lmax_qe, 'p', cls_cmb, cls_cmb,
-                                  {'t':cls_ivfs['tt'], 'e': cls_ivfs['ee'], 'b': cls_ivfs['bb']},lmax_out=lmax_out)
-    GL -= GLR
-    CL -= CLR
-    return GL, CL, cst_term
 
 def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     """Deflection-induced mean-field response calculation.
