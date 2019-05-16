@@ -6,6 +6,9 @@ Collects a couple of utility functions.
 from __future__ import print_function
 from __future__ import division
 
+import os
+
+
 import healpy as hp
 from healpy.projector import CartesianProj
 import time
@@ -67,7 +70,7 @@ def rlm2alm(rlm):
 
 
 def projectmap(hpmap, lcell_amin, Npts, lon_lat= (0., -45. )):
-    """ Projects portion of healpix map onto square map.
+    """Projects portion of healpix map onto square map.
 
     Args:
         hpmap (ndarray): healpy map
@@ -253,6 +256,44 @@ class stats:
         newstats.sum = newsum
         newstats.N = self.N
         return newstats
+
+def apodize_mask(mask, sigma_arcmin=12., lmax=None, method='hybrid', cache_dir='caches/',
+                 mult_factor=3, min_factor=0.1):
+    """Apodize a mask so it can safely be used for Pseudo-CL inversion.
+
+    Args:
+        mask: input healpix map array
+        sigma_arcmin: characteritic width of smoothing
+        lmax: lmax when apodizing mask
+        method: gaussian or hybrid (hybrid mainly smooths outside existing mask, so reduces fsky)
+        cache_dir: if not None, cache result here if possible
+        mult_factor: for hybrid method, multiply (1-mask) by this factor and truncate (enlarges mask, before resmoothing)
+        min_factor: for hybrid method, set to unity tails larger than 1-min_factor after scaling by mult_factor
+    Returns:
+        the apodized map array
+    """
+
+    if not sigma_arcmin: return mask
+    sigma_rad = sigma_arcmin / 180. / 60. * np.pi
+    if cache_dir: name = os.path.join(cache_dir, 'ap_mask_' + '_'.join(
+        '%s' % s for s in
+        [sigma_arcmin, method, lmax, mult_factor, min_factor, hashlib.sha1(mask).hexdigest()])) + '.fits'
+    if cache_dir and os.path.exists(name):
+        ap_mask = hp.read_map(name)
+    else:
+        print('apodizing... (fsky_unapodized=%s)' % (np.sum(mask ** 2) / mask.size))
+        ap_mask = hp.smoothing(mask, sigma=sigma_rad, lmax=lmax)
+        print('Min/max mask smoothed mask', np.min(ap_mask), np.max(ap_mask))
+        print('fsky=', np.sum(ap_mask ** 2) / ap_mask.size)
+        if method == 'gaussian': return ap_mask
+        if method != 'hybrid': raise ValueError('Unknown apodization method')
+        ap_mask = 1 - np.minimum(1., np.maximum(0., mult_factor * (1 - ap_mask) - min_factor))
+        ap_mask = hp.smoothing(ap_mask, sigma=sigma_rad / 2, lmax=lmax)
+        print('Min/max mask re-smoothed mask', np.min(ap_mask), np.max(ap_mask))
+        print('fsky=', np.sum(ap_mask ** 2) / ap_mask.size)
+        if cache_dir:
+            hp.write_map(name, ap_mask)
+    return ap_mask
 
 def camb_clfile(fname, lmax=None):
     """CAMB spectra (lenspotentialCls, lensedCls or tensCls types) returned as a dict of numpy arrays.
