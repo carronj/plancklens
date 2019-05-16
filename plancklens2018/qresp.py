@@ -11,7 +11,7 @@ import pickle as pk
 
 
 from plancklens2018 import sql
-from plancklens2018.utils import clhash, hash_check
+from plancklens2018.utils import clhash, hash_check, joincls
 from plancklens2018 import mpi
 
 try:
@@ -352,22 +352,22 @@ def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1,
                     FB = get_F(ti, t2, 2)
                     if FB is not None:
                         rW_st, prW_st, mrW_st, s_cL_st = get_covresp(source, -s2, t2, cls_cmb, len(FB) - 1)
-                        clA = _joincls([qe.leg_a.cl, FA])
-                        clB = _joincls([qe.leg_b.cl, FB, mrW_st])
+                        clA = joincls([qe.leg_a.cl, FA])
+                        clB = joincls([qe.leg_b.cl, FB, mrW_st])
                         Rpr_st = wignerc(clA, clB, so, s2, to, -s2 + rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
 
                         rW_ts, prW_ts, mrW_ts, s_cL_ts = get_covresp(source, -t2, s2, cls_cmb, len(FA) - 1)
-                        clA = _joincls([qe.leg_a.cl, FA, mrW_ts])
-                        clB = _joincls([qe.leg_b.cl, FB])
+                        clA = joincls([qe.leg_a.cl, FA, mrW_ts])
+                        clB = joincls([qe.leg_b.cl, FB])
                         Rpr_st += wignerc(clA, clB, so, -t2 + rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
                         assert rW_st == rW_ts and rW_st >= 0, (rW_st, rW_ts)
                         if rW_st > 0:
-                            clA = _joincls([qe.leg_a.cl, FA])
-                            clB = _joincls([qe.leg_b.cl, FB, prW_st])
+                            clA = joincls([qe.leg_a.cl, FA])
+                            clB = joincls([qe.leg_b.cl, FB, prW_st])
                             Rmr_st = wignerc(clA, clB, so, s2, to, -s2 - rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
 
-                            clA = _joincls([qe.leg_a.cl, FA, prW_ts])
-                            clB = _joincls([qe.leg_b.cl, FB])
+                            clA = joincls([qe.leg_a.cl, FA, prW_ts])
+                            clB = joincls([qe.leg_b.cl, FB])
                             Rmr_st += wignerc(clA, clB, so, -t2 - rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
                         else:
                             Rmr_st = Rpr_st
