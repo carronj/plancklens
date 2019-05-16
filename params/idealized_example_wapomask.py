@@ -33,7 +33,7 @@ from plancklens2018.sims import planck2018_sims, phas, maps, utils as maps_utils
 
 assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'
 PL2018 = os.environ['PL2018']
-TEMP =  os.path.join(PL2018, 'temp', 'idealized_wapomask_example')
+TEMP =  os.path.join(PL2018, 'temp', 'idealized_example_wapomask')
 
 #--- definition of simulation and inverse-variance filtered simulation libraries:
 lmax_ivf = 2048
