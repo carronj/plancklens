@@ -5,11 +5,11 @@
     The CMB simulations are located on NERSC systems project directory, hence this may only be used there.
 
     To enable complete reconstruction, a parameter file should instantiate
-        * the simulation library 'sims'
         * the inverse-variance filtered simulation library 'ivfs'
         * the 3 quadratic estimator libraries, 'qlms_dd', 'qlms_ds', 'qlms_ss'.
         * the 3 quadratic estimator power spectra libraries 'qcls_dd, 'qcls_ds', 'qcls_ss'.
-          (qcls_ss is required for the MCN0 calculation, qcls_ds and qcls_ss for the RDN0 calculation.)
+          (qcls_ss is required for the MCN0 calculation, qcls_ds and qcls_ss for the RDN0 calculation.
+           qcls_dd for the MC-correction, covariance matrix. All three for the point source correction.)
         * the quadratic estimator response library 'qresp_dd'
         * the semi-analytical Gaussian lensing bias library 'nhl_dd'
         * the N1 lensing bias library 'n1_dd'.
