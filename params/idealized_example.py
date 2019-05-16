@@ -33,6 +33,7 @@ from plancklens2018.sims import planck2018_sims, phas, maps, utils as maps_utils
 
 assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'
 PL2018 = os.environ['PL2018']
+TEMP =  os.path.join(PL2018, 'temp', 'idealized_example')
 
 #--- definition of simulation and inverse-variance filtered simulation libraries:
 lmax_ivf = 2048
@@ -76,8 +77,7 @@ fel[:lmin_ivf] *= 0.
 fbl[:lmin_ivf] *= 0.
 #: Inverse CMB co-variance in T, E and B (neglecting TE coupling).
 
-libdir_ivfs  = os.path.join(PL2018, 'temp', 'idealized_example', 'ivfs')
-ivfs    = filt_simple.library_fullsky_sepTP(libdir_ivfs, sims, nside, transf, cl_len, ftl, fel, fbl, cache=True)
+ivfs    = filt_simple.library_fullsky_sepTP(os.path.join(TEMP, 'ivfs'), sims, nside, transf, cl_len, ftl, fel, fbl, cache=True)
 #: Inverse-variance filtering instance. Here a trivial isotropic inverse variance weighting.
 
 #---- QE libraries instances. For the MCN0, RDN0, MC-correction etc calculation, we need in general three of them,
@@ -97,12 +97,10 @@ ivfs_d = filt_util.library_shuffle(ivfs, ds_dict)
 ivfs_s = filt_util.library_shuffle(ivfs, ss_dict)
 #: This is a filtering instance shuffling simulation indices according to 'ss_dict'.
 
-libdir_qlmsdd = os.path.join(PL2018, 'temp', 'idealized_example', 'qlms_dd')
-libdir_qlmsds = os.path.join(PL2018, 'temp', 'idealized_example', 'qlms_ds')
-libdir_qlmsss = os.path.join(PL2018, 'temp', 'idealized_example', 'qlms_ss')
-qlms_dd = qest.library_sepTP(libdir_qlmsdd, ivfs, ivfs,   cl_len['te'], nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
-qlms_ds = qest.library_sepTP(libdir_qlmsds, ivfs, ivfs_d, cl_len['te'], nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
-qlms_ss = qest.library_sepTP(libdir_qlmsss, ivfs, ivfs_s, cl_len['te'], nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
+
+qlms_dd = qest.library_sepTP(os.path.join(TEMP, 'qlms_dd'), ivfs, ivfs,   cl_len['te'], nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
+qlms_ds = qest.library_sepTP(os.path.join(TEMP, 'qlms_ds'), ivfs, ivfs_d, cl_len['te'], nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
+qlms_ss = qest.library_sepTP(os.path.join(TEMP, 'qlms_ss'), ivfs, ivfs_s, cl_len['te'], nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
 
 #---- QE spectra libraries instances:
 # This takes power spectra of the QE maps from the QE libraries, after subtracting a mean-field.
@@ -115,21 +113,16 @@ mc_sims_mf_dd = mc_sims_bias
 mc_sims_mf_ds = np.array([])
 mc_sims_mf_ss = np.array([]) #:By construction, only qcls_dd needs a mean-field subtraction.
 
-libdir_qcls_dd = os.path.join(PL2018, 'temp', 'idealized_example', 'qcls_dd')
-libdir_qcls_ds = os.path.join(PL2018, 'temp', 'idealized_example', 'qcls_ds')
-libdir_qcls_ss = os.path.join(PL2018, 'temp', 'idealized_example', 'qcls_ss')
-qcls_dd = qecl.library(libdir_qcls_dd, qlms_dd, qlms_dd, mc_sims_mf_dd)
-qcls_ds = qecl.library(libdir_qcls_ds, qlms_ds, qlms_ds, mc_sims_mf_ds)
-qcls_ss = qecl.library(libdir_qcls_ss, qlms_ss, qlms_ss, mc_sims_mf_ss)
+qcls_dd = qecl.library(os.path.join(TEMP, 'qcls_dd'), qlms_dd, qlms_dd, mc_sims_mf_dd)
+qcls_ds = qecl.library(os.path.join(TEMP, 'qcls_ds'), qlms_ds, qlms_ds, mc_sims_mf_ds)
+qcls_ss = qecl.library(os.path.join(TEMP, 'qcls_ss'), qlms_ss, qlms_ss, mc_sims_mf_ss)
 
 #---- semi-analytical Gaussian lensing bias library:
-libdir_nhl_dd = os.path.join(PL2018, 'temp', 'idealized_example', 'nhl_dd')
-nhl_dd = nhl.nhl_lib_simple(libdir_nhl_dd, ivfs, cl_weight, lmax_qlm)
+nhl_dd = nhl.nhl_lib_simple(os.path.join(TEMP, 'nhl_dd'), ivfs, cl_weight, lmax_qlm)
 
 #---- N1 lensing bias library:
 libdir_n1_dd = os.path.join(PL2018, 'temp', 'n1_ffp10')
 n1_dd = n1.library_n1(libdir_n1_dd,cl_len['tt'],cl_len['te'],cl_len['ee'])
 
 #---- QE response calculation library:
-libdir_resp_dd = os.path.join(PL2018, 'temp', 'idealized_example', 'qresp')
-qresp_dd = qresp.resp_lib_simple(libdir_resp_dd, lmax_ivf, cl_weight, cl_len,{'t': ivfs.get_ftl(), 'e':ivfs.get_fel(), 'b':ivfs.get_fbl()}, lmax_qlm)
+qresp_dd = qresp.resp_lib_simple(os.path.join(TEMP, 'qresp'), lmax_ivf, cl_weight, cl_len,{'t': ivfs.get_ftl(), 'e':ivfs.get_fel(), 'b':ivfs.get_fbl()}, lmax_qlm)
