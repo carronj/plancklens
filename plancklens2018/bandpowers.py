@@ -269,15 +269,17 @@ class ffp10_binner:
             bp_stats.add(self._get_binnedcl(utils.cli(qc_resp) *(dd - ss2) - cl_pred) - bp_n1)
         return bp_stats.mean(), bp_stats.sigmas_on_mean()
 
-    def get_bmmc(self):
+    def get_bmmc(self, mc_sims_dd=None, mc_sims_ss=None):
         """Binned multiplicative MC correction.
 
             This compares the reconstruction on the simulations to the FFP10 input lensing spectrum.
 
         """
         assert self.k1[0] == 'p' and self.k2[0] == 'p' and self.ksource == 'p', (self.k1, self.k2, self.ksource)
-        dd = self.parfile.qcls_dd.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
-        ss = self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
+        if mc_sims_dd is None: mc_sims_dd = self.parfile.mc_sims_var
+        if mc_sims_ss is None: mc_sims_ss = self.parfile.mc_sims_var
+        dd = self.parfile.qcls_dd.get_sim_stats_qcl(self.k1, mc_sims_dd, k2=self.k2).mean()
+        ss = self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, mc_sims_ss, k2=self.k2).mean()
         cl_pred =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp']
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
         bps = self._get_binnedcl(utils.cli(qc_resp) *(dd - 2 * ss) - cl_pred[:len(dd)]) - self.get_n1()
