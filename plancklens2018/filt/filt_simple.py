@@ -133,14 +133,15 @@ class library_apo_sepTP(library_sepTP):
         This uses independent T and Pol. filtering.
 
     Args:
-        lib_dir :
-        sim_lib :
-        apomask_path :
-        cl_len :
-        transf :
-        ftl (1d-array):
-        fel (1d-array):
-        fbl (1d-array):
+        lib_dir: directory where hashes and filtered maps will be cached.
+        sim_lib: simulation library instance to inverse-filter
+        apomask_path : path of the (presumably apodized) mask
+        cl_len : CMB spectra, used to compute the Wiener-filtered CMB from the inverse variance filtered maps.
+        transf : fiducial transfer function of the CMB maps.
+        ftl (1d-array): isotropic filtering array for temperature (filtered tlm's are ftl * tlm of the data)
+        fel (1d-array): isotropic filtering array for E-pol. (filtered elm's are fel * elm of the data)
+        fbl (1d-array): isotropic filtering array for B-po. (filtered blm's are fbl * blm of the data)
+        cache: filtered alm's will be cached if set.
     """
     def __init__(self, lib_dir, sim_lib, apomask_path, cl_len, transf, ftl, fel, fbl, cache=False):
         assert len(transf) >= np.max([len(ftl), len(fel), len(fbl)])
@@ -153,6 +154,7 @@ class library_apo_sepTP(library_sepTP):
         self.transf = transf
         self.lmax_fl = np.max([len(ftl), len(fel), len(fbl)]) - 1
         self.apomask_path = apomask_path
+        self.nside = hp.npix2nside(hp.read_map(apomask_path).size)
         super(library_apo_sepTP, self).__init__(lib_dir, sim_lib, cl_len, cache=cache)
 
     def hashdict(self):
@@ -178,10 +180,12 @@ class library_apo_sepTP(library_sepTP):
         return np.copy(self.fbl)
 
     def _apply_ivf_t(self, tmap, soltn=None):
+        assert len(tmap) == hp.nside2npix(self.nside), (hp.npix2nside(tmap.size), self.nside)
         alm = hp.map2alm(tmap * self.get_fmask(), lmax=self.lmax_fl, iter=0)
         return hp.almxfl(alm, self.get_ftl() * utils.cli(self.transf[:len(self.ftl)]))
 
     def _apply_ivf_p(self, pmap, soltn=None):
+        assert len(pmap[0]) == hp.nside2npix(self.nside) and len(pmap[0]) == len(pmap[1])
         elm, blm = hp.map2alm_spin([m * self.get_fmask() for m in pmap], 2, lmax=self.lmax_fl)
         elm = hp.almxfl(elm, self.get_fel() * utils.cli(self.transf[:len(self.fel)]))
         blm = hp.almxfl(blm, self.get_fbl() * utils.cli(self.transf[:len(self.fbl)]))
@@ -193,6 +197,16 @@ class library_fullsky_sepTP(library_sepTP):
     Note:
         This uses independent T and Pol. filtering.
 
+    Args:
+        lib_dir: directory where hashes and filtered maps will be cached.
+        sim_lib: simulation library instance to inverse-filter
+        nside: healpix resolution of the simulation library
+        cl_len : CMB spectra, used to compute the Wiener-filtered CMB from the inverse variance filtered maps.
+        transf : fiducial transfer function of the CMB maps.
+        ftl (1d-array): isotropic filtering array for temperature (filtered tlm's are ftl * tlm of the data)
+        fel (1d-array): isotropic filtering array for E-pol. (filtered elm's are fel * elm of the data)
+        fbl (1d-array): isotropic filtering array for B-po. (filtered blm's are fbl * blm of the data)
+        cache: filtered alm's will be cached if set.
     """
     def __init__(self, lib_dir, sim_lib, nside, transf, cl_len, ftl, fel, fbl, cache=False):
         self.sim_lib = sim_lib
