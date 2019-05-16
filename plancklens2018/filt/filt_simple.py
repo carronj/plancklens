@@ -135,41 +135,34 @@ class library_apo_sepTP(library_sepTP):
     Args:
         lib_dir :
         sim_lib :
-        masknoapo_path :
+        apomask_path :
         cl_len :
         transf :
         ftl (1d-array):
         fel (1d-array):
         fbl (1d-array):
     """
-    def __init__(self, lib_dir, sim_lib, masknoapo_path, cl_len, transf, ftl, fel, fbl, cache=False):
+    def __init__(self, lib_dir, sim_lib, apomask_path, cl_len, transf, ftl, fel, fbl, cache=False):
         assert len(transf) >= np.max([len(ftl), len(fel), len(fbl)])
         assert np.all([k in cl_len.keys() for k in ['tt', 'ee', 'bb']])
-        
+        assert os.path.exists(apomask_path)
+
         self.ftl = ftl
         self.fel = fel
         self.fbl = fbl
         self.transf = transf
         self.lmax_fl = np.max([len(ftl), len(fel), len(fbl)]) - 1
-        self.masknoapo_path = masknoapo_path
+        self.apomask_path = apomask_path
         super(library_apo_sepTP, self).__init__(lib_dir, sim_lib, cl_len, cache=cache)
-
-        if mpi.rank == 0:
-            if not os.path.exists(os.path.join(self.lib_dir, 'fmask.fits')):
-                #FIXME:
-                from libaml import apodize
-                apomask = apodize.apodize_mask(hp.read_map(masknoapo_path))
-                hp.write_map(os.path.join(self.lib_dir, 'fmask.fits'), apomask)
-        mpi.barrier()
 
     def hashdict(self):
         return {'sim_lib':self.sim_lib.hashdict(),
-                'masknoapo': self.masknoapo_path, 'transf': utils.clhash(self.transf),
+                'apomask': self.apomask_path, 'transf': utils.clhash(self.transf),
                 'cl_len': {k: utils.clhash(self.cl[k]) for k in ['tt', 'ee', 'bb']},
                 'ftl': utils.clhash(self.ftl),'fel': utils.clhash(self.fel),'fbl': utils.clhash(self.fbl)}
 
     def get_fmask(self):
-        return hp.read_map(os.path.join(self.lib_dir, 'fmask.fits'))
+        return hp.read_map(self.apomask_path)
 
     def get_tal(self, a):
         assert (a.lower() in ['t', 'e', 'b'])
