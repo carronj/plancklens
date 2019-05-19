@@ -61,6 +61,7 @@ class nhl_lib_simple:
         return self.npdb.get(fn + suf)
 
     def _get_cls(self, idx):
+        #FIXME avoid computing unnecessary filtered maps.
         ret =  {'tt':  hp.alm2cl(self.ivfs.get_sim_tlm(idx)) / self.fsky,
                 'ee':  hp.alm2cl(self.ivfs.get_sim_elm(idx)) / self.fsky,
                 'bb':  hp.alm2cl(self.ivfs.get_sim_blm(idx)) / self.fsky,
