@@ -499,10 +499,6 @@ def get_alpha_lower(s, lmax):
     ret[abs(s):] = -np.sqrt(np.arange(s + abs(s), lmax + s + 1) * np.arange(abs(s) - s + 1, lmax - s + 2))
     return ret
 
-def get_lensing_resp(s, lmax):
-    """ -1/2 1d eth X - 1/2 -1d eth X """
-    return  {1: -0.5 * get_alpha_lower(s, lmax), -1: -0.5 * get_alpha_raise(s, lmax)}
-
 def get_coupling(s1, s2, cls):
     """<_{s1}X_{lm} _{s2}X^*{lm}>
 
