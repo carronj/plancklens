@@ -109,7 +109,7 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None, cls
             si, ti, ui, vi = (qe1.leg_a.spin_in, qe1.leg_b.spin_in, qe2.leg_a.spin_in, qe2.leg_b.spin_in)
             so, to, uo, vo = (qe1.leg_a.spin_ou, qe1.leg_b.spin_ou, qe2.leg_a.spin_ou, qe2.leg_b.spin_ou)
             assert so + to >= 0 and uo + vo >= 0, (so, to, uo, vo)
-            sgn_R = (-1) ** (uo + vo + uo + vo)
+            sgn_R = (-1) ** (so + to + uo + vo)
 
             clsu = utils.joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(si, ui, cls_ivfs_aa)])
             cltv = utils.joincls([qe1.leg_b.cl, qe2.leg_b.cl, get_coupling(ti, vi, cls_ivfs_bb)])
@@ -160,7 +160,7 @@ def _get_nhl_cplx(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None
             si, ti, ui, vi = (qe1.leg_a.spin_in, qe1.leg_b.spin_in, qe2.leg_a.spin_in, qe2.leg_b.spin_in)
             so, to, uo, vo = (qe1.leg_a.spin_ou, qe1.leg_b.spin_ou, qe2.leg_a.spin_ou, qe2.leg_b.spin_ou)
             assert so + to >= 0 and uo + vo >= 0, (so, to, uo, vo)
-            sgn_R = (-1) ** (uo + vo + uo + vo)
+            sgn_R = (-1) ** (so + to + uo + vo)
 
             clsu = utils.joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_spin_coupling(si, ui, cls_ivfs_aa)])
             cltv = utils.joincls([qe1.leg_b.cl, qe2.leg_b.cl, get_spin_coupling(ti, vi, cls_ivfs_bb)])
@@ -191,7 +191,7 @@ def _get_nhl_cplx(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None
             CC_N0 += 0.5 * R_sutv.real
             CC_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.real
 
-            GC_N0 -= 0.5 * R_sutv.imag
+            GC_N0 -= 0.5 * R_sutv.imag  #FIXME: signs...
             GC_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.imag
 
             CG_N0 += 0.5 * R_sutv.imag
