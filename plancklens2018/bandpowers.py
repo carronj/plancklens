@@ -65,7 +65,7 @@ class ffp10_binner:
         assert ksource == 'p', ksource +  ' source not implemented'
 
         lmaxphi = 2048
-        clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp'][:lmaxphi+1]
+        clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lenspotentialCls.dat'))['pp'][:lmaxphi+1]
         kappaswitch = (np.arange(0, lmaxphi + 1, dtype=float) * (np.arange(1, lmaxphi + 2))) ** 2 / (2. * np.pi) * 1e7
         clkk_fid = clpp_fid * kappaswitch
 
@@ -256,6 +256,8 @@ class ffp10_binner:
         """Binned additive MC correction, with crude error bars.
 
             This compares the reconstruction on the simulations to the FFP10 input lensing spectrum.
+            NB: the approximate error corrections to the additive MC correction variance follows Appendix C of
+            https://arxiv.org/abs/1807.06210, check this for more details on its validity.
 
         """
         assert self.k1[0] == 'p' and self.k2[0] == 'p' and self.ksource == 'p', (self.k1, self.k2, self.ksource)
@@ -267,7 +269,9 @@ class ffp10_binner:
         for i, idx in utils.enumerate_progress(self.parfile.mc_sims_var, label='collecting BP stats'):
             dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
             bp_stats.add(self._get_binnedcl(utils.cli(qc_resp) *(dd - ss2) - cl_pred) - bp_n1)
-        return bp_stats.mean(), bp_stats.sigmas_on_mean()
+        NMF = len(self.parfile.qcls_dd.mc_sims_mf)
+        NB = len(self.parfile.mc_sims_var)
+        return bp_stats.mean(), bp_stats.sigmas_on_mean() * (1. + 1. + 2. / NMF + 2 * NB / (float(NMF * NMF)))
 
     def get_bmmc(self, mc_sims_dd=None, mc_sims_ss=None):
         """Binned multiplicative MC correction.
