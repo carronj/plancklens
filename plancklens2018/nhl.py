@@ -191,7 +191,7 @@ def _get_nhl_cplx(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None
             CC_N0 += 0.5 * R_sutv.real
             CC_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.real
 
-            GC_N0 -= 0.5 * R_sutv.imag  #FIXME: signs...
+            GC_N0 -= 0.5 * R_sutv.imag
             GC_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.imag
 
             CG_N0 += 0.5 * R_sutv.imag
@@ -204,7 +204,7 @@ def get_spin_coupling(s1, s2, cls):
     """<_{s1}X_{lm} _{s2}X^*{lm}>
 
     Note:
-        This uses the spin-field conventions where _0X_{lm} = -T_{lm}
+        This uses the spin-field conventions where _0X_{lm} = -T_{lm}.
 
     """
     if s1 < 0:
@@ -213,14 +213,17 @@ def get_spin_coupling(s1, s2, cls):
     if s1 == 0:
         if s2 == 0:
             return cls['tt']
-        return - cls['te'] + 1j * np.sign(s2) * cls.get('tb', 0.)
+        tb = cls.get('tb', None)
+        return  -cls['te'] if tb is None else  -cls['te'] + 1j * np.sign(s2) * tb
     elif s1 == 2:
         if s2 == 0:
-            return -cls['te'] - 1j * cls.get('tb', 0.)
+            tb = cls.get('tb', None)
+            return  -cls['te'] if tb is None else  -cls['te'] - 1j * tb
         elif s2 == 2:
             return cls['ee'] + cls['bb']
         elif s2 == -2:
-            return cls['ee'] - cls['bb'] + 2j * cls.get('eb', 0.)
+            eb = cls.get('eb', None)
+            return  cls['ee'] - cls['bb'] if eb is None else  cls['ee'] - cls['bb'] + 2j * eb
         else:
             assert 0
 
