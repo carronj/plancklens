@@ -208,7 +208,7 @@ def get_spin_coupling(s1, s2, cls):
 
     """
     if s1 < 0:
-        return (-1) ** (s1 + s2) * np.conjugate(get_coupling(-s1, -s2, cls))
+        return (-1) ** (s1 + s2) * np.conjugate(get_spin_coupling(-s1, -s2, cls))
     assert s1 in [0, -2, 2] and s2 in [0, -2, 2], (s1, s2, 'not implemented')
     if s1 == 0:
         if s2 == 0:
