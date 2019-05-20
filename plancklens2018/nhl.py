@@ -205,6 +205,7 @@ def get_spin_coupling(s1, s2, cls):
 
     Note:
         This uses the spin-field conventions where _0X_{lm} = -T_{lm}.
+        The output is real unless TB, EB spectra are provided and relevant.
 
     """
     if s1 < 0:
