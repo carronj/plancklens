@@ -169,7 +169,7 @@ def _get_nhl_cplx(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None
 
             clsv = utils.joincls([qe1.leg_a.cl, qe2.leg_b.cl, get_spin_coupling(si, vi, cls_ivfs_ab)])
             cltu = utils.joincls([qe1.leg_b.cl, qe2.leg_a.cl, get_spin_coupling(ti, ui, cls_ivfs_ba)])
-            R_sutv += sgn_R * utils.joincls(
+            R_sutv = R_sutv + sgn_R * utils.joincls(
                 [wignerc(clsv, cltu, so, vo, to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
 
             # we now need -s-t uv
@@ -182,7 +182,7 @@ def _get_nhl_cplx(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None
 
             clsv = utils.joincls([sgnms * qe1.leg_a.cl, qe2.leg_b.cl, get_spin_coupling(-si, vi, cls_ivfs_ab)])
             cltu = utils.joincls([sgnmt * qe1.leg_b.cl, qe2.leg_a.cl, get_spin_coupling(-ti, ui, cls_ivfs_ba)])
-            R_msmtuv += sgn_R * utils.joincls(
+            R_msmtuv = R_msmtuv + sgn_R * utils.joincls(
                 [wignerc(clsv, cltu, -so, vo, -to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
 
             GG_N0 +=  0.5 * R_sutv.real
