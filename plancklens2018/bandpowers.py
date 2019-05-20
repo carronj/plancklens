@@ -271,7 +271,7 @@ class ffp10_binner:
             bp_stats.add(self._get_binnedcl(utils.cli(qc_resp) *(dd - ss2) - cl_pred) - bp_n1)
         NMF = len(self.parfile.qcls_dd.mc_sims_mf)
         NB = len(self.parfile.mc_sims_var)
-        return bp_stats.mean(), bp_stats.sigmas_on_mean() * (1. + 1. + 2. / NMF + 2 * NB / (float(NMF * NMF)))
+        return bp_stats.mean(), bp_stats.sigmas_on_mean() * np.sqrt((1. + 1. + 2. / NMF + 2 * NB / (float(NMF * NMF))))
 
     def get_bmmc(self, mc_sims_dd=None, mc_sims_ss=None):
         """Binned multiplicative MC correction.
