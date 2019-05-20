@@ -197,7 +197,7 @@ def _get_nhl_cplx(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None
             CG_N0 += 0.5 * R_sutv.imag()
             CG_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.imag()
 
-    return GG_N0, CC_N0
+    return GG_N0, CC_N0, GC_N0, CG_N0
 
 
 def get_spin_coupling(s1, s2, cls):
