@@ -185,17 +185,17 @@ def _get_nhl_cplx(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None
             R_msmtuv += sgn_R * utils.joincls(
                 [wignerc(clsv, cltu, -so, vo, -to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
 
-            GG_N0 +=  0.5 * R_sutv.real()
-            GG_N0 +=  0.5 * (-1) ** (to + so) * R_msmtuv.real()
+            GG_N0 +=  0.5 * R_sutv.real
+            GG_N0 +=  0.5 * (-1) ** (to + so) * R_msmtuv.real
 
-            CC_N0 += 0.5 * R_sutv.real()
-            CC_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.real()
+            CC_N0 += 0.5 * R_sutv.real
+            CC_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.real
 
-            GC_N0 -= 0.5 * R_sutv.imag()
-            GC_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.imag()
+            GC_N0 -= 0.5 * R_sutv.imag
+            GC_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.imag
 
-            CG_N0 += 0.5 * R_sutv.imag()
-            CG_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.imag()
+            CG_N0 += 0.5 * R_sutv.imag
+            CG_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.imag
 
     return GG_N0, CC_N0, GC_N0, CG_N0
 
