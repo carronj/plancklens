@@ -311,16 +311,19 @@ class resp_lib_simple:
         return ret
 
     def get_response(self, k, ksource, recache=False):
+        #This uses the implementation with no TB and EB couplings, in which there is only a GG and CC response.
         s, GC, sins = qe_spin_data(k)
+        assert s >= 0, s
+        if s == 0: assert GC == 'G', (s, GC)
         fn = 'qe_' + k[1:] + '_source_%s_'%ksource + GC
         if self.npdb.get(fn) is None or recache:
             G, C = get_response(k, self.lmax_qe, ksource, self.cls_weight, self.cls_cmb, self.fal,
                                 lmax_out=self.lmax_qlm)
             if recache and self.npdb.get(fn) is not None:
                 self.npdb.remove('qe_' + k[1:] + '_source_%s' % ksource + '_G')
-                self.npdb.remove('qe_' + k[1:] + '_source_%s' % ksource + '_C')
+                if s > 0: self.npdb.remove('qe_' + k[1:] + '_source_%s' % ksource + '_C')
             self.npdb.add('qe_' + k[1:] + '_source_%s' % ksource + '_G', G)
-            self.npdb.add('qe_' + k[1:] + '_source_%s' % ksource + '_C', C)
+            if s > 0: self.npdb.add('qe_' + k[1:] + '_source_%s' % ksource + '_C', C)
         return self.npdb.get(fn)
 
 
