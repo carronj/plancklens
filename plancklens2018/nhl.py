@@ -12,12 +12,37 @@ import healpy as hp
 from plancklens2018 import utils
 from plancklens2018 import mpi
 from plancklens2018 import sql
-from plancklens2018.qresp import get_qes, wignerc, get_coupling
+from plancklens2018 import qresp
+
+
+
+def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
+            lmax_out=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
+    """(Semi-)Analytical noise level calculation for the cross-spectrum of two QE keys.
+
+        Args:
+            qe_key1: QE key 1 ('ptt, 'p', 'xtt', ...)
+            qe_key2: QE key 2 ('ptt, 'p', 'xtt, ...)
+            cls_weights: dictionary with the CMB spectra entering the QE weights.
+                        (expected are 'tt', 'te', 'ee' when/if relevant)
+            cls_ivfs: dictionary with the inverse-variance filtered CMB spectra.
+                        (expected are 'tt', 'te', 'ee', 'bb', 'tb', 'eb' when/if relevant)
+            lmax_ivf1: QE 1 uses CMB multipoles down to lmax_ivf1.
+            lmax_ivf2: QE 2 uses CMB multipoles down to lmax_ivf2.
+            lmax_out(optional): output are calculated down to lmax_out. Defaults to 2 * lmax_ivfs.
+
+        Outputs:
+            4-tuple of gradient (G) and curl (C) mode Gaussian noise co-variances GG, CC, GC, CG.
+
+    """
+    qes1 = qresp.get_qes(qe_key1, lmax_ivf1, cls_weights)
+    qes2 = qresp.get_qes(qe_key2, lmax_ivf2, cls_weights)
+    return  _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab)
 
 class nhl_lib_simple:
     """Semi-analytical unnormalized N0 library.
 
-    NB: This version only for 4 identical legs. Simple 1/fsky spectrum estimator.
+    NB: This version only for 4 identical legs, and with simple 1/fsky spectrum estimator.
 
     """
     def __init__(self, lib_dir, ivfs, cls_weight, lmax_qlm):
@@ -45,111 +70,45 @@ class nhl_lib_simple:
 
     def get_sim_nhl(self, idx, k1, k2, recache=False):
         assert idx == -1 or idx >= 0, idx
-        GC1 = '_C' if k1[0] == 'x' else '_G'
-        GC2 = '_C' if k2[0] == 'x' else '_G'
-        if GC1 != GC2:
-            return np.zeros(self.lmax_qlm + 1, dtype=float)
-        fn = 'anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + GC1
+        s1, GC1, s1ins = qresp.qe_spin_data(k1)
+        s2, GC2, s2ins = qresp.qe_spin_data(k2)
+        fn = 'anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + GC1 + GC2
         suf =  ('sim%04d'%idx) * (idx >= 0) +  'dat' * (idx == -1)
         if self.npdb.get(fn + suf) is None or recache:
-            cls_ivfs, lmax_ivf = self._get_cls(idx)
-            G, C = get_nhl(k1, k2, self.cls_weight, cls_ivfs, lmax_ivf, lmax_out=self.lmax_qlm)
+            assert s1 >= 0 and s2 >= 0, (s1, s2)
+            cls_ivfs, lmax_ivf = self._get_cls(idx, np.unique(np.concatenate([s1ins, s2ins])))
+            GG, CC, GC, CG = get_nhl(k1, k2, self.cls_weight, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=self.lmax_qlm)
+            fns = [('G', 'G', GG) ] + [('C', 'G', CG)] * (s1 > 0) + [('G', 'C', GC)] * (s2 > 0) + [('C', 'C', CC)] * (s1 > 0) * (s2 > 0)
             if recache and self.npdb.get(fn) is not None:
-                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_G' + suf)
-                self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_C' + suf)
-            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_G' + suf, G)
-            self.npdb.add('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + '_C' + suf, C)
+                for GC1, GC2, N0 in fns:
+                    self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + GC1 + GC2 + suf)
+            for GC1, GC2, N0 in fns:
+                self.npdb.add('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + GC1 + GC2 + suf, N0)
+                print("Cached " + 'anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + GC1 + GC2 + suf)
         return self.npdb.get(fn + suf)
 
-    def _get_cls(self, idx):
-        #FIXME avoid computing unnecessary filtered maps.
-        ret =  {'tt':  hp.alm2cl(self.ivfs.get_sim_tlm(idx)) / self.fsky,
-                'ee':  hp.alm2cl(self.ivfs.get_sim_elm(idx)) / self.fsky,
-                'bb':  hp.alm2cl(self.ivfs.get_sim_blm(idx)) / self.fsky,
-                'te':  hp.alm2cl(self.ivfs.get_sim_tlm(idx), alms2=self.ivfs.get_sim_elm(idx)) / self.fsky}
+    def _get_cls(self, idx, spins):
+        assert np.all(spins >= 0), spins
+        ret = {}
+        if 0 in spins:
+            ret['tt'] = hp.alm2cl(self.ivfs.get_sim_tlm(idx)) / self.fsky
+        if 2 in spins:
+            ret['ee'] = hp.alm2cl(self.ivfs.get_sim_elm(idx)) / self.fsky
+            ret['bb'] = hp.alm2cl(self.ivfs.get_sim_blm(idx)) / self.fsky
+            ret['eb'] = hp.alm2cl(self.ivfs.get_sim_elm(idx), alms2=self.ivfs.get_sim_blm(idx)) / self.fsky
+        if 0 in spins and 2 in spins:
+            ret['te'] = hp.alm2cl(self.ivfs.get_sim_tlm(idx), alms2=self.ivfs.get_sim_elm(idx)) / self.fsky
+            ret['tb'] = hp.alm2cl(self.ivfs.get_sim_tlm(idx), alms2=self.ivfs.get_sim_blm(idx)) / self.fsky
         lmaxs = [len(cl) for cl in ret.values()]
         assert len(np.unique(lmaxs)) == 1, lmaxs
         return ret, lmaxs[0]
 
-
-def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivfs, lmax_out=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
-    """(Semi-)Analytical noise level calculation for the cross-spectrum of two QE keys.
-
-    #FIXME: explain cls_ivfs here
-
-    """
-    qes1 = get_qes(qe_key1, lmax_ivfs, cls_weights)
-    qes2 = get_qes(qe_key2, lmax_ivfs, cls_weights)
-    return  _get_nhl(qes1, qes2, cls_ivfs, lmax_ivfs,
-                     lmax_out=lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab)
-
-def get_nhl_cplx(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivfs, lmax_out=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
-    """(Semi-)Analytical noise level calculation for the cross-spectrum of two QE keys.
-
-    #FIXME: explain cls_ivfs here
-
-    """
-    qes1 = get_qes(qe_key1, lmax_ivfs, cls_weights)
-    qes2 = get_qes(qe_key2, lmax_ivfs, cls_weights)
-    return  _get_nhl_cplx(qes1, qes2, cls_ivfs, lmax_ivfs,
-                     lmax_out=lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab)
-
-def _get_nhl(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
-
-    lmax_out = 2 * lmax_qe if lmax_out is None else lmax_out
-    G_N0 = np.zeros(lmax_out + 1, dtype=float)
-    C_N0 = np.zeros(lmax_out + 1, dtype=float)
-    cls_ivfs_aa = cls_ivfs
-    cls_ivfs_bb = cls_ivfs if cls_ivfs_bb is None else cls_ivfs_bb
-    cls_ivfs_ab = cls_ivfs if cls_ivfs_ab is None else cls_ivfs_ab
-    cls_ivfs_ba = cls_ivfs_ab
-
-    for qe1 in qes1:
-        for qe2 in qes2:
-            si, ti, ui, vi = (qe1.leg_a.spin_in, qe1.leg_b.spin_in, qe2.leg_a.spin_in, qe2.leg_b.spin_in)
-            so, to, uo, vo = (qe1.leg_a.spin_ou, qe1.leg_b.spin_ou, qe2.leg_a.spin_ou, qe2.leg_b.spin_ou)
-            assert so + to >= 0 and uo + vo >= 0, (so, to, uo, vo)
-            sgn_R = (-1) ** (so + to + uo + vo)
-
-            clsu = utils.joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(si, ui, cls_ivfs_aa)])
-            cltv = utils.joincls([qe1.leg_b.cl, qe2.leg_b.cl, get_coupling(ti, vi, cls_ivfs_bb)])
-            R_sutv = sgn_R * utils.joincls(
-                [wignerc(clsu, cltv, so, uo, to, vo, lmax_out=lmax_out), qe1.cL, qe2.cL])
-
-            clsv = utils.joincls([qe1.leg_a.cl, qe2.leg_b.cl, get_coupling(si, vi, cls_ivfs_ab)])
-            cltu = utils.joincls([qe1.leg_b.cl, qe2.leg_a.cl, get_coupling(ti, ui, cls_ivfs_ba)])
-            R_sutv += sgn_R * utils.joincls(
-                [wignerc(clsv, cltu, so, vo, to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
-
-            # we now need -s-t uv
-            sgnms = (-1) ** (si + so)
-            sgnmt = (-1) ** (ti + to)
-            clsu = utils.joincls([sgnms * qe1.leg_a.cl, qe2.leg_a.cl, get_coupling(-si, ui, cls_ivfs_aa)])
-            cltv = utils.joincls([sgnmt * qe1.leg_b.cl, qe2.leg_b.cl, get_coupling(-ti, vi, cls_ivfs_bb)])
-            R_msmtuv = sgn_R * utils.joincls(
-                [wignerc(clsu, cltv, -so, uo, -to, vo, lmax_out=lmax_out), qe1.cL, qe2.cL])
-
-            clsv = utils.joincls([sgnms * qe1.leg_a.cl, qe2.leg_b.cl, get_coupling(-si, vi, cls_ivfs_ab)])
-            cltu = utils.joincls([sgnmt * qe1.leg_b.cl, qe2.leg_a.cl, get_coupling(-ti, ui, cls_ivfs_ba)])
-            R_msmtuv += sgn_R * utils.joincls(
-                [wignerc(clsv, cltu, -so, vo, -to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
-
-            G_N0 +=  0.5 * R_sutv
-            G_N0 +=  0.5 * (-1) ** (to + so) * R_msmtuv
-
-            C_N0 += 0.5 * R_sutv
-            C_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv
-    return G_N0, C_N0
-
-def _get_nhl_cplx(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
-
-    lmax_out = 2 * lmax_qe if lmax_out is None else lmax_out
+def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None):
     GG_N0 = np.zeros(lmax_out + 1, dtype=float)
     CC_N0 = np.zeros(lmax_out + 1, dtype=float)
     GC_N0 = np.zeros(lmax_out + 1, dtype=float)
     CG_N0 = np.zeros(lmax_out + 1, dtype=float)
 
-
     cls_ivfs_aa = cls_ivfs
     cls_ivfs_bb = cls_ivfs if cls_ivfs_bb is None else cls_ivfs_bb
     cls_ivfs_ab = cls_ivfs if cls_ivfs_ab is None else cls_ivfs_ab
@@ -162,28 +121,28 @@ def _get_nhl_cplx(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None
             assert so + to >= 0 and uo + vo >= 0, (so, to, uo, vo)
             sgn_R = (-1) ** (so + to + uo + vo)
 
-            clsu = utils.joincls([qe1.leg_a.cl, qe2.leg_a.cl, get_spin_coupling(si, ui, cls_ivfs_aa)])
-            cltv = utils.joincls([qe1.leg_b.cl, qe2.leg_b.cl, get_spin_coupling(ti, vi, cls_ivfs_bb)])
+            clsu = utils.joincls([qe1.leg_a.cl, qe2.leg_a.cl, qresp.get_spin_coupling(si, ui, cls_ivfs_aa)])
+            cltv = utils.joincls([qe1.leg_b.cl, qe2.leg_b.cl, qresp.get_spin_coupling(ti, vi, cls_ivfs_bb)])
             R_sutv = sgn_R * utils.joincls(
-                [wignerc(clsu, cltv, so, uo, to, vo, lmax_out=lmax_out), qe1.cL, qe2.cL])
+                [qresp.wignerc(clsu, cltv, so, uo, to, vo, lmax_out=lmax_out), qe1.cL, qe2.cL])
 
-            clsv = utils.joincls([qe1.leg_a.cl, qe2.leg_b.cl, get_spin_coupling(si, vi, cls_ivfs_ab)])
-            cltu = utils.joincls([qe1.leg_b.cl, qe2.leg_a.cl, get_spin_coupling(ti, ui, cls_ivfs_ba)])
+            clsv = utils.joincls([qe1.leg_a.cl, qe2.leg_b.cl, qresp.get_spin_coupling(si, vi, cls_ivfs_ab)])
+            cltu = utils.joincls([qe1.leg_b.cl, qe2.leg_a.cl, qresp.get_spin_coupling(ti, ui, cls_ivfs_ba)])
             R_sutv = R_sutv + sgn_R * utils.joincls(
-                [wignerc(clsv, cltu, so, vo, to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
+                [qresp.wignerc(clsv, cltu, so, vo, to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
 
             # we now need -s-t uv
             sgnms = (-1) ** (si + so)
             sgnmt = (-1) ** (ti + to)
-            clsu = utils.joincls([sgnms * qe1.leg_a.cl, qe2.leg_a.cl, get_spin_coupling(-si, ui, cls_ivfs_aa)])
-            cltv = utils.joincls([sgnmt * qe1.leg_b.cl, qe2.leg_b.cl, get_spin_coupling(-ti, vi, cls_ivfs_bb)])
+            clsu = utils.joincls([sgnms * qe1.leg_a.cl, qe2.leg_a.cl, qresp.get_spin_coupling(-si, ui, cls_ivfs_aa)])
+            cltv = utils.joincls([sgnmt * qe1.leg_b.cl, qe2.leg_b.cl, qresp.get_spin_coupling(-ti, vi, cls_ivfs_bb)])
             R_msmtuv = sgn_R * utils.joincls(
-                [wignerc(clsu, cltv, -so, uo, -to, vo, lmax_out=lmax_out), qe1.cL, qe2.cL])
+                [qresp.wignerc(clsu, cltv, -so, uo, -to, vo, lmax_out=lmax_out), qe1.cL, qe2.cL])
 
-            clsv = utils.joincls([sgnms * qe1.leg_a.cl, qe2.leg_b.cl, get_spin_coupling(-si, vi, cls_ivfs_ab)])
-            cltu = utils.joincls([sgnmt * qe1.leg_b.cl, qe2.leg_a.cl, get_spin_coupling(-ti, ui, cls_ivfs_ba)])
+            clsv = utils.joincls([sgnms * qe1.leg_a.cl, qe2.leg_b.cl, qresp.get_spin_coupling(-si, vi, cls_ivfs_ab)])
+            cltu = utils.joincls([sgnmt * qe1.leg_b.cl, qe2.leg_a.cl, qresp.get_spin_coupling(-ti, ui, cls_ivfs_ba)])
             R_msmtuv = R_msmtuv + sgn_R * utils.joincls(
-                [wignerc(clsv, cltu, -so, vo, -to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
+                [qresp.wignerc(clsv, cltu, -so, vo, -to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
 
             GG_N0 +=  0.5 * R_sutv.real
             GG_N0 +=  0.5 * (-1) ** (to + so) * R_msmtuv.real
@@ -198,38 +157,6 @@ def _get_nhl_cplx(qes1, qes2, cls_ivfs, lmax_qe, lmax_out=None, cls_ivfs_bb=None
             CG_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.imag
 
     return GG_N0, CC_N0, GC_N0, CG_N0
-
-
-def get_spin_coupling(s1, s2, cls):
-    """<_{s1}X_{lm} _{s2}X^*{lm}>
-
-    Note:
-        This uses the spin-field conventions where _0X_{lm} = -T_{lm}.
-        The output is real unless TB, EB spectra are provided and relevant.
-
-    """
-    if s1 < 0:
-        return (-1) ** (s1 + s2) * np.conjugate(get_spin_coupling(-s1, -s2, cls))
-    assert s1 in [0, -2, 2] and s2 in [0, -2, 2], (s1, s2, 'not implemented')
-    if s1 == 0:
-        if s2 == 0:
-            return cls['tt']
-        tb = cls.get('tb', None)
-        return  -cls['te'] if tb is None else  -cls['te'] + 1j * np.sign(s2) * tb
-    elif s1 == 2:
-        if s2 == 0:
-            tb = cls.get('tb', None)
-            return  -cls['te'] if tb is None else  -cls['te'] - 1j * tb
-        elif s2 == 2:
-            return cls['ee'] + cls['bb']
-        elif s2 == -2:
-            eb = cls.get('eb', None)
-            return  cls['ee'] - cls['bb'] if eb is None else  cls['ee'] - cls['bb'] + 2j * eb
-        else:
-            assert 0
-
-
-
 
 
 
