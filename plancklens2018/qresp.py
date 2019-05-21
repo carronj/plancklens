@@ -311,7 +311,7 @@ class resp_lib_simple:
         return ret
 
     def get_response(self, k, ksource, recache=False):
-        #This uses the implementation with no TB and EB couplings, in which there is only a GG and CC response.
+        #This uses the implementation with no TB and EB couplings, in which case there is only a GG and CC response.
         s, GC, sins = qe_spin_data(k)
         assert s >= 0, s
         if s == 0: assert GC == 'G', (s, GC)
@@ -501,7 +501,7 @@ def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
         xi1xi2w = xi1 * xi2 * wg
         if np.iscomplexobj(xi1xi2w):
             ret = wigners.wignercoeff(np.real(xi1xi2w), xg, sp1 + sp2, s1 + s2, lmax_out)
-            ret += 1j * wigners.wignercoeff(np.imag(xi1xi2w), xg, sp1 + sp2, s1 + s2, lmax_out)
+            ret = ret + 1j * wigners.wignercoeff(np.imag(xi1xi2w), xg, sp1 + sp2, s1 + s2, lmax_out)
             return ret
         else:
             return wigners.wignercoeff(xi1xi2w, xg, sp1 + sp2, s1 + s2, lmax_out)
