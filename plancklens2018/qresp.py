@@ -266,17 +266,20 @@ def get_qes(qe_key, lmax, cls_weight):
         assert 0
 
 
-def qe_spin(qe_key):
-    """Returns spin-weight of quadratic estimator from its quadratic estimator key.
+def qe_spin_data(qe_key):
+    """Returns out and in spin-weights of quadratic estimator from its quadratic estimator key.
 
-        Output is an integer >= 0 (spin) and a letter 'G' or 'C' if gradient or curl mode estimator.
+        Output is an integer >= 0 (spin), a letter 'G' or 'C' if gradient or curl mode estimator, and the
+        unordered list of unique spins input to the estimator.
 
     """
     qes = get_qes(qe_key, 1, dict())
     spins_out = [qe.leg_a.spin_ou + qe.leg_b.spin_ou for qe in qes]
+    spins_in = np.unique([qe.leg_a.spin_in for qe in qes] + [qe.leg_b.spin_in for qe in qes])
     assert len(np.unique(spins_out)) == 1, spins_out
     assert spins_out[0] >= 0, spins_out[0]
-    return spins_out[0], 'C' if qe_key[0] == 'x' else 'G'
+    assert np.all(spins_in >= 0), spins_in
+    return spins_out[0], 'C' if qe_key[0] == 'x' else 'G', spins_in
 
 
 class resp_lib_simple:
