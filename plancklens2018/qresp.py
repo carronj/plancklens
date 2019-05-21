@@ -311,7 +311,8 @@ class resp_lib_simple:
         return ret
 
     def get_response(self, k, ksource, recache=False):
-        fn = 'qe_' + k[1:] + '_source_%s'%ksource + ('_G' if k[0] != 'x' else '_C')
+        s, GC, sins = qe_spin_data(k)
+        fn = 'qe_' + k[1:] + '_source_%s_'%ksource + GC
         if self.npdb.get(fn) is None or recache:
             G, C = get_response(k, self.lmax_qe, ksource, self.cls_weight, self.cls_cmb, self.fal,
                                 lmax_out=self.lmax_qlm)
@@ -337,7 +338,9 @@ get_response_sepTP = get_response # Here for historical reasons.
 
 def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1,
                           fal_leg2=None, lmax_out=None):
-
+    tb = cls_cmb.get('tb', None)
+    eb = cls_cmb.get('eb', None)
+    assert tb is None and eb is None, "This response implementation only for vanishing EB and TB CMB-sky spectra."
     lmax_qlm = min(2 * lmax_qe,  2 * lmax_qe if lmax_out is None else lmax_out)
     fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
     RGG = np.zeros(lmax_qlm + 1, dtype=float)
