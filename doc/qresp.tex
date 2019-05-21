@@ -117,12 +117,22 @@ where $\xi$ are position-space correlation functions
 Projecting onto gradient and curl modes results in
 \begin{equation} \boxed{
 \begin{split}
-\left.\av{\hat g^{r}_{LM} \hat g^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &=\delta_{LL'}\delta_{MM'} \frac 12\left[n_L^{stuv} +  (-1)^{r} n^{-s-tuv}_L\right] \\
-		\left.\av{\hat c^{r}_{LM} \hat c^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &= \delta_{LL'}\delta_{MM'}\frac 12\left[n_L^{stuv} -  (-1)^{r} n^{-s-tuv}_L\right]\\
-	\left.\av{\hat g^{r}_{LM} \hat c^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &=0 = \left.\av{\hat c^{r}_{LM} \hat g^{*, r'}_{L' M'} }\right|_{\rm Gauss.}
+\left.\av{\hat g^{r}_{LM} \hat g^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &=\delta_{LL'}\delta_{MM'} \frac 12 \Re\left[n_L^{stuv} +  (-1)^{r} n^{-s-tuv}_L\right] \\
+		\left.\av{\hat c^{r}_{LM} \hat c^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &= \delta_{LL'}\delta_{MM'}\frac 12 \Re\left[n_L^{stuv} -  (-1)^{r} n^{-s-tuv}_L\right]\\
+	\left.\av{\hat g^{r}_{LM} \hat c^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &= \delta_{LL'}\delta_{MM'}\frac 12 \Im\left[-n_L^{stuv} -  (-1)^{r} n^{-s-tuv}_L\right] \\ \left.\av{\hat c^{r}_{LM} \hat g^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &= \delta_{LL'}\delta_{MM'}\frac 12 \Im\left[n_L^{stuv} -  (-1)^{r} n^{-s-tuv}_L\right]
 \end{split}}
 \end{equation}
-Ref.~\cite{Aghanim:2018oex} calculates the covariance matrix based on these equations using the empirical, realisation dependent power spectra $\bar C_\ell^{s_i,t_i}$.
+($\Re$ and $\Im$ stands for real and imaginary parts respectively). 
+Ref.~\cite{Aghanim:2018oex} calculates the covariance matrix based on these equations using the empirical, realisation dependent power spectra $\bar C_\ell^{s_i,t_i}$. The gradient-curl mode cross-covariance is only sourced by gradient-curl couplings in the inverse-variance filtered CMB fields (i.e., non-zero $C_\ell^{\bar T \bar E}$, $C_\ell^{\bar T \bar B}$ or $C_\ell^{\bar E \bar B}$). In the often most relevant situation that these spectra vanish, these equations simplify to
+\begin{equation}
+\begin{split}
+\left.\av{\hat g^{r}_{LM} \hat g^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &=\delta_{LL'}\delta_{MM'} \frac 12 \left[n_L^{stuv} +  (-1)^{r} n^{-s-tuv}_L\right] \\
+		\left.\av{\hat c^{r}_{LM} \hat c^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &= \delta_{LL'}\delta_{MM'}\frac 12 \left[n_L^{stuv} -  (-1)^{r} n^{-s-tuv}_L\right] \\
+	\left.\av{\hat g^{r}_{LM} \hat c^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &= 0 = \left.\av{\hat c^{r}_{LM} \hat g^{*, r'}_{L' M'} }\right|_{\rm Gauss.} \\
+	&\left(\textrm{if   } C_\ell^{\bar T \bar E} = C_\ell^{\bar T \bar B} =  C_\ell^{\bar E \bar B} = 0\right)
+\end{split}
+\end{equation}
+Ref.~\cite{Aghani}
 \subsection{Responses}
 We now turn to the calculation of the response of the estimator to a source of anisotropy. Anisotropy can sometimes be parametrized at the level of the CMB maps, (for example for lensing), with
 \begin{equation}\label{eq:mapresp}
