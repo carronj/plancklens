@@ -269,8 +269,8 @@ def get_qes(qe_key, lmax, cls_weight):
 def qe_spin_data(qe_key):
     """Returns out and in spin-weights of quadratic estimator from its quadratic estimator key.
 
-        Output is an integer >= 0 (spin), a letter 'G' or 'C' if gradient or curl mode estimator, and the
-        unordered list of unique spins (>= 0) input to the estimator.
+        Output is an integer >= 0 (spin), a letter 'G' or 'C' if gradient or curl mode estimator, the
+        unordered list of unique spins (>= 0) input to the estimator, and the spin-1 qe key.
 
     """
     qes = get_qes(qe_key, 1, dict())
