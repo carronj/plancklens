@@ -39,70 +39,6 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
     qes2 = qresp.get_qes(qe_key2, lmax_ivf2, cls_weights)
     return  _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab)
 
-class nhl_lib_simple:
-    """Semi-analytical unnormalized N0 library.
-
-    NB: This version only for 4 identical legs, and with simple 1/fsky spectrum estimator.
-
-    """
-    def __init__(self, lib_dir, ivfs, cls_weight, lmax_qlm):
-        self.lmax_qlm = lmax_qlm
-        self.cls_weight = cls_weight
-        self.ivfs = ivfs
-        fn_hash = os.path.join(lib_dir, 'nhl_hash.pk')
-        if mpi.rank == 0:
-            if not os.path.exists(lib_dir):
-                os.makedirs(lib_dir)
-            if not os.path.exists(fn_hash):
-                pk.dump(self.hashdict(), open(fn_hash, 'wb'))
-        mpi.barrier()
-        utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
-
-        self.lib_dir = lib_dir
-        self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
-        self.fsky = np.mean(self.ivfs.get_fmask())
-
-    def hashdict(self):
-        ret = {k: utils.clhash(self.cls_weight[k]) for k in self.cls_weight.keys()}
-        ret['ivfs']  = self.ivfs.hashdict()
-        ret['lmax_qlm'] = self.lmax_qlm
-        return ret
-
-    def get_sim_nhl(self, idx, k1, k2, recache=False):
-        assert idx == -1 or idx >= 0, idx
-        s1, GC1, s1ins = qresp.qe_spin_data(k1)
-        s2, GC2, s2ins = qresp.qe_spin_data(k2)
-        fn = 'anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + GC1 + GC2
-        suf =  ('sim%04d'%idx) * (idx >= 0) +  'dat' * (idx == -1)
-        if self.npdb.get(fn + suf) is None or recache:
-            assert s1 >= 0 and s2 >= 0, (s1, s2)
-            cls_ivfs, lmax_ivf = self._get_cls(idx, np.unique(np.concatenate([s1ins, s2ins])))
-            GG, CC, GC, CG = get_nhl(k1, k2, self.cls_weight, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=self.lmax_qlm)
-            fns = [('G', 'G', GG) ] + [('C', 'G', CG)] * (s1 > 0) + [('G', 'C', GC)] * (s2 > 0) + [('C', 'C', CC)] * (s1 > 0) * (s2 > 0)
-            if recache and self.npdb.get(fn) is not None:
-                for GC1, GC2, N0 in fns:
-                    self.npdb.remove('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + GC1 + GC2 + suf)
-            for GC1, GC2, N0 in fns:
-                self.npdb.add('anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + GC1 + GC2 + suf, N0)
-                print("Cached " + 'anhl_qe_' + k1[1:] + '_qe_' + k2[1:] + GC1 + GC2 + suf)
-        return self.npdb.get(fn + suf)
-
-    def _get_cls(self, idx, spins):
-        assert np.all(spins >= 0), spins
-        ret = {}
-        if 0 in spins:
-            ret['tt'] = hp.alm2cl(self.ivfs.get_sim_tlm(idx)) / self.fsky
-        if 2 in spins:
-            ret['ee'] = hp.alm2cl(self.ivfs.get_sim_elm(idx)) / self.fsky
-            ret['bb'] = hp.alm2cl(self.ivfs.get_sim_blm(idx)) / self.fsky
-            ret['eb'] = hp.alm2cl(self.ivfs.get_sim_elm(idx), alms2=self.ivfs.get_sim_blm(idx)) / self.fsky
-        if 0 in spins and 2 in spins:
-            ret['te'] = hp.alm2cl(self.ivfs.get_sim_tlm(idx), alms2=self.ivfs.get_sim_elm(idx)) / self.fsky
-            ret['tb'] = hp.alm2cl(self.ivfs.get_sim_tlm(idx), alms2=self.ivfs.get_sim_blm(idx)) / self.fsky
-        lmaxs = [len(cl) for cl in ret.values()]
-        assert len(np.unique(lmaxs)) == 1, lmaxs
-        return ret, lmaxs[0]
-
 def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None):
     GG_N0 = np.zeros(lmax_out + 1, dtype=float)
     CC_N0 = np.zeros(lmax_out + 1, dtype=float)
@@ -160,3 +96,67 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None)
 
 
 
+
+
+class nhl_lib_simple:
+    """Semi-analytical unnormalized N0 library.
+
+    NB: This version only for 4 identical legs, and with simple 1/fsky spectrum estimator.
+
+    """
+    def __init__(self, lib_dir, ivfs, cls_weight, lmax_qlm):
+        self.lmax_qlm = lmax_qlm
+        self.cls_weight = cls_weight
+        self.ivfs = ivfs
+        fn_hash = os.path.join(lib_dir, 'nhl_hash.pk')
+        if mpi.rank == 0:
+            if not os.path.exists(lib_dir):
+                os.makedirs(lib_dir)
+            if not os.path.exists(fn_hash):
+                pk.dump(self.hashdict(), open(fn_hash, 'wb'))
+        mpi.barrier()
+        utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
+
+        self.lib_dir = lib_dir
+        self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
+        self.fsky = np.mean(self.ivfs.get_fmask())
+
+    def hashdict(self):
+        ret = {k: utils.clhash(self.cls_weight[k]) for k in self.cls_weight.keys()}
+        ret['ivfs']  = self.ivfs.hashdict()
+        ret['lmax_qlm'] = self.lmax_qlm
+        return ret
+
+    def get_sim_nhl(self, idx, k1, k2, recache=False):
+        assert idx == -1 or idx >= 0, idx
+        s1, GC1, s1ins, ksp1 = qresp.qe_spin_data(k1)
+        s2, GC2, s2ins, ksp2 = qresp.qe_spin_data(k2)
+        fn = 'anhl_qe_' + ksp1 + k1[1:] + '_qe_' + ksp2 +  k2[1:] + GC1 + GC2
+        suf =  ('sim%04d'%idx) * (idx >= 0) +  'dat' * (idx == -1)
+        if self.npdb.get(fn + suf) is None or recache:
+            assert s1 >= 0 and s2 >= 0, (s1, s2)
+            cls_ivfs, lmax_ivf = self._get_cls(idx, np.unique(np.concatenate([s1ins, s2ins])))
+            GG, CC, GC, CG = get_nhl(k1, k2, self.cls_weight, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=self.lmax_qlm)
+            fns = [('G', 'G', GG) ] + [('C', 'G', CG)] * (s1 > 0) + [('G', 'C', GC)] * (s2 > 0) + [('C', 'C', CC)] * (s1 > 0) * (s2 > 0)
+            if recache and self.npdb.get(fn) is not None:
+                for GC1, GC2, N0 in fns:
+                    self.npdb.remove('anhl_qe_' + ksp1 +  k1[1:] + '_qe_'+ ksp2 + k2[1:] + GC1 + GC2 + suf)
+            for GC1, GC2, N0 in fns:
+                self.npdb.add('anhl_qe_' + ksp1 + k1[1:] + '_qe_' + ksp2 + k2[1:] + GC1 + GC2 + suf, N0)
+        return self.npdb.get(fn + suf)
+
+    def _get_cls(self, idx, spins):
+        assert np.all(spins >= 0), spins
+        ret = {}
+        if 0 in spins:
+            ret['tt'] = hp.alm2cl(self.ivfs.get_sim_tlm(idx)) / self.fsky
+        if 2 in spins:
+            ret['ee'] = hp.alm2cl(self.ivfs.get_sim_elm(idx)) / self.fsky
+            ret['bb'] = hp.alm2cl(self.ivfs.get_sim_blm(idx)) / self.fsky
+            ret['eb'] = hp.alm2cl(self.ivfs.get_sim_elm(idx), alms2=self.ivfs.get_sim_blm(idx)) / self.fsky
+        if 0 in spins and 2 in spins:
+            ret['te'] = hp.alm2cl(self.ivfs.get_sim_tlm(idx), alms2=self.ivfs.get_sim_elm(idx)) / self.fsky
+            ret['tb'] = hp.alm2cl(self.ivfs.get_sim_tlm(idx), alms2=self.ivfs.get_sim_blm(idx)) / self.fsky
+        lmaxs = [len(cl) for cl in ret.values()]
+        assert len(np.unique(lmaxs)) == 1, lmaxs
+        return ret, lmaxs[0]

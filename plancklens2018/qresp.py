@@ -278,7 +278,8 @@ def qe_spin_data(qe_key):
     spins_in = np.unique(np.abs([qe.leg_a.spin_in for qe in qes] + [qe.leg_b.spin_in for qe in qes]))
     assert len(np.unique(spins_out)) == 1, spins_out
     assert spins_out[0] >= 0, spins_out[0]
-    return spins_out[0], 'C' if qe_key[0] == 'x' else 'G', spins_in
+    if spins_out[0] > 0: assert qe_key[0] in ['x', 'p'], 'non-zero spin anisotropy ' + qe_key +  ' not implemented ?'
+    return spins_out[0], 'C' if qe_key[0] == 'x' else 'G', spins_in, 'p' if qe_key[0] == 'x' else qe_key[0]
 
 
 class resp_lib_simple:
@@ -312,18 +313,18 @@ class resp_lib_simple:
 
     def get_response(self, k, ksource, recache=False):
         #This uses the implementation with no TB and EB couplings, in which case there is only a GG and CC response.
-        s, GC, sins = qe_spin_data(k)
+        s, GC, sins, ksp = qe_spin_data(k)
         assert s >= 0, s
         if s == 0: assert GC == 'G', (s, GC)
-        fn = 'qe_' + k[1:] + '_source_%s_'%ksource + GC
+        fn = 'qe_' + ksp + k[1:] + '_source_%s_'%ksource + GC
         if self.npdb.get(fn) is None or recache:
             G, C = get_response(k, self.lmax_qe, ksource, self.cls_weight, self.cls_cmb, self.fal,
                                 lmax_out=self.lmax_qlm)
             if recache and self.npdb.get(fn) is not None:
-                self.npdb.remove('qe_' + k[1:] + '_source_%s' % ksource + '_G')
+                self.npdb.remove('qe_' + ksp + k[1:] + '_source_%s' % ksource + '_G')
                 if s > 0: self.npdb.remove('qe_' + k[1:] + '_source_%s' % ksource + '_C')
-            self.npdb.add('qe_' + k[1:] + '_source_%s' % ksource + '_G', G)
-            if s > 0: self.npdb.add('qe_' + k[1:] + '_source_%s' % ksource + '_C', C)
+            self.npdb.add('qe_' + ksp + k[1:] + '_source_%s' % ksource + '_G', G)
+            if s > 0: self.npdb.add('qe_' + ksp + k[1:] + '_source_%s' % ksource + '_C', C)
         return self.npdb.get(fn)
 
 
