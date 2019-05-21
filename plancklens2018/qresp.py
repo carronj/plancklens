@@ -146,7 +146,7 @@ def get_qes(qe_key, lmax, cls_weight):
         if qe_key in ['ptt', 'xtt']:
             cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
 
-            cltt = cls_weight['tt'][:lmax + 1]
+            cltt = cls_weight.get('tt', np.zeros(lmax + 1))[:lmax + 1]
             lega = qeleg(0, 0,  np.ones(lmax + 1, dtype=float))
             legb = qeleg(0, 1,  np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * cltt)
 
@@ -155,8 +155,8 @@ def get_qes(qe_key, lmax, cls_weight):
         elif qe_key in ['p_p', 'x_p']:
             qes = []
             cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
-            clee = cls_weight['ee'][:lmax + 1]
-            clbb = cls_weight['bb'][:lmax + 1]
+            clee = cls_weight.get('ee', np.zeros(lmax + 1))[:lmax + 1]
+            clbb = cls_weight.get('bb', np.zeros(lmax + 1))[:lmax + 1]
             assert np.all(clbb == 0.), 'not implemented (but easy)'
             # E-part. G = -1/2 _{2}P - 1/2 _{-2}P
             lega = qeleg(2, 2, 0.5 * np.ones(lmax + 1, dtype=float))
@@ -180,7 +180,7 @@ def get_qes(qe_key, lmax, cls_weight):
             cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
             qes = get_qes('ptt', lmax, cls_weight) + get_qes('p_p', lmax, cls_weight)
 
-            clte = cls_weight['te'][:lmax + 1] #: _0X_{lm} convention
+            clte = cls_weight.get('te', np.zeros(lmax + 1))[:lmax + 1] #: _0X_{lm} convention
             # Here Wiener-filtered T contains c_\ell^{TE} \bar E for sep_TP
             lega = qeleg( 0, 0,  np.ones(lmax + 1, dtype=float))
             legb = qeleg( 2, 1,  -0.5 * np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * clte)
@@ -204,13 +204,13 @@ def get_qes(qe_key, lmax, cls_weight):
         cL_out = np.ones(2 * lmax + 1, dtype=float)
         if qe_key == 'ftt':
             lega = qeleg(0, 0, -np.ones(lmax + 1, dtype=float))
-            legb = qeleg(0, 0, -cls_weight['tt'][:lmax + 1])
+            legb = qeleg(0, 0, -cls_weight.get('tt', np.zeros(lmax + 1))[:lmax + 1])
             return [qe(lega, legb, cL_out)]
 
         elif qe_key == 'f_p':
             qes = []
-            clee = cls_weight['ee'][:lmax + 1]
-            clbb = cls_weight['bb'][:lmax + 1]
+            clee = cls_weight.get('ee', np.zeros(lmax + 1))[:lmax + 1]
+            clbb = cls_weight.get('bb', np.zeros(lmax + 1))[:lmax + 1]
             assert np.all(clbb == 0.), 'not implemented (but easy)'
             # E-part. G = -1/2 _{2}P - 1/2 _{-2}P
             lega = qeleg(2, 2, 0.5 * np.ones(lmax + 1, dtype=float))
@@ -231,9 +231,8 @@ def get_qes(qe_key, lmax, cls_weight):
             return qes
 
         elif qe_key == 'f':
-            clte = cls_weight['te'][:lmax + 1] #: _0X_{lm} convention
+            clte = cls_weight.get('te', np.zeros(lmax + 1))[:lmax + 1] #: _0X_{lm} convention
             qes = get_qes('ftt', lmax, cls_weight) + get_qes('f_p', lmax, cls_weight)
-
             # Here Wiener-filtered T contains c_\ell^{TE} \bar E
             lega = qeleg( 0, 0,  np.ones(lmax + 1, dtype=float))
             legb = qeleg( 2, 0,  -0.5  * clte)
@@ -265,6 +264,19 @@ def get_qes(qe_key, lmax, cls_weight):
             assert 0
     else:
         assert 0
+
+
+def qe_spin(qe_key):
+    """Return spin-weight of quadratic estimator from its quadratic estimator key.
+
+        Output spin (integer) is >= 0.
+
+    """
+    qes = get_qes(qe_key, 1, dict())
+    spins_out = [qe.leg_a.spin_ou + qe.leg_b.spin_ou for qe in qes]
+    assert len(np.unique(spins_out)) == 1, spins_out
+    assert spins_out[0] >= 0, spins_out[0]
+    return spins_out[0]
 
 
 class resp_lib_simple:
