@@ -106,7 +106,7 @@ def get_covresp(source, s1, s2, cls, lmax):
     if source in ['p', 'f']:
         # Lensing or modulation field from the field representation
         s_source, prR, mrR, cL_scal = get_resp_legs(source, lmax)[s1]
-        coupl = get_coupling(s1, s2, cls)[:lmax + 1]
+        coupl = get_spin_coupling(s1, s2, cls)[:lmax + 1]
         return s_source, prR * coupl, mrR * coupl, cL_scal
     elif source == 'stt':
         # Point source 'S^2': Cov -> Cov + B delta_nn' S^2(n) B^\dagger on the diagonal.
@@ -428,10 +428,10 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
 
     for s1 in spins:
         for s2 in spins:
-            cl1 = get_coupling(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
+            cl1 = get_spin_coupling(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
             # These 1/2 factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to T E B.
-            cl2 = get_coupling(s2, s1, cls_cmb)[:lmax_cmb + 1]
-            cl2[:lmax_qe + 1] -=  get_coupling(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
+            cl2 = get_spin_coupling(s2, s1, cls_cmb)[:lmax_cmb + 1]
+            cl2[:lmax_qe + 1] -= get_spin_coupling(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
             if np.any(cl1) and np.any(cl2):
                 for a in [-1, 1]:
                     ai = get_alpha_lower(s2, lmax_cmb) if a == - 1 else get_alpha_raise(s2, lmax_cmb)
@@ -444,8 +444,8 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     # Build remaining Fisher term II:
     for s1 in spins:
         for s2 in spins:
-            cl1 = get_coupling(s2, s1, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s1 != 0))
-            cl2 = get_coupling(s1, s2, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s2 != 0))
+            cl1 = get_spin_coupling(s2, s1, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s1 != 0))
+            cl2 = get_spin_coupling(s1, s2, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s2 != 0))
             if np.any(cl1) and np.any(cl2):
                 for a in [-1, 1]:
                     ai = get_alpha_lower(s2, lmax_qe) if a == -1 else get_alpha_raise(s2, lmax_qe)
@@ -525,21 +525,32 @@ def get_alpha_lower(s, lmax):
     ret[abs(s):] = -np.sqrt(np.arange(s + abs(s), lmax + s + 1) * np.arange(abs(s) - s + 1, lmax - s + 2))
     return ret
 
-def get_coupling(s1, s2, cls):
-    """<_{s1}X_{lm} _{s2}X^*{lm}>
+def get_spin_coupling(s1, s2, cls):
+    """Spin-weighted power spectrum <_{s1}X_{lm} _{s2}X^*{lm}>
 
     Note:
-        This uses the spin-field conventions where _0X_{lm} = -T_{lm}
+        The output is real unless TB, EB spectra are provided and relevant.
+        This uses the spin-field conventions where _0X_{lm} = -T_{lm}.
 
     """
     if s1 < 0:
-        return (-1) ** (s1 + s2) * get_coupling(-s1, -s2, cls)
-    assert s1 in [0, -2, 2] and s2 in [0, -2, 2], (s1, s2 , 'not implemented')
-    if s1 == 0 :
-        if s2 == 0 :
-            return cls['tt'].copy()
-        return -cls['te'].copy()
+        return (-1) ** (s1 + s2) * np.conjugate(get_spin_coupling(-s1, -s2, cls))
+    assert s1 in [0, -2, 2] and s2 in [0, -2, 2], (s1, s2, 'not implemented')
+    if s1 == 0:
+        if s2 == 0:
+            return cls['tt']
+        tb = cls.get('tb', None)
+        return  -cls['te'] if tb is None else  -cls['te'] + 1j * np.sign(s2) * tb
     elif s1 == 2:
         if s2 == 0:
-            return -cls['te'].copy()
-        return cls['ee'] + np.sign(s2) * cls['bb']
+            tb = cls.get('tb', None)
+            return  -cls['te'] if tb is None else  -cls['te'] - 1j * tb
+        elif s2 == 2:
+            return cls['ee'] + cls['bb']
+        elif s2 == -2:
+            eb = cls.get('eb', None)
+            return  cls['ee'] - cls['bb'] if eb is None else  cls['ee'] - cls['bb'] + 2j * eb
+        else:
+            assert 0
+
+
