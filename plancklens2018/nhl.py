@@ -1,6 +1,5 @@
 """This module to calculate semi-analytical noise biases.
 
-#FIXME: do version with non-zero empirical TB EB (-> complex coupling and nonzero GC-CG term)
 """
 from __future__ import print_function
 
@@ -13,7 +12,6 @@ from plancklens2018 import utils
 from plancklens2018 import mpi
 from plancklens2018 import sql
 from plancklens2018 import qresp
-
 
 
 def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
@@ -29,7 +27,7 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
                         (expected are 'tt', 'te', 'ee', 'bb', 'tb', 'eb' when/if relevant)
             lmax_ivf1: QE 1 uses CMB multipoles down to lmax_ivf1.
             lmax_ivf2: QE 2 uses CMB multipoles down to lmax_ivf2.
-            lmax_out(optional): output are calculated down to lmax_out. Defaults to 2 * lmax_ivfs.
+            lmax_out(optional): output are calculated down to lmax_out. Defaults to lmax_ivf1 + lmax_ivf2
 
         Outputs:
             4-tuple of gradient (G) and curl (C) mode Gaussian noise co-variances GG, CC, GC, CG.
@@ -37,6 +35,8 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
     """
     qes1 = qresp.get_qes(qe_key1, lmax_ivf1, cls_weights)
     qes2 = qresp.get_qes(qe_key2, lmax_ivf2, cls_weights)
+    if lmax_out is None:
+        lmax_out = lmax_ivf1 + lmax_ivf2
     return  _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab)
 
 def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None):
@@ -93,9 +93,6 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None)
             CG_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.imag
 
     return GG_N0, CC_N0, GC_N0, CG_N0
-
-
-
 
 
 class nhl_lib_simple:

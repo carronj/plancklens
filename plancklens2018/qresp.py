@@ -56,21 +56,6 @@ class qe:
         return len(self.cL)
 
 
-class resp_leg:
-    """ Response instance of a spin-s field to a spin-r anisotropy source.
-
-    Args:
-        s (int): spin of the field which responds to the anisotropy  source.
-        r (int): spin of the anisotropy source.
-        RL (1d array): response coefficients.
-
-    """
-    def __init__(self, s, r, RL):
-        assert s >= 0, 'do I want this ?'
-        self.s = s
-        self.r = r
-        self.RL = RL
-
 def get_resp_legs(source, lmax):
     """Defines the responses terms for a CMB map anisotropy source.
 
