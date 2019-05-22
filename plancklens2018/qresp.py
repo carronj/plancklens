@@ -182,6 +182,9 @@ def get_qes(qe_key, lmax, cls_weight):
 
             clte = cls_weight.get('te', np.zeros(lmax + 1))[:lmax + 1] #: _0X_{lm} convention
             # Here Wiener-filtered T contains c_\ell^{TE} \bar E for sep_TP
+            #             lega = qeleg(0, 0,  np.ones(lmax + 1, dtype=float))
+            #             legb = qeleg(0, 1,  np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * cltt)
+            # and    E is -1/2 (_2 P + _2 P) and T is - _{0} X
             lega = qeleg( 0, 0,  np.ones(lmax + 1, dtype=float))
             legb = qeleg( 2, 1,  -0.5 * np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * clte)
             qes.append(qe(lega, legb, cL_out))
@@ -355,6 +358,7 @@ def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1,
         assert s1 in [0, -2, 2] and s2 in [0, -2, 2] and leg in [1, 2]
         fal = fal_leg1 if leg == 1 else fal_leg2
         if s1 == 0:
+            #FIXME: why -sign here ?
             return fal['t'] if s2 == 0 else (-0.5 * fal['te'] if 'te' in fal.keys() else None)
         if s1 in [-2, 2]:
             if s2 == 0: return -1 * fal['te'] if 'te' in fal.keys() else None
@@ -533,7 +537,7 @@ def get_alpha_lower(s, lmax):
     return ret
 
 def get_spin_coupling(s1, s2, cls):
-    """Spin-weighted power spectrum <_{s1}X_{lm} _{s2}X^*{lm}>
+    """Spin-weighted power spectrum <_{s1}X_{lm} _{s2}X^*{lm}>.
 
     Note:
         The output is real unless TB, EB spectra are provided and relevant.
