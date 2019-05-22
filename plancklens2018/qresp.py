@@ -86,9 +86,9 @@ def get_resp_legs(source, lmax):
     """
     lmax_cL = 2 *  lmax
     if source == 'p': # lensing (gradient and curl): _sX -> _sX -  1/2 alpha_1 \eth _sX - 1/2 \alpha_{-1} \bar \eth _sX
-        return {s : (1, -0.5 * get_alpha_lower(s, lmax),
-                        -0.5 * get_alpha_raise(s, lmax),
-                        np.sqrt(np.arange(lmax_cL + 1) * np.arange(1, lmax_cL + 2, dtype=float))) for s in [0, -2, 2]}
+        return {s : (1, -0.5 * get_spin_lower(s, lmax),
+                     -0.5 * get_spin_raise(s, lmax),
+                     np.sqrt(np.arange(lmax_cL + 1) * np.arange(1, lmax_cL + 2, dtype=float))) for s in [0, -2, 2]}
     if source == 'f': # Modulation: _sX -> _sX + f _sX.
         return {s : (0, 0.5 * np.ones(lmax + 1, dtype=float),
                         0.5 * np.ones(lmax + 1, dtype=float),
@@ -136,71 +136,51 @@ def get_qes(qe_key, lmax, cls_weight):
     (It is useful to remember that by convention  $_{0}X_{lm} = - T_{lm}$)
 
     """
-    def _sqrt(cl):
-        ret = np.zeros(len(cl), dtype=float)
-        ret[np.where(cl > 0)] = np.sqrt(cl[np.where(cl > 0)])
-        return ret
-
     if qe_key[0] == 'p' or qe_key[0] == 'x':
         # Lensing estimate (both gradient and curl)
+        cL_out = get_spin_raise(0, 2 * lmax)
         if qe_key in ['ptt', 'xtt']:
-            cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
-
             cltt = cls_weight.get('tt', np.zeros(lmax + 1))[:lmax + 1]
-            lega = qeleg(0, 0,  np.ones(lmax + 1, dtype=float))
-            legb = qeleg(0, 1,  np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * cltt)
-
+            lega = qeleg(0, 0,  -np.ones(lmax + 1, dtype=float))
+            legb = qeleg(0, 1, get_spin_raise(0, lmax) * cltt)
             return [qe(lega, legb, cL_out)]
 
         elif qe_key in ['p_p', 'x_p']:
             qes = []
-            cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
             clee = cls_weight.get('ee', np.zeros(lmax + 1))[:lmax + 1]
             clbb = cls_weight.get('bb', np.zeros(lmax + 1))[:lmax + 1]
             assert np.all(clbb == 0.), 'not implemented (but easy)'
             # E-part. G = -1/2 _{2}P - 1/2 _{-2}P
-            lega = qeleg(2, 2, 0.5 * np.ones(lmax + 1, dtype=float))
-            legb = qeleg(2, -1,  0.5 * _sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clee)
+            lega = qeleg(2, 2, -0.5 * np.ones(lmax + 1, dtype=float))
+            legb = qeleg(2, -1, 0.5 * get_spin_raise(-2, lmax) * clee)
             qes.append(qe(lega, legb, cL_out))
 
-            lega = qeleg(2, 2,  0.5 *np.ones(lmax + 1, dtype=float))
-            legb = qeleg(-2, -1, 0.5 * _sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clee)
+            lega = qeleg(2, 2,  -0.5 * np.ones(lmax + 1, dtype=float))
+            legb = qeleg(-2, -1, 0.5 * get_spin_raise(-2, lmax) * clee)
             qes.append(qe(lega, legb, cL_out))
 
-            lega = qeleg(-2, -2, 0.5 *  np.ones(lmax + 1, dtype=float))
-            legb = qeleg(2, 3,0.5 * _sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clee)
+            lega = qeleg(-2, -2, -0.5 *  np.ones(lmax + 1, dtype=float))
+            legb = qeleg(2, 3, 0.5 * get_spin_raise(2, lmax) * clee)
             qes.append(qe(lega, legb, cL_out))
 
-            lega = qeleg(-2, -2, 0.5 *  np.ones(lmax + 1, dtype=float))
-            legb = qeleg(-2, 3, 0.5 * _sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clee)
+            lega = qeleg(-2, -2, -0.5 *  np.ones(lmax + 1, dtype=float))
+            legb = qeleg(-2, 3, 0.5 * get_spin_raise(2, lmax) * clee)
             qes.append(qe(lega, legb, cL_out))
 
             return qes
         elif qe_key in ['p', 'x']:
-            cL_out = -np.sqrt(np.arange(2 * lmax + 1) * np.arange(1, 2 * lmax + 2, dtype=float) )
+            #Here T^WF contains C_\ell^{TE} \bar E and E^{WF} contains C_\ell^{TE} \bar T
             qes = get_qes('ptt', lmax, cls_weight) + get_qes('p_p', lmax, cls_weight)
+            clte = cls_weight.get('te', np.zeros(lmax + 1))[:lmax + 1]
+            lega = qeleg( 0, 0,  -np.ones(lmax + 1, dtype=float))
+            qes.append(qe(lega, qeleg(2, 1, 0.5 * get_spin_raise(0, lmax) * clte), cL_out))
+            qes.append(qe(lega, qeleg(-2, 1, 0.5 * get_spin_raise(0, lmax) * clte), cL_out))
 
-            clte = cls_weight.get('te', np.zeros(lmax + 1))[:lmax + 1] #: _0X_{lm} convention
-            # Here Wiener-filtered T contains c_\ell^{TE} \bar E for sep_TP
-            #             lega = qeleg(0, 0,  np.ones(lmax + 1, dtype=float))
-            #             legb = qeleg(0, 1,  np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * cltt)
-            # and    E is -1/2 (_2 P + _2 P) and T is - _{0} X
-            lega = qeleg( 0, 0,  np.ones(lmax + 1, dtype=float))
-            legb = qeleg( 2, 1,  -0.5 * np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * clte)
-            qes.append(qe(lega, legb, cL_out))
-            legb = qeleg(-2, 1,  -0.5 * np.sqrt(np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)) * clte)
-            qes.append(qe(lega, legb, cL_out))
+            lega = qeleg(2,  2, -0.5 * np.ones(lmax + 1, dtype=float))
+            qes.append(qe(lega, qeleg(0, -1, get_spin_raise(-2, lmax) * clte), cL_out))
 
-            # E-mode contains C_\ell^{te} \bar T
-            lega = qeleg(2,  2, 0.5 * np.ones(lmax + 1, dtype=float))
-            legb = qeleg(0, -1, -_sqrt(np.arange(2, lmax + 3) * np.arange(-1, lmax, dtype=float)) * clte)
-            qes.append(qe(lega, legb, cL_out))
-
-
-            lega = qeleg(-2, -2, 0.5 * np.ones(lmax + 1, dtype=float))
-            legb = qeleg( 0,  3,-_sqrt(np.arange(-2, lmax - 1) * np.arange(3, lmax + 4, dtype=float)) * clte)
-            qes.append(qe(lega, legb, cL_out))
-
+            lega = qeleg(-2, -2, -0.5 * np.ones(lmax + 1, dtype=float))
+            qes.append(qe(lega, qeleg(0, 3, get_spin_raise(2, lmax) * clte), cL_out))
             return qes
 
     elif qe_key[0] == 'f':
@@ -234,23 +214,22 @@ def get_qes(qe_key, lmax, cls_weight):
             return qes
 
         elif qe_key == 'f':
-            clte = cls_weight.get('te', np.zeros(lmax + 1))[:lmax + 1] #: _0X_{lm} convention
+            #Here T^WF contains C_\ell^{TE} \bar E and E^{WF} contains C_\ell^{TE} \bar T
             qes = get_qes('ftt', lmax, cls_weight) + get_qes('f_p', lmax, cls_weight)
+            clte = cls_weight.get('te', np.zeros(lmax + 1))[:lmax + 1] #: _0X_{lm} convention
             # Here Wiener-filtered T contains c_\ell^{TE} \bar E
             lega = qeleg( 0, 0,  np.ones(lmax + 1, dtype=float))
-            legb = qeleg( 2, 0,  -0.5  * clte)
+            legb = qeleg( 2, 0,  0.5  * clte)
             qes.append(qe(lega, legb, cL_out))
-            legb = qeleg(-2, 0,  -0.5  * clte)
+            legb = qeleg(-2, 0,  0.5  * clte)
             qes.append(qe(lega, legb, cL_out))
 
-            # E-mode contains C_\ell^{te} \bar T
             lega = qeleg(2,  2, 0.5 * np.ones(lmax + 1, dtype=float))
-            legb = qeleg(0, -2, - clte)
+            legb = qeleg(0, -2, clte)
             qes.append(qe(lega, legb, cL_out))
-
 
             lega = qeleg(-2, -2, 0.5 * np.ones(lmax + 1, dtype=float))
-            legb = qeleg( 0,  2, - clte)
+            legb = qeleg( 0,  2, clte)
             qes.append(qe(lega, legb, cL_out))
             return qes
 
@@ -358,10 +337,9 @@ def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1,
         assert s1 in [0, -2, 2] and s2 in [0, -2, 2] and leg in [1, 2]
         fal = fal_leg1 if leg == 1 else fal_leg2
         if s1 == 0:
-            #FIXME: why -sign here ?
-            return fal['t'] if s2 == 0 else (-0.5 * fal['te'] if 'te' in fal.keys() else None)
+            return fal['t'] if s2 == 0 else (0.5 * fal['te'] if 'te' in fal.keys() else None)
         if s1 in [-2, 2]:
-            if s2 == 0: return -1 * fal['te'] if 'te' in fal.keys() else None
+            if s2 == 0: return fal['te'] if 'te' in fal.keys() else None
             return 0.5 * (fal['e'] + fal['b']) if s1 == s2 else 0.5 * (fal['e'] - fal['b'])
         else:
             assert 0
@@ -445,9 +423,9 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
             cl2[:lmax_qe + 1] -= get_spin_coupling(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
             if np.any(cl1) and np.any(cl2):
                 for a in [-1, 1]:
-                    ai = get_alpha_lower(s2, lmax_cmb) if a == - 1 else get_alpha_raise(s2, lmax_cmb)
+                    ai = get_spin_lower(s2, lmax_cmb) if a == - 1 else get_spin_raise(s2, lmax_cmb)
                     for b in [1]: # a, b symmetry
-                        aj = get_alpha_lower(-s1, lmax_cmb) if b == 1 else get_alpha_raise(-s1, lmax_cmb)
+                        aj = get_spin_lower(-s1, lmax_cmb) if b == 1 else get_spin_raise(-s1, lmax_cmb)
                         hL = 2 * (-1) ** (s1 + s2) * wignerc(cl1, cl2 * ai * aj, s2, s1, -s2 - a, -s1 - b, lmax_out=lmax_out)
                         GL += (- a * b) * hL
                         CL += (-1) * hL
@@ -459,9 +437,9 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
             cl2 = get_spin_coupling(s1, s2, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s2 != 0))
             if np.any(cl1) and np.any(cl2):
                 for a in [-1, 1]:
-                    ai = get_alpha_lower(s2, lmax_qe) if a == -1 else get_alpha_raise(s2, lmax_qe)
+                    ai = get_spin_lower(s2, lmax_qe) if a == -1 else get_spin_raise(s2, lmax_qe)
                     for b in [1]:
-                        aj = get_alpha_lower(s1, lmax_qe) if b == 1 else get_alpha_raise(s1, lmax_qe)
+                        aj = get_spin_lower(s1, lmax_qe) if b == 1 else get_spin_raise(s1, lmax_qe)
                         hL = 2 * (-1) ** (s1 + s2) * wignerc(cl1 * ai, cl2 * aj, -s2 - a, -s1, s2, s1 - b, lmax_out=lmax_out)
                         FisherGII += (- a * b) * hL
                         FisherCII += (-1) * hL
@@ -516,7 +494,7 @@ def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
         return 2. * np.pi * np.dot(gaujac.get_wignerd(lmax_out, xg, sp1 + sp2, s1 + s2), wg * xi1 * xi2)
 
 
-def get_alpha_raise(s, lmax):
+def get_spin_raise(s, lmax):
     """Response coefficient of spin-s spherical harmonic to spin raising operator.
 
         +\sqrt{ (l - s) (l + s + 1) } for abs(s) <= l <= lmax
@@ -526,7 +504,7 @@ def get_alpha_raise(s, lmax):
     ret[abs(s):] = np.sqrt(np.arange(abs(s) -s, lmax - s + 1) * np.arange(abs(s) + s + 1, lmax + s + 2))
     return ret
 
-def get_alpha_lower(s, lmax):
+def get_spin_lower(s, lmax):
     """Response coefficient of spin-s spherical harmonic to spin lowering operator.
 
         -\sqrt{ (l + s) (l - s + 1) } for abs(s) <= l <= lmax
@@ -537,11 +515,10 @@ def get_alpha_lower(s, lmax):
     return ret
 
 def get_spin_coupling(s1, s2, cls):
-    """Spin-weighted power spectrum <_{s1}X_{lm} _{s2}X^*{lm}>.
+    """Spin-weighted power spectrum <_{s1}X_{lm} _{s2}X^*{lm}>
 
     Note:
-        The output is real unless TB, EB spectra are provided and relevant.
-        This uses the spin-field conventions where _0X_{lm} = -T_{lm}.
+        The output is real unless necessary. This uses the spin-field conventions where _0X_{lm} = -T_{lm}.
 
     """
     if s1 < 0:
@@ -551,11 +528,11 @@ def get_spin_coupling(s1, s2, cls):
         if s2 == 0:
             return cls['tt']
         tb = cls.get('tb', None)
-        return  -cls['te'] if tb is None else  -cls['te'] + 1j * np.sign(s2) * tb
+        return  cls['te'] if tb is None else  cls['te'] - 1j * np.sign(s2) * tb
     elif s1 == 2:
         if s2 == 0:
             tb = cls.get('tb', None)
-            return  -cls['te'] if tb is None else  -cls['te'] - 1j * tb
+            return  cls['te'] if tb is None else  cls['te'] + 1j * tb
         elif s2 == 2:
             return cls['ee'] + cls['bb']
         elif s2 == -2:
@@ -563,5 +540,3 @@ def get_spin_coupling(s1, s2, cls):
             return  cls['ee'] - cls['bb'] if eb is None else  cls['ee'] - cls['bb'] + 2j * eb
         else:
             assert 0
-
-
