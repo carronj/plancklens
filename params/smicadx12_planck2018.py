@@ -40,8 +40,8 @@ cl_weight['bb'] *= 0.
 
 # Masks
 #FIXME: paths
-Tmaskpaths = ['/global/cscratch1/sd/jcarron/jpipe/inputs/PR3vApr6_temp_lensingmask_gPR2_70_psPR2_143_COT2_psPR2_217_sz.fits.gz']
-
+#FIXME: not the 2018 mask...
+Tmaskpaths = ['/global/cscratch1/sd/jcarron/jpipe/inputs/PR3vJan18_temp_lensingmask_gPR2_70_psPR2_143_COT2_smicadx12_smicapoldx12_psPR2_217_sz.fits.gz']
 libdir_cinvt = os.path.join(PL2018, 'temp', 'smicadx12', 'cinv_t')
 libdir_cinvp = os.path.join(PL2018, 'temp', 'smicadx12', 'cinv_p')
 libdir_ivfs  = os.path.join(PL2018, 'temp', 'smicadx12', 'ivfs')
