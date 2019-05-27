@@ -6,11 +6,11 @@ parser = argparse.ArgumentParser(description='Planck 2018 QE calculation example
 parser.add_argument('parfile', type=str, nargs=1)
 parser.add_argument('-imin', dest='imin', default=-1, type=int, help='starting index (-1 stands for data map)')
 parser.add_argument('-imax', dest='imax', default=-2, type=int, help='last index')
-parser.add_argument('-k', dest='k', action='store', default=['p'], nargs='+',
+parser.add_argument('-k', dest='k', action='store', default=[], nargs='+',
                     help='QE keys (NB: both gradient and curl are calculated at the same time)')
-parser.add_argument('-kA', dest='kA', action='store', default=['p'], nargs='+',
+parser.add_argument('-kA', dest='kA', action='store', default=[], nargs='+',
                     help='QE spectra keys (left leg)')
-parser.add_argument('-kB', dest='kB', action='store', default=['p'], nargs='+',
+parser.add_argument('-kB', dest='kB', action='store', default=[], nargs='+',
                     help='QE spectra keys (right leg)')
 parser.add_argument('-ivt', dest='ivt', action='store_true', help='do T. filtering')
 parser.add_argument('-ivp', dest='ivp', action='store_true', help='do P. filtering')
