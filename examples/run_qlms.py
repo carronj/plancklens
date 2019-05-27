@@ -58,7 +58,7 @@ for qlib in qlibs:
                     jobs.append((qlib, idx, kA, kB))
 
 for i, (qlib, idx, kA, kB) in enumerate(jobs[mpi.rank::mpi.size]):
-    print('rank %s doing QE spectra sim %s %s, qcl_lib %s, job %s in %s' % (mpi.rank, idx, k, qlib.lib_dir, i, len(jobs)))
+    print('rank %s doing QE spectra sim %s %s %s, qcl_lib %s, job %s in %s' % (mpi.rank, idx, kA, kB, qlib.lib_dir, i, len(jobs)))
     qlib.get_sim_qcl(kA, idx, k2=kB)
 
 mpi.barrier()
