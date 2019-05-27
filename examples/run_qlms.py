@@ -14,9 +14,11 @@ parser.add_argument('-kB', dest='kB', action='store', default=[], nargs='+',
                     help='QE spectra keys (right leg)')
 parser.add_argument('-ivt', dest='ivt', action='store_true', help='do T. filtering')
 parser.add_argument('-ivp', dest='ivp', action='store_true', help='do P. filtering')
-parser.add_argument('-dd', dest='dd', action='store_true', help='perform dd qlms library QEs')
-parser.add_argument('-ds', dest='ds', action='store_true', help='perform ds qlms library QEs')
-parser.add_argument('-ss', dest='ss', action='store_true', help='perform ss qlms library QEs')
+parser.add_argument('-dd', dest='dd', action='store_true', help='perform dd qlms / qcls library QEs')
+parser.add_argument('-ds', dest='ds', action='store_true', help='perform ds qlms / qcls library QEs')
+parser.add_argument('-ss', dest='ss', action='store_true', help='perform ss qlms / qcls library QEs')
+parser.add_argument('-kN', dest='kN', action='store', default=[], nargs='+',
+                    help='QE semi-analytical spectra')
 
 args = parser.parse_args()
 par = imp.load_source('run_qlms_parfile', args.parfile[0])
@@ -60,6 +62,15 @@ for qlib in qlibs:
 for i, (qlib, idx, kA, kB) in enumerate(jobs[mpi.rank::mpi.size]):
     print('rank %s doing QE spectra sim %s %s %s, qcl_lib %s, job %s in %s' % (mpi.rank, idx, kA, kB, qlib.lib_dir, i, len(jobs)))
     qlib.get_sim_qcl(kA, idx, k2=kB)
+
+# ---Nhl calculation
+jobs = []
+for k in args.kN:
+    jobs += [(idx, k) for idx in range(args.imin, args.imax + 1)]
+
+for i, (idx, k) in enumerate(jobs[mpi.rank::mpi.size]):
+    print('rank %s doing QE sim %s %s, qlm_lib %s, job %s in %s' % (mpi.rank, idx, k, par.nhl_dd.lib_dir, i, len(jobs)))
+    par.nhl_dd.get_sim_nhl(idx, k, k)
 
 mpi.barrier()
 mpi.finalize()
