@@ -7,7 +7,7 @@ import os
 import numpy as np
 
 from plancklens2018 import utils
-from plancklens2018 import qresp
+from plancklens2018 import nhl
 
 PL2018 = os.environ['PL2018']
 
@@ -206,7 +206,7 @@ class ffp10_binner:
         assert np.all(self.parfile.qcls_dd.qeB.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeB.f2map2.ivfs.get_ftl())
         assert np.all(self.parfile.qcls_dd.qeA.f2map1.ivfs.get_ftl() == self.parfile.qcls_dd.qeB.f2map1.ivfs.get_ftl())
         ftl = self.parfile.qcls_dd.qeA.f2map1.ivfs.get_ftl()
-        qc_resp_ptsrc = qresp.get_nhl(ks4, ks4, {}, {'tt':ftl}, len(ftl) - 1, lmax_out=lmax_ss_s4)[0] ** 2
+        qc_resp_ptsrc = nhl.get_nhl(ks4, ks4, {}, {'tt':ftl}, len(ftl) - 1, len(ftl) - 1, lmax_out=lmax_ss_s4)[0] ** 2
 
         s4_band_norm = 4.0 / np.sum(4.0 * (twolpo[lmin_ss_s4:lmax_ss_s4 + 1] * qc_resp_ptsrc[lmin_ss_s4:lmax_ss_s4 + 1]))
         s4_cl_dat = s4_band_norm * twolpo * (dat_ptsrc - 4. * ds_ptsrc + 2. * ss_ptsrc)
