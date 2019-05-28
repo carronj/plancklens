@@ -1,11 +1,5 @@
 """conjugate gradient solver CMB filtering module.
 
-Todo:
-    * tests
-    * cinv_p, cinv_t_vmap
-    * drop _vmap and adapt cinv_t cinv_p (calc mask and what else?)
-    * doc
-    * paths format
 """
 
 from __future__ import print_function
@@ -23,9 +17,6 @@ from . import filt_simple
 from plancklens2018.qcinv import opfilt_pp, opfilt_tt
 from plancklens2018.qcinv import util, util_alm
 from plancklens2018.qcinv import multigrid, cd_solve
-
-#FIXME: hashes, qcinv missing bits, relative imports
-#FIXME: paths def.
 
 class library_cinv_sepTP(filt_simple.library_sepTP):
     """Library to perform inverse variance filtering on the sim_lib library.
@@ -87,11 +78,11 @@ class library_cinv_sepTP(filt_simple.library_sepTP):
         return  hp.almxfl(self.get_sim_tlm(idx), self.cinv_t.cl['tt'])
 
     def get_emliklm(self, idx):
-        assert not hasattr(self.cinv_p.cl, 'cleb')
+        assert not hasattr(self.cinv_p.cl, 'eb')
         return  hp.almxfl(self.get_sim_elm(idx), self.cinv_t.cl['ee'])
 
     def get_bmliklm(self, idx):
-        assert not hasattr(self.cinv_p.cl, 'cleb')
+        assert not hasattr(self.cinv_p.cl, 'eb')
         return  hp.almxfl(self.get_sim_blm(idx), self.cinv_t.cl['bb'])
 
 class cinv(object):
@@ -102,7 +93,7 @@ class cinv(object):
     def get_tal(self, a, lmax=None):
         if lmax is None: lmax = self.lmax
         assert a.lower() in ['t', 'e', 'b'], a
-        ret = np.loadtxt(self.lib_dir + "/tal.dat")
+        ret = np.loadtxt(os.path.join(self.lib_dir, "tal.dat"))
         assert len(ret) > lmax, (len(ret), lmax)
         return ret[:lmax +1 ]
 
@@ -111,19 +102,19 @@ class cinv(object):
 
     def get_ftl(self, lmax=None):
         if lmax is None: lmax = self.lmax
-        ret = np.loadtxt(self.lib_dir + "/ftl.dat")
+        ret = np.loadtxt(os.path.join(self.lib_dir, "ftl.dat"))
         assert len(ret) > lmax, (len(ret), lmax)
         return ret[:lmax + 1]
 
     def get_fel(self, lmax=None):
         if lmax is None: lmax = self.lmax
-        ret = np.loadtxt(self.lib_dir + "/fel.dat")
+        ret = np.loadtxt(os.path.join(self.lib_dir, "fel.dat"))
         assert len(ret) > lmax, (len(ret), lmax)
         return ret[:lmax + 1]
 
     def get_fbl(self, lmax=None):
         if lmax is None: lmax = self.lmax
-        ret = np.loadtxt(self.lib_dir + "/fbl.dat")
+        ret = np.loadtxt(os.path.join(self.lib_dir, "fbl.dat"))
         assert len(ret) > lmax, (len(ret), lmax)
         return ret[:lmax + 1]
 
@@ -132,7 +123,6 @@ class cinv(object):
 class cinv_t(cinv):
     def __init__(self, lib_dir, lmax, nside, cl, transf, ninv,
                  marge_monopole=True, marge_dipole=True, marge_maps=(), pcf='default', chain_descr=None):
-        #FIXME: do I need the mask on disk? Probably yes
         """
 
         Args:
