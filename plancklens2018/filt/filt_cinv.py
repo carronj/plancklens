@@ -142,7 +142,7 @@ class cinv_t(cinv):
         self.marge_dipole = marge_dipole
         self.marge_maps = marge_maps
 
-        pcf = lib_dir + "/dense.pk" if pcf == 'default' else '' # Dense matrices will be cached there.
+        pcf = os.path.join(lib_dir, "dense.pk") if pcf == 'default' else '' # Dense matrices will be cached there.
         if chain_descr is None : chain_descr = \
             [[3, ["split(dense(" + pcf + "), 64, diag_cl)"], 256, 128, 3, 0.0, cd_solve.tr_cg, cd_solve.cache_mem()],
              [2, ["split(stage(3),  256, diag_cl)"], 512, 256, 3, 0.0, cd_solve.tr_cg, cd_solve.cache_mem()],
