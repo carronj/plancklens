@@ -41,7 +41,7 @@ class library(object):
             if not os.path.exists(hname):
                 if not os.path.exists(self.lib_dir):
                     os.makedirs(self.lib_dir)
-                pk.dump(self.hashdict(), open(hname, 'wb'))
+                pk.dump(self.hashdict(), open(hname, 'wb'), protocol=2)
         mpi.barrier()
         utils.hash_check(pk.load(open(hname, 'rb')), self.hashdict())
         self.npdb = sql.npdb(os.path.join(lib_dir, 'cldb.db'))
@@ -99,7 +99,7 @@ class library(object):
             stats_qcl = utils.stats(self.get_lmaxqcl(k1, k2) + 1, docov=False)
             for i, idx in utils.enumerate_progress(mc_sims, label='sim_stats qcl (k1,k2)=' + str((k1, k2))):
                 stats_qcl.add(self.get_sim_qcl(k1, idx, k2=k2))
-            pk.dump(stats_qcl, open(tfname, 'wb'))
+            pk.dump(stats_qcl, open(tfname, 'wb'), protocol=2)
         return pk.load(open(tfname, 'rb'))
 
     def get_response(self, k1, s1, k2=None, s2=None):
@@ -182,7 +182,7 @@ class average:
             if not os.path.exists(lib_dir):
                 os.makedirs(lib_dir)
             if not os.path.exists(hname):
-                pk.dump(self.hashdict(), open(hname, 'wb'))
+                pk.dump(self.hashdict(), open(hname, 'wb'), protocol=2)
         mpi.barrier()
         utils.hash_check(pk.load(open(hname, 'rb')), self.hashdict())
 
@@ -214,5 +214,5 @@ class average:
             stats_qcl = utils.stats(lmax + 1, docov=False)
             for i, idx in utils.enumerate_progress(mc_sims, label='building sim_stats qcl (k1,k2)=' + str((k1, k2))):
                 stats_qcl.add(self.get_sim_qcl(k1, idx, k2=k2, lmax=lmax))
-            pk.dump(stats_qcl, open(tfname, 'wb'))
+            pk.dump(stats_qcl, open(tfname, 'wb'), protocol=2)
         return pk.load(open(tfname, 'rb'))

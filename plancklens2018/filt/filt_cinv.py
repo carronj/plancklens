@@ -157,7 +157,7 @@ class cinv_t(cinv):
                 os.makedirs(lib_dir)
 
             if not os.path.exists(os.path.join(lib_dir, "filt_hash.pk")):
-                pk.dump(self.hashdict(), open(os.path.join(lib_dir, "filt_hash.pk"), 'wb'))
+                pk.dump(self.hashdict(), open(os.path.join(lib_dir, "filt_hash.pk"), 'wb'), protocol=2)
 
             if not os.path.exists(os.path.join(self.lib_dir, "ftl.dat")):
                 np.savetxt(os.path.join(self.lib_dir, "ftl.dat"), self._calc_ftl())
@@ -254,7 +254,7 @@ class cinv_p(cinv):
                 os.makedirs(lib_dir)
 
             if not os.path.exists(os.path.join(lib_dir, "filt_hash.pk")):
-                pk.dump(self.hashdict(), open(os.path.join(lib_dir, "filt_hash.pk"), 'wb'))
+                pk.dump(self.hashdict(), open(os.path.join(lib_dir, "filt_hash.pk"), 'wb'), protocol=2)
 
             if not os.path.exists(os.path.join(self.lib_dir, "fbl.dat")):
                 fel, fbl = self._calc_febl()

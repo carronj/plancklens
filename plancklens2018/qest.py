@@ -46,7 +46,7 @@ class library:
         fnhash = os.path.join(self.lib_dir, "qe_sim_hash.pk")
         if (mpi.rank == 0) and (not os.path.exists(fnhash)):
             if not os.path.exists(self.lib_dir): os.makedirs(self.lib_dir)
-            pk.dump(self.hashdict(), open(fnhash, 'wb'))
+            pk.dump(self.hashdict(), open(fnhash, 'wb'), protocol=2)
         mpi.barrier()
 
         utils.hash_check(pk.load(open(fnhash, 'rb')), self.hashdict())

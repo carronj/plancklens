@@ -263,7 +263,7 @@ class resp_lib_simple:
             if not os.path.exists(lib_dir):
                 os.makedirs(lib_dir)
             if not os.path.exists(fn_hash):
-                pk.dump(self.hashdict(), open(fn_hash, 'wb'))
+                pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
         mpi.barrier()
         hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
         self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
@@ -303,6 +303,15 @@ def get_response(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg
     """
     qes = get_qes(qe_key, lmax_qe, cls_weight)
     return _get_response(qes, lmax_qe, source, cls_cmb, fal_leg1, fal_leg2=fal_leg2, lmax_out=lmax_out)
+
+def get_dresponse_dlncl(qe_key, l, cl_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
+    """QE isotropic response derivative function dR_L / dlnC_l.
+
+    """
+    dcls_cmb = {k: np.zeros_like(cls_cmb[k]) for k in cls_cmb.keys()}
+    dcls_cmb[cl_key][l] = cls_cmb[cl_key][l]
+    qes = get_qes(qe_key, lmax_qe, cls_weight)
+    return _get_response(qes, lmax_qe, source, dcls_cmb, fal_leg1, fal_leg2=fal_leg2, lmax_out=lmax_out)
 
 
 get_response_sepTP = get_response # Here for historical reasons.

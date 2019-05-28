@@ -15,6 +15,7 @@ import time
 import numpy as np
 import sys
 import hashlib
+import pickle as pk
 
 def alm_copy(alm, lmax=None):
     """Copies the healpy alm array, with the option to reduce its lmax

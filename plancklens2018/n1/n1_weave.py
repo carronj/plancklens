@@ -112,8 +112,8 @@ class library_n1:
         if not os.path.exists(lib_dir):
             os.makedirs(lib_dir)
         if not os.path.exists(lib_dir + '/n1_hash.pk'):
-            pk.dump(self.hashdict(), open(lib_dir + '/n1_hash.pk', 'w'))
-        hash_check(self.hashdict(), pk.load(open(lib_dir + '/n1_hash.pk', 'r')))
+            pk.dump(self.hashdict(), open(lib_dir + '/n1_hash.pk', 'wb'), protocol=2)
+        hash_check(self.hashdict(), pk.load(open(lib_dir + '/n1_hash.pk', 'rb')))
         self.npdb = npdb(lib_dir + '/npdb.db')
         self.lib_dir = lib_dir
         self.zerokeys = ['pbb', 'xbb', 'sbb', 'sbe', 'seb']

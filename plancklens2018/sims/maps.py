@@ -15,10 +15,11 @@ class cmb_maps(object):
         self.cl_transf = cl_transf
         self.nside = nside
         if lib_dir is not None:
-            if mpi.rank == 0 and not os.path.exists(lib_dir + '/sim_hash.pk'):
-                pk.dump(self.hashdict(), open(lib_dir + '/sim_hash.pk', 'wb'))
+            fn_hash = os.path.join(lib_dir, 'sim_hash.pk')
+            if mpi.rank == 0 and not os.path.exists():
+                pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
             mpi.barrier()
-            hash_check(self.hashdict(), pk.load(open(lib_dir + '/sim_hash.pk', 'rb')))
+            hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')))
 
     def hashdict(self):
         return {'sims_cmb_len':self.sims_cmb_len.hashdict(),'nside':self.nside,'cl_transf':clhash(self.cl_transf)}

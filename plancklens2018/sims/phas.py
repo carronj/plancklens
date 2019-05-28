@@ -73,7 +73,7 @@ class sim_lib(object):
         self.nmax = nsims_max
         fn_hash = os.path.join(lib_dir, 'sim_hash.pk')
         if mpi.rank == 0 and not os.path.exists(fn_hash):
-            pk.dump(self.hashdict(), open(fn_hash, 'wb'))
+            pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
         mpi.barrier()
 
         hsh = pk.load(open(fn_hash, 'rb'))

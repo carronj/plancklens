@@ -2,9 +2,6 @@ r"""CMB filtering utilities module.
 
 This module collects some convenience wrapper libraries useful for lensing biases calculations, such as $$\\hat N^{0}_L$$.
 
-Todo:
-    * Something else to do here ?
-
 """
 import healpy as hp
 from plancklens2018 import utils
