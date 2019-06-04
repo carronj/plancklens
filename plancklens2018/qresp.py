@@ -76,6 +76,13 @@ def get_resp_legs(source, lmax):
     if source == 'f': # Modulation: _sX -> _sX + f _sX.
         return {s : (0, 0.5 * np.ones(lmax + 1, dtype=float), 0.5 * np.ones(lmax + 1, dtype=float),
                         np.ones(lmax_cL + 1, dtype=float)) for s in [0, -2, 2]}
+    if source in ['a', 'a_p']: # Polarisation rotation _\pm 2 X ->  _\pm 2 X + \mp 2 i a _\pm 2 X
+        ret = {s: (0,  -np.sign(s) * 1j * np.ones(lmax + 1, dtype=float),
+                       -np.sign(s) * 1j * np.ones(lmax + 1, dtype=float),
+                        np.ones(lmax_cL + 1, dtype=float)) for s in [-2, 2]}
+        ret[0]=(0, np.zeros(lmax + 1, dtype=float),np.zeros(lmax + 1, dtype=float),np.ones(lmax_cL + 1, dtype=float))
+        return ret
+
     assert 0, source + ' response legs not implemented'
 
 def get_covresp(source, s1, s2, cls, lmax):
@@ -86,8 +93,8 @@ def get_covresp(source, s1, s2, cls, lmax):
         _r\alpha^*(n') W^{r, ts}_l _{s}Y_{lm}(n) _{t-r}Y^*_{lm}(n')
 
     """
-    if source in ['p', 'f']:
-        # Lensing or modulation field from the field representation
+    if source in ['p', 'f', 'a', 'a_p']:
+        # Lensing, modulation, or pol. rotation field from the field representation
         s_source, prR, mrR, cL_scal = get_resp_legs(source, lmax)[s1]
         coupl = get_spin_coupling(s1, s2, cls)[:lmax + 1]
         return s_source, prR * coupl, mrR * coupl, cL_scal
@@ -143,7 +150,7 @@ def get_qes(qe_key, lmax, cls_weight):
         return qes
 
     elif qe_key[0] == 'f':
-        cL_out = -np.ones(2 * lmax + 1, dtype=float) #FIXME: this sign for _{0}Xlm = Tlm, not -Tlm
+        cL_out = np.ones(2 * lmax + 1, dtype=float) #FIXME: sign convention
         if qe_key in ['ftt']:
             s_lefts= [0]
         elif qe_key in ['f_p']:
@@ -159,7 +166,7 @@ def get_qes(qe_key, lmax, cls_weight):
                 sout = -s_left
                 cl_sosi =  get_spin_matrix(sout, sin, cls_weight)
                 if np.any(cl_sosi):
-                    lega = qeleg(s_left, s_left, - 0.5 *(1. + (s_left==0)) * np.ones(lmax + 1, dtype=float))
+                    lega = qeleg(s_left, s_left, 0.5 *(1. + (s_left==0)) * np.ones(lmax + 1, dtype=float))
                     legb = qeleg(sin, sout, cl_sosi[:lmax + 1])
                     qes.append(qe(lega, legb, cL_out))
         return qes
@@ -172,6 +179,25 @@ def get_qes(qe_key, lmax, cls_weight):
             return [qe(lega, legb, cL_out)]
         else:
             assert 0
+    elif qe_key[0] == 'a':
+        cL_out = np.ones(2 * lmax + 1, dtype=float)
+        if qe_key in ['a', 'a_p']:
+            s_lefts= [-2, 2]
+        else:
+            assert 0, qe_key + ' not implemented'
+        qes = []
+        s_rights_in = s_lefts
+        for s_left in s_lefts:
+            for sin in s_rights_in:
+                sout = -s_left
+                cl_sosi =  get_spin_matrix(sout, sin, cls_weight)
+                if np.any(cl_sosi):
+                    lega = qeleg(s_left, s_left, 0.5 * (1. + (s_left==0)) * np.ones(lmax + 1, dtype=float))
+                    legb = qeleg(sin, sout, -np.sign(sout) * 2j * cl_sosi[:lmax + 1])
+                    qes.append(qe(lega, legb, cL_out))
+        return qes
+
+
     else:
         assert 0
 
@@ -316,8 +342,8 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     """
     # This version looks stable enough
     assert qe_key in ['p_p', 'ptt'], qe_key
-    assert not np.any(cls_cmb['tb'], 0.) and not np.any(cls_cmb['eb'], 0.), 'version with CMB EB or TB not implemented'
-    assert not np.any(cls_ivfs['tb'], 0.) and not np.any(cls_ivfs['eb'], 0.), 'version with filt EB or TB not implemented'
+    assert not np.any(cls_cmb.get('tb', 0.)) and not np.any(cls_cmb.get('eb', 0.)), 'version with CMB EB or TB not implemented'
+    assert not np.any(cls_ivfs.get('tb', 0.)) and not np.any(cls_ivfs.get('eb', 0.)), 'version with filt EB or TB not implemented'
 
     GL = np.zeros(lmax_out + 1, dtype=float)
     CL = np.zeros(lmax_out + 1, dtype=float)
@@ -475,7 +501,7 @@ def get_spin_coupling(s1, s2, cls):
             assert 0
 
 def get_spin_matrix(sout, sin, cls):
-    """Spin-space matrix T^{-1} cls[T, E, B] T where T is the mapping from _{0, \pm 2}X to T, E, B.
+    """Spin-space matrix R^{-1} cls[T, E, B] R where R is the mapping from _{0, \pm 2}X to T, E, B.
 
 
         cls is dictionary with keys 'tt', 'te', 'ee', 'bb'.
