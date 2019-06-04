@@ -323,3 +323,31 @@ def camb_clfile(fname, lmax=None):
         cls['pe'][ell[idc]] = cols[7][idc] / wptpe(ell[idc])
     return cls
 
+def cl_inverse(cls):
+    """Inverse of T E B spectral matrices. Input and ouputs are dictionaries.
+
+    """
+    def extend_cl(cl, lmax):
+        ret  =  np.zeros(lmax + 1, dtype=float)
+        ret[:min(len(cl), lmax + 1)] = np.copy(cl[:min(len(cl), lmax + 1)])
+        return ret
+    lmax = np.max([len(cl) for cl in cls.values()]) - 1
+    clsm = np.zeros((lmax + 1, 3, 3))
+    clsm[:, 0, 0] = extend_cl(cls.get('tt', [0.]), lmax)
+    clsm[:, 1, 1] = extend_cl(cls.get('ee', [0.]), lmax)
+    clsm[:, 2, 2] = extend_cl(cls.get('bb', [0.]), lmax)
+    clsm[:, 0, 1] = extend_cl(cls.get('te', [0.]), lmax)
+    clsm[:, 1, 0] = extend_cl(cls.get('te', [0.]), lmax)
+    clsm[:, 0, 2] = extend_cl(cls.get('tb', [0.]), lmax)
+    clsm[:, 2, 0] = extend_cl(cls.get('tb', [0.]), lmax)
+    clsm[:, 1, 2] = extend_cl(cls.get('eb', [0.]), lmax)
+    clsm[:, 2, 1] = extend_cl(cls.get('eb', [0.]), lmax)
+
+    clsmi = np.linalg.pinv(clsm)
+    clsi ={}
+    for k, (i, j) in zip(['tt', 'ee', 'bb', 'te', 'tb', 'eb'], [[0, 0],[1, 1], [2, 2], [0, 1], [0, 2], [1, 2]]):
+        arr = clsmi[:, i, j].copy()
+        if np.any(arr):
+            clsi[k] = arr
+    return clsi
+
