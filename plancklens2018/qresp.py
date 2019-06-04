@@ -144,11 +144,11 @@ def get_qes(qe_key, lmax, cls_weight):
 
     elif qe_key[0] == 'f':
         cL_out = -np.ones(2 * lmax + 1, dtype=float) #FIXME: this sign for _{0}Xlm = Tlm, not -Tlm
-        if qe_key in ['ptt', 'xtt']:
+        if qe_key in ['ftt']:
             s_lefts= [0]
-        elif qe_key in ['p_p', 'x_p']:
+        elif qe_key in ['f_p']:
             s_lefts= [-2, 2]
-        elif qe_key in ['p', 'x']:
+        elif qe_key in ['f']:
             s_lefts = [0, -2, 2]
         else:
             assert 0, qe_key + ' not implemented'
