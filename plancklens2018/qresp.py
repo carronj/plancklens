@@ -71,12 +71,10 @@ def get_resp_legs(source, lmax):
     """
     lmax_cL = 2 *  lmax
     if source == 'p': # lensing (gradient and curl): _sX -> _sX -  1/2 alpha_1 \eth _sX - 1/2 \alpha_{-1} \bar \eth _sX
-        return {s : (1, -0.5 * get_spin_lower(s, lmax),
-                     -0.5 * get_spin_raise(s, lmax),
-                     np.sqrt(np.arange(lmax_cL + 1) * np.arange(1, lmax_cL + 2, dtype=float))) for s in [0, -2, 2]}
+        return {s : (1, -0.5 * get_spin_lower(s, lmax), -0.5 * get_spin_raise(s, lmax),
+                     get_spin_raise(0, lmax_cL)) for s in [0, -2, 2]}
     if source == 'f': # Modulation: _sX -> _sX + f _sX.
-        return {s : (0, 0.5 * np.ones(lmax + 1, dtype=float),
-                        0.5 * np.ones(lmax + 1, dtype=float),
+        return {s : (0, 0.5 * np.ones(lmax + 1, dtype=float), 0.5 * np.ones(lmax + 1, dtype=float),
                         np.ones(lmax_cL + 1, dtype=float)) for s in [0, -2, 2]}
     assert 0, source + ' response legs not implemented'
 
@@ -125,107 +123,52 @@ def get_qes(qe_key, lmax, cls_weight):
         # Lensing estimate (both gradient and curl)
         cL_out = get_spin_raise(0, 2 * lmax)
         if qe_key in ['ptt', 'xtt']:
-            cltt = cls_weight.get('tt', np.zeros(lmax + 1))[:lmax + 1]
-            lega = qeleg(0, 0,  -np.ones(lmax + 1, dtype=float))
-            legb = qeleg(0, 1, get_spin_raise(0, lmax) * cltt)
-            return [qe(lega, legb, cL_out)]
-
+            s_lefts= [0]
         elif qe_key in ['p_p', 'x_p']:
-            qes = []
-            clee = cls_weight.get('ee', np.zeros(lmax + 1))[:lmax + 1]
-            clbb = cls_weight.get('bb', np.zeros(lmax + 1))[:lmax + 1]
-            assert np.all(clbb == 0.), 'not implemented (but easy)'
-            # E-part. G = -1/2 _{2}P - 1/2 _{-2}P
-            lega = qeleg(2, 2, -0.5 * np.ones(lmax + 1, dtype=float))
-            legb = qeleg(2, -1, 0.5 * get_spin_raise(-2, lmax) * clee)
-            qes.append(qe(lega, legb, cL_out))
-
-            lega = qeleg(2, 2,  -0.5 * np.ones(lmax + 1, dtype=float))
-            legb = qeleg(-2, -1, 0.5 * get_spin_raise(-2, lmax) * clee)
-            qes.append(qe(lega, legb, cL_out))
-
-            lega = qeleg(-2, -2, -0.5 *  np.ones(lmax + 1, dtype=float))
-            legb = qeleg(2, 3, 0.5 * get_spin_raise(2, lmax) * clee)
-            qes.append(qe(lega, legb, cL_out))
-
-            lega = qeleg(-2, -2, -0.5 *  np.ones(lmax + 1, dtype=float))
-            legb = qeleg(-2, 3, 0.5 * get_spin_raise(2, lmax) * clee)
-            qes.append(qe(lega, legb, cL_out))
-
-            return qes
+            s_lefts= [-2, 2]
         elif qe_key in ['p', 'x']:
-            #Here T^WF contains C_\ell^{TE} \bar E and E^{WF} contains C_\ell^{TE} \bar T
-            qes = get_qes('ptt', lmax, cls_weight) + get_qes('p_p', lmax, cls_weight)
-            clte = cls_weight.get('te', np.zeros(lmax + 1))[:lmax + 1]
-            lega = qeleg( 0, 0,  -np.ones(lmax + 1, dtype=float))
-            qes.append(qe(lega, qeleg(2, 1, 0.5 * get_spin_raise(0, lmax) * clte), cL_out))
-            qes.append(qe(lega, qeleg(-2, 1, 0.5 * get_spin_raise(0, lmax) * clte), cL_out))
-
-            lega = qeleg(2,  2, -0.5 * np.ones(lmax + 1, dtype=float))
-            qes.append(qe(lega, qeleg(0, -1, get_spin_raise(-2, lmax) * clte), cL_out))
-
-            lega = qeleg(-2, -2, -0.5 * np.ones(lmax + 1, dtype=float))
-            qes.append(qe(lega, qeleg(0, 3, get_spin_raise(2, lmax) * clte), cL_out))
-            return qes
+            s_lefts = [0, -2, 2]
+        else:
+            assert 0, qe_key + ' not implemented'
+        qes = []
+        s_rights_in = s_lefts
+        for s_left in s_lefts:
+            for sin in s_rights_in:
+                sout = -s_left
+                cl_sosi =  get_spin_matrix(sout, sin, cls_weight)
+                if np.any(cl_sosi):
+                    lega = qeleg(s_left, s_left, - 0.5 *(1. + (s_left==0)) * np.ones(lmax + 1, dtype=float))
+                    legb = qeleg(sin, sout + 1, get_spin_raise(sout, lmax) * cl_sosi[:lmax + 1])
+                    qes.append(qe(lega, legb, cL_out))
+        return qes
 
     elif qe_key[0] == 'f':
-        cL_out = np.ones(2 * lmax + 1, dtype=float)
-        if qe_key == 'ftt':
-            lega = qeleg(0, 0, -np.ones(lmax + 1, dtype=float))
-            legb = qeleg(0, 0, -cls_weight.get('tt', np.zeros(lmax + 1))[:lmax + 1])
-            return [qe(lega, legb, cL_out)]
-
-        elif qe_key == 'f_p':
-            qes = []
-            clee = cls_weight.get('ee', np.zeros(lmax + 1))[:lmax + 1]
-            clbb = cls_weight.get('bb', np.zeros(lmax + 1))[:lmax + 1]
-            assert np.all(clbb == 0.), 'not implemented (but easy)'
-            # E-part. G = -1/2 _{2}P - 1/2 _{-2}P
-            lega = qeleg(2, 2, 0.5 * np.ones(lmax + 1, dtype=float))
-            legb = qeleg(2, -2,  0.5 * clee)
-            qes.append(qe(lega, legb, cL_out))
-
-            lega = qeleg(2, 2,  0.5 *np.ones(lmax + 1, dtype=float))
-            legb = qeleg(-2, -2, 0.5 * clee)
-            qes.append(qe(lega, legb, cL_out))
-
-            lega = qeleg(-2, -2, 0.5 *  np.ones(lmax + 1, dtype=float))
-            legb = qeleg(2, 2, 0.5  * clee)
-            qes.append(qe(lega, legb, cL_out))
-
-            lega = qeleg(-2, -2, 0.5 *  np.ones(lmax + 1, dtype=float))
-            legb = qeleg(-2, 2, 0.5 * clee)
-            qes.append(qe(lega, legb, cL_out))
-            return qes
-
-        elif qe_key == 'f':
-            #Here T^WF contains C_\ell^{TE} \bar E and E^{WF} contains C_\ell^{TE} \bar T
-            qes = get_qes('ftt', lmax, cls_weight) + get_qes('f_p', lmax, cls_weight)
-            clte = cls_weight.get('te', np.zeros(lmax + 1))[:lmax + 1] #: _0X_{lm} convention
-            # Here Wiener-filtered T contains c_\ell^{TE} \bar E
-            lega = qeleg( 0, 0,  np.ones(lmax + 1, dtype=float))
-            legb = qeleg( 2, 0,  0.5  * clte)
-            qes.append(qe(lega, legb, cL_out))
-            legb = qeleg(-2, 0,  0.5  * clte)
-            qes.append(qe(lega, legb, cL_out))
-
-            lega = qeleg(2,  2, 0.5 * np.ones(lmax + 1, dtype=float))
-            legb = qeleg(0, -2, clte)
-            qes.append(qe(lega, legb, cL_out))
-
-            lega = qeleg(-2, -2, 0.5 * np.ones(lmax + 1, dtype=float))
-            legb = qeleg( 0,  2, clte)
-            qes.append(qe(lega, legb, cL_out))
-            return qes
-
+        cL_out = -np.ones(2 * lmax + 1, dtype=float) #FIXME: this sign for _{0}Xlm = Tlm, not -Tlm
+        if qe_key in ['ptt', 'xtt']:
+            s_lefts= [0]
+        elif qe_key in ['p_p', 'x_p']:
+            s_lefts= [-2, 2]
+        elif qe_key in ['p', 'x']:
+            s_lefts = [0, -2, 2]
         else:
-            assert 0
+            assert 0, qe_key + ' not implemented'
+        qes = []
+        s_rights_in = s_lefts
+        for s_left in s_lefts:
+            for sin in s_rights_in:
+                sout = -s_left
+                cl_sosi =  get_spin_matrix(sout, sin, cls_weight)
+                if np.any(cl_sosi):
+                    lega = qeleg(s_left, s_left, - 0.5 *(1. + (s_left==0)) * np.ones(lmax + 1, dtype=float))
+                    legb = qeleg(sin, sout, cl_sosi[:lmax + 1])
+                    qes.append(qe(lega, legb, cL_out))
+        return qes
 
     elif qe_key[0] == 's':
+        cL_out = -np.ones(2 * lmax + 1, dtype=float) #FIXME: sign convention
         if qe_key == 'stt':
-            lega = qeleg(0, 0, - np.ones(lmax + 1, dtype=float))
-            legb = qeleg(0, 0, -0.5 * np.ones(lmax + 1, dtype=float))
-            cL_out = np.ones(2 * lmax + 1, dtype=float)
+            lega = qeleg(0, 0, -np.ones(lmax + 1, dtype=float))
+            legb = qeleg(0, 0, 0.5 * np.ones(lmax + 1, dtype=float))
             return [qe(lega, legb, cL_out)]
         else:
             assert 0
@@ -279,30 +222,25 @@ class resp_lib_simple:
         return ret
 
     def get_response(self, k, ksource, recache=False):
-        #This uses the implementation with no TB and EB couplings, in which case there is only a GG and CC response.
-        s, GC, sins, ksp = qe_spin_data(k)
+        s, GorC, sins, ksp = qe_spin_data(k)
         assert s >= 0, s
-        if s == 0: assert GC == 'G', (s, GC)
-        fn = 'qe_' + ksp + k[1:] + '_source_%s_'%ksource + GC
+        if s == 0: assert GorC == 'G', (s, GorC)
+        fn = 'qe_' + ksp + k[1:] + '_source_%s_'%ksource + GorC + GorC
         if self.npdb.get(fn) is None or recache:
-            G, C = get_response(k, self.lmax_qe, ksource, self.cls_weight, self.cls_cmb, self.fal,
+            GG, CC, GC, CG = get_response(k, self.lmax_qe, ksource, self.cls_weight, self.cls_cmb, self.fal,
                                 lmax_out=self.lmax_qlm)
+            if np.any(CG) or np.any(GC):
+                print("Warning: C-G or G-C responses non-zero but not returned")
+                # This may happen only if EB and/or TB are relevant.
+
             if recache and self.npdb.get(fn) is not None:
-                self.npdb.remove('qe_' + ksp + k[1:] + '_source_%s' % ksource + '_G')
-                if s > 0: self.npdb.remove('qe_' + k[1:] + '_source_%s' % ksource + '_C')
-            self.npdb.add('qe_' + ksp + k[1:] + '_source_%s' % ksource + '_G', G)
-            if s > 0: self.npdb.add('qe_' + ksp + k[1:] + '_source_%s' % ksource + '_C', C)
+                self.npdb.remove('qe_' + ksp + k[1:] + '_source_%s' % ksource + '_GG')
+                if s > 0:
+                    self.npdb.remove('qe_'+ ksp  + k[1:] + '_source_%s' % ksource + '_CC')
+            self.npdb.add('qe_' + ksp + k[1:] + '_source_%s' % ksource + '_GG', GG)
+            if s > 0:
+                self.npdb.add('qe_' + ksp + k[1:] + '_source_%s' % ksource + '_CC', CC)
         return self.npdb.get(fn)
-
-
-def get_response(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
-    """QE isotropic response.
-
-    #FIXME: explain fal here
-
-    """
-    qes = get_qes(qe_key, lmax_qe, cls_weight)
-    return _get_response(qes, lmax_qe, source, cls_cmb, fal_leg1, fal_leg2=fal_leg2, lmax_out=lmax_out)
 
 def get_dresponse_dlncl(qe_key, l, cl_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
     """QE isotropic response derivative function dR_L / dlnC_l.
@@ -314,63 +252,61 @@ def get_dresponse_dlncl(qe_key, l, cl_key, lmax_qe, source, cls_weight, cls_cmb,
     return _get_response(qes, lmax_qe, source, dcls_cmb, fal_leg1, fal_leg2=fal_leg2, lmax_out=lmax_out)
 
 
-get_response_sepTP = get_response # Here for historical reasons.
+def get_response(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
+    """QE isotropic response.
 
-def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1,
-                          fal_leg2=None, lmax_out=None):
-    tb = cls_cmb.get('tb', None)
-    eb = cls_cmb.get('eb', None)
-    assert tb is None and eb is None, "This response implementation only for vanishing EB and TB CMB-sky spectra."
+    #FIXME: explain fal here
+
+    """
+    qes = get_qes(qe_key, lmax_qe, cls_weight)
+    return _get_response(qes, lmax_qe, source, cls_cmb, fal_leg1, fal_leg2=fal_leg2, lmax_out=lmax_out)
+
+get_response_sepTP = get_response # Here only for historical reasons.
+
+
+def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
     lmax_qlm = min(2 * lmax_qe,  2 * lmax_qe if lmax_out is None else lmax_out)
     fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
     RGG = np.zeros(lmax_qlm + 1, dtype=float)
     RCC = np.zeros(lmax_qlm + 1, dtype=float)
-
-    def get_F(s1, s2, leg):
-        # Matrix \bar _{s_1} X = F_{s_1,s_2} _{s_2} X
-        assert s1 in [0, -2, 2] and s2 in [0, -2, 2] and leg in [1, 2]
-        fal = fal_leg1 if leg == 1 else fal_leg2
-        if s1 == 0:
-            return fal['t'] if s2 == 0 else (0.5 * fal['te'] if 'te' in fal.keys() else None)
-        if s1 in [-2, 2]:
-            if s2 == 0: return fal['te'] if 'te' in fal.keys() else None
-            return 0.5 * (fal['e'] + fal['b']) if s1 == s2 else 0.5 * (fal['e'] - fal['b'])
-        else:
-            assert 0
-
-    for qe in qes:  # loop over all quadratic terms in estimator
+    RGC = np.zeros(lmax_qlm + 1, dtype=float)
+    RCG = np.zeros(lmax_qlm + 1, dtype=float)
+    for qe in qes:
         si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
         so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
-        # We want R^{a, st}  and R^{-a, st}
         for s2 in ([0, -2, 2]):
-            FA = get_F(si, s2, 1)
-            if FA is not None:
+            FA = get_spin_matrix(si, s2, fal_leg1)
+            if np.any(FA):
                 for t2 in ([0, -2, 2]):
-                    FB = get_F(ti, t2, 2)
-                    if FB is not None:
+                    FB = get_spin_matrix(ti, t2, fal_leg2)
+                    if np.any(FB):
                         rW_st, prW_st, mrW_st, s_cL_st = get_covresp(source, -s2, t2, cls_cmb, len(FB) - 1)
                         clA = joincls([qe.leg_a.cl, FA])
-                        clB = joincls([qe.leg_b.cl, FB, mrW_st])
+                        clB = joincls([qe.leg_b.cl, FB, mrW_st.conj()])
                         Rpr_st = wignerc(clA, clB, so, s2, to, -s2 + rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
 
                         rW_ts, prW_ts, mrW_ts, s_cL_ts = get_covresp(source, -t2, s2, cls_cmb, len(FA) - 1)
-                        clA = joincls([qe.leg_a.cl, FA, mrW_ts])
+                        clA = joincls([qe.leg_a.cl, FA, mrW_ts.conj()])
                         clB = joincls([qe.leg_b.cl, FB])
-                        Rpr_st += wignerc(clA, clB, so, -t2 + rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
+                        Rpr_st = Rpr_st + wignerc(clA, clB, so, -t2 + rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
                         assert rW_st == rW_ts and rW_st >= 0, (rW_st, rW_ts)
                         if rW_st > 0:
                             clA = joincls([qe.leg_a.cl, FA])
-                            clB = joincls([qe.leg_b.cl, FB, prW_st])
+                            clB = joincls([qe.leg_b.cl, FB, prW_st.conj()])
                             Rmr_st = wignerc(clA, clB, so, s2, to, -s2 - rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
 
-                            clA = joincls([qe.leg_a.cl, FA, prW_ts])
+                            clA = joincls([qe.leg_a.cl, FA, prW_ts.conj()])
                             clB = joincls([qe.leg_b.cl, FB])
-                            Rmr_st += wignerc(clA, clB, so, -t2 - rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
+                            Rmr_st = Rmr_st + wignerc(clA, clB, so, -t2 - rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
                         else:
                             Rmr_st = Rpr_st
-                        RGG += (-1) ** (so + to + rW_ts) * (Rpr_st + Rmr_st * (-1) ** rW_st) * qe.cL[:lmax_qlm + 1]
-                        RCC += (-1) ** (so + to + rW_ts) * (Rpr_st - Rmr_st * (-1) ** rW_st) * qe.cL[:lmax_qlm + 1]
-    return RGG, RCC
+                        prefac = (-1) ** (so + to + rW_ts) * qe.cL[:lmax_qlm + 1]
+                        RGG += prefac * ( Rpr_st.real + Rmr_st.real * (-1) ** rW_st)
+                        RCC += prefac * ( Rpr_st.real - Rmr_st.real * (-1) ** rW_st)
+                        RGC += prefac * (-Rpr_st.imag + Rmr_st.imag * (-1) ** rW_st)
+                        RCG += prefac * ( Rpr_st.imag + Rmr_st.imag * (-1) ** rW_st)
+
+    return RGG, RCC, RGC, RCG
 
 
 def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
@@ -380,6 +316,9 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     """
     # This version looks stable enough
     assert qe_key in ['p_p', 'ptt'], qe_key
+    assert not np.any(cls_cmb['tb'], 0.) and not np.any(cls_cmb['eb'], 0.), 'version with CMB EB or TB not implemented'
+    assert not np.any(cls_ivfs['tb'], 0.) and not np.any(cls_ivfs['eb'], 0.), 'version with filt EB or TB not implemented'
+
     GL = np.zeros(lmax_out + 1, dtype=float)
     CL = np.zeros(lmax_out + 1, dtype=float)
     if qe_key == 'ptt':
@@ -534,3 +473,44 @@ def get_spin_coupling(s1, s2, cls):
             return  cls['ee'] - cls['bb'] if eb is None else  cls['ee'] - cls['bb'] + 2j * eb
         else:
             assert 0
+
+def get_spin_matrix(sout, sin, cls):
+    """Spin-space matrix T^{-1} cls[T, E, B] T where T is the mapping from _{0, \pm 2}X to T, E, B.
+
+
+        cls is dictionary with keys 'tt', 'te', 'ee', 'bb'.
+        If not present the corresponding spectrum is assumed to be zero.
+        ('t' 'e' and 'b' keys also works in place of 'tt' 'ee', 'bb'.)
+
+        Output is complex only when necessary (that is, TB and/or EB present and relevant).
+
+    """
+    assert sin in [0, 2, -2] and sout in [0, 2, -2], (sin, sout)
+    if sin == 0:
+        if sout == 0:
+            return cls.get('tt', cls.get('t', 0.))
+        tb = cls.get('tb', None)
+        return (cls.get('te', 0.) + 1j * np.sign(sout) * tb) if tb is not None else cls.get('te', 0.)
+    if sin == 2:
+        if sout == 0:
+            te = cls.get('te', 0.)
+            tb = cls.get('tb', None)
+            return 0.5 * (te - 1j * tb) if tb is not None else 0.5 * te
+        if sout == 2:
+            return 0.5 * (cls.get('ee', cls.get('e', 0.)) + cls.get('bb', cls.get('b', 0.)))
+        if sout == -2:
+            ret =  0.5 * (cls.get('ee', cls.get('e', 0.)) - cls.get('bb', cls.get('b', 0.)))
+            eb = cls.get('eb', None)
+            return ret - 1j * eb if eb is not None else ret
+    if sin == -2:
+        if sout == 0:
+            te = cls.get('te', 0.)
+            tb = cls.get('tb', None)
+            return 0.5 * (te + 1j * tb) if tb is not None else 0.5 * te
+        if sout == 2:
+            ret =  0.5 * (cls.get('ee', cls.get('e', 0.)) - cls.get('bb', cls.get('b', 0.)))
+            eb = cls.get('eb', None)
+            return ret + 1j * eb if eb is not None else ret
+        if sout == -2:
+            return 0.5 * (cls.get('ee', cls.get('e', 0.)) + cls.get('bb', cls.get('b', 0.)))
+    assert 0, (sin, sout)
