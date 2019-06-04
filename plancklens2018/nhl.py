@@ -70,13 +70,13 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None)
             # we now need -s-t uv
             sgnms = (-1) ** (si + so)
             sgnmt = (-1) ** (ti + to)
-            clsu = utils.joincls([sgnms * qe1.leg_a.cl, qe2.leg_a.cl.conj(), qresp.get_spin_coupling(-si, ui, cls_ivfs_aa)])
-            cltv = utils.joincls([sgnmt * qe1.leg_b.cl, qe2.leg_b.cl.conj(), qresp.get_spin_coupling(-ti, vi, cls_ivfs_bb)])
+            clsu = utils.joincls([sgnms * qe1.leg_a.cl.conj(), qe2.leg_a.cl.conj(), qresp.get_spin_coupling(-si, ui, cls_ivfs_aa)])
+            cltv = utils.joincls([sgnmt * qe1.leg_b.cl.conj(), qe2.leg_b.cl.conj(), qresp.get_spin_coupling(-ti, vi, cls_ivfs_bb)])
             R_msmtuv = sgn_R * utils.joincls(
                 [qresp.wignerc(clsu, cltv, -so, uo, -to, vo, lmax_out=lmax_out), qe1.cL, qe2.cL])
 
-            clsv = utils.joincls([sgnms * qe1.leg_a.cl, qe2.leg_b.cl.conj(), qresp.get_spin_coupling(-si, vi, cls_ivfs_ab)])
-            cltu = utils.joincls([sgnmt * qe1.leg_b.cl, qe2.leg_a.cl.conj(), qresp.get_spin_coupling(-ti, ui, cls_ivfs_ba)])
+            clsv = utils.joincls([sgnms * qe1.leg_a.cl.conj(), qe2.leg_b.cl.conj(), qresp.get_spin_coupling(-si, vi, cls_ivfs_ab)])
+            cltu = utils.joincls([sgnmt * qe1.leg_b.cl.conj(), qe2.leg_a.cl.conj(), qresp.get_spin_coupling(-ti, ui, cls_ivfs_ba)])
             R_msmtuv = R_msmtuv + sgn_R * utils.joincls(
                 [qresp.wignerc(clsv, cltu, -so, vo, -to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
 
