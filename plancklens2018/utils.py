@@ -343,7 +343,7 @@ def cl_inverse(cls):
     clsm[:, 1, 2] = extend_cl(cls.get('eb', [0.]), lmax)
     clsm[:, 2, 1] = extend_cl(cls.get('eb', [0.]), lmax)
 
-    clsmi = np.linalg.pinv(clsm)
+    clsmi = np.linalg.pinv(clsm) # This may require numpy version > 1.14
     clsi ={}
     for k, (i, j) in zip(['tt', 'ee', 'bb', 'te', 'tb', 'eb'], [[0, 0],[1, 1], [2, 2], [0, 1], [0, 2], [1, 2]]):
         arr = clsmi[:, i, j].copy()
