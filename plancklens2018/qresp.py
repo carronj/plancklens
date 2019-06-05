@@ -98,7 +98,7 @@ def get_covresp(source, s1, s2, cls, lmax):
         s_source, prR, mrR, cL_scal = get_resp_legs(source, lmax)[s1]
         coupl = get_spin_coupling(s1, s2, cls)[:lmax + 1]
         return s_source, prR * coupl, mrR * coupl, cL_scal
-    elif source == 'stt':
+    elif source in ['stt', 's']:
         # Point source 'S^2': Cov -> Cov + B delta_nn' S^2(n) B^\dagger on the diagonal.
         # From the def. there are actually 4 identical W terms hence a factor 1/4.
         cond = s1 == 0 and s2 == 0
@@ -126,14 +126,12 @@ def get_qes(qe_key, lmax, cls_weight):
     (It is useful to remember that by convention  $_{0}X_{lm} = - T_{lm}$)
 
     """
-    if qe_key[0] == 'p' or qe_key[0] == 'x':
-        # Lensing estimate (both gradient and curl)
-        cL_out = get_spin_raise(0, 2 * lmax)
-        if qe_key in ['ptt', 'xtt']:
+    if qe_key[0] in ['p', 'x', 'a', 'f', 's']:
+        if qe_key in ['ptt', 'xtt', 'att', 'ftt', 'stt']:
             s_lefts= [0]
-        elif qe_key in ['p_p', 'x_p']:
+        elif qe_key in ['p_p', 'x_p', 'a_p', 'f_p']:
             s_lefts= [-2, 2]
-        elif qe_key in ['p', 'x']:
+        elif qe_key in ['p', 'x', 'a', 'f']:
             s_lefts = [0, -2, 2]
         else:
             assert 0, qe_key + ' not implemented'
@@ -142,64 +140,14 @@ def get_qes(qe_key, lmax, cls_weight):
         for s_left in s_lefts:
             for sin in s_rights_in:
                 sout = -s_left
-                cl_sosi =  get_spin_matrix(sout, sin, cls_weight)
+                s_qe, irr1, cl_sosi, cL_out =  get_covresp(qe_key[0], sout, sin, cls_weight, lmax)
                 if np.any(cl_sosi):
-                    lega = qeleg(s_left, s_left, - 0.5 *(1. + (s_left==0)) * np.ones(lmax + 1, dtype=float))
-                    legb = qeleg(sin, sout + 1, get_spin_raise(sout, lmax) * cl_sosi[:lmax + 1])
+                    lega = qeleg(s_left, s_left, 0.5 *(1. + (s_left == 0)) * np.ones(lmax + 1, dtype=float))
+                    legb = qeleg(sin, sout + s_qe, 0.5 * (1. + (sin == 0)) * 2 * cl_sosi)
                     qes.append(qe(lega, legb, cL_out))
         return qes
-
-    elif qe_key[0] == 'f':
-        cL_out = np.ones(2 * lmax + 1, dtype=float) #FIXME: sign convention
-        if qe_key in ['ftt']:
-            s_lefts= [0]
-        elif qe_key in ['f_p']:
-            s_lefts= [-2, 2]
-        elif qe_key in ['f']:
-            s_lefts = [0, -2, 2]
-        else:
-            assert 0, qe_key + ' not implemented'
-        qes = []
-        s_rights_in = s_lefts
-        for s_left in s_lefts:
-            for sin in s_rights_in:
-                sout = -s_left
-                cl_sosi =  get_spin_matrix(sout, sin, cls_weight)
-                if np.any(cl_sosi):
-                    lega = qeleg(s_left, s_left, 0.5 *(1. + (s_left==0)) * np.ones(lmax + 1, dtype=float))
-                    legb = qeleg(sin, sout, cl_sosi[:lmax + 1])
-                    qes.append(qe(lega, legb, cL_out))
-        return qes
-
-    elif qe_key[0] == 's':
-        cL_out = -np.ones(2 * lmax + 1, dtype=float) #FIXME: sign convention
-        if qe_key == 'stt':
-            lega = qeleg(0, 0, -np.ones(lmax + 1, dtype=float))
-            legb = qeleg(0, 0, 0.5 * np.ones(lmax + 1, dtype=float))
-            return [qe(lega, legb, cL_out)]
-        else:
-            assert 0
-    elif qe_key[0] == 'a':
-        cL_out = np.ones(2 * lmax + 1, dtype=float)
-        if qe_key in ['a', 'a_p']:
-            s_lefts= [-2, 2]
-        else:
-            assert 0, qe_key + ' not implemented'
-        qes = []
-        s_rights_in = s_lefts
-        for s_left in s_lefts:
-            for sin in s_rights_in:
-                sout = -s_left
-                cl_sosi =  get_spin_matrix(sout, sin, cls_weight)
-                if np.any(cl_sosi):
-                    lega = qeleg(s_left, s_left, 0.5 * (1. + (s_left==0)) * np.ones(lmax + 1, dtype=float))
-                    legb = qeleg(sin, sout, -np.sign(sout) * 2j * cl_sosi[:lmax + 1])
-                    qes.append(qe(lega, legb, cL_out))
-        return qes
-
-
     else:
-        assert 0
+        assert 0, qe_key + ' not implemented'
 
 
 def qe_spin_data(qe_key):
