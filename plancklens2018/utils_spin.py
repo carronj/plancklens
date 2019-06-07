@@ -82,7 +82,7 @@ def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
             xi2 = gaujac.get_rspace(cl2, xg, sp2, s2)
             return 2. * np.pi * np.dot(gaujac.get_wignerd(lmax_out, xg, sp1 + sp2, s1 + s2), wg * xi1 * xi2)
     else:
-        return np.zeros(lmax_out, dtype=float)
+        return np.zeros(lmax_out + 1, dtype=float)
 
 
 def get_spin_raise(s, lmax):
