@@ -56,12 +56,12 @@ where  $_{\pm r} \alpha_{LM} \equiv \int d^2n \:_{\pm r}\alpha(\hn) \:_{\pm r}Y^
 Prior to projection onto gradient and curl modes, and prior to proper normalization, the quadratic estimators can all be written in the form \begin{equation}\label{QE}
  _{r}\hat \alpha(\hn) \equiv  \left(\sum_{\ell m}\: w^{\so\si}_\ell \:_{\si} \bar X_{\ell m} \:_\so Y_{\ell m}(\hn)\right)\left(\sum_{\ell m}\:w^{\to\ti}_\ell  \:_{\ti} \bar X_{\ell m} \:_\to Y_{\ell m}(\hn)\right)
 \end{equation}
-where $\si, \ti$ are input spins, $\so, \to$ outputs spins with $\to + \so = r$, and $w_\ell^{\so\si}, w_\ell^{\ti\to}$ associated weights. 
+where $\si, \ti$ are input spins, $\so, \to$ outputs spins with $\to + \so = r$, and $w_\ell^{\so\si}, w_\ell^{\ti\to}$ associated weights. By consistency, the weights have symmetry $w_\ell^{-\so-\si} = (-1)^{\so + \si}w_\ell^{*\so \si}$.
 \newline
 \newline
 The maps $_s \bar X_{lm}$ are the inverse variance filtered CMB maps,
 \begin{equation}
-	_0 \bar X_{\ell m} = -\bar T_{\ell m} , \quad _{\pm 2} \bar X_{\ell m} = -\left(\bar E_{\ell m} \pm i\bar B_{\ell m} \right),
+	_0 \bar X_{\ell m} = \bar T_{\ell m} , \quad _{\pm 2} \bar X_{\ell m} = -\left(\bar E_{\ell m} \pm i\bar B_{\ell m} \right),
 \end{equation}
 and (for the purposes of the analytical calculations in this document) are isotropically related to the data maps $_sX$ through a matrix $F$,
 \begin{equation}\label{eq:filter}
@@ -81,7 +81,7 @@ In Ref~\cite{Aghanim:2018oex}, $F_\ell^{X}$ is set to zero outside $100 \le \ell
 For joint temperature and polarization filtering, the $F$ matrix becomes:
 \begin{equation}
 	F = \begin{pmatrix}
-		F^{TT}_\ell &  \frac 12 F^{TE} &   \frac12 F^{TE} \\  F^{TE} & \frac 12 \left( F^{EE}_\ell  + F^{B}_\ell\right) & \frac 12 \left( F^{EE}_\ell  - F^{B}_\ell\right) \\ F^{TE}& \frac 12 \left( F^{EE}_\ell  - F^{B}_\ell\right) & \frac 12 \left( F^{EE}_\ell  + F^{B}_\ell\right)
+		F^{TT}_\ell &  -\frac 12 F^{TE} &   -\frac12 F^{TE} \\  -F^{TE} & \frac 12 \left( F^{EE}_\ell  + F^{B}_\ell\right) & \frac 12 \left( F^{EE}_\ell  - F^{B}_\ell\right) \\ -F^{TE}& \frac 12 \left( F^{EE}_\ell  - F^{B}_\ell\right) & \frac 12 \left( F^{EE}_\ell  + F^{B}_\ell\right)
 	\end{pmatrix}
 \end{equation}
 where the entries $F^{T, E, B}$ are the elements of
@@ -111,7 +111,7 @@ n_L^{stuv} & = (-1)^{r + r'}2\pi  \int_{-1}^1 d \mu\:  d^L_{-r -r'}(\mu) \left[\
 \end{equation}
 where $\xi$ are position-space correlation functions
 \begin{equation}\boxed{
-\xi^{st}(\mu) \equiv  \sum_\ell \left(\frac{2\ell + 1}{4\pi}\right)w^{\so\si}_\ell w^{\to\ti}_\ell \bar C_\ell^{\si \ti} d^\ell_{\so,\to}(\mu)\textrm{ with } \bar C_\ell^{\si \ti} \equiv \av{ _{\si}\bar X_{\ell m}\: _{\ti} \bar X^*_{\ell m} }}.
+\xi^{st}(\mu) \equiv  \sum_\ell \left(\frac{2\ell + 1}{4\pi}\right)w^{\so\si}_\ell w^{*\to\ti}_\ell \bar C_\ell^{\si \ti} d^\ell_{\so,\to}(\mu)\textrm{ with } \bar C_\ell^{\si \ti} \equiv \av{ _{\si}\bar X_{\ell m}\: _{\ti} \bar X^*_{\ell m} }}.
 \end{equation}
 Projecting onto gradient and curl modes results in
 \begin{equation} \boxed{
@@ -122,15 +122,7 @@ Projecting onto gradient and curl modes results in
 \end{split}}
 \end{equation}
 ($\Re$ and $\Im$ stands for real and imaginary parts respectively). 
-Ref.~\cite{Aghanim:2018oex} calculates the covariance matrix based on these equations using the empirical, realisation dependent power spectra $\bar C_\ell^{s_i,t_i}$. The gradient-curl mode cross-covariance is only sourced by gradient-curl couplings in the inverse-variance filtered CMB fields (i.e., non-zero $C_\ell^{\bar T \bar B}$ or $C_\ell^{\bar E \bar B}$). In the often most relevant situation that these spectra vanish, these equations simplify to
-\begin{equation}
-\begin{split}
-\left.\av{\hat g^{r}_{LM} \hat g^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &=\delta_{LL'}\delta_{MM'} \frac 12 \left[n_L^{stuv} +  (-1)^{r} n^{-s-tuv}_L\right] \\
-		\left.\av{\hat c^{r}_{LM} \hat c^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &= \delta_{LL'}\delta_{MM'}\frac 12 \left[n_L^{stuv} -  (-1)^{r} n^{-s-tuv}_L\right] \\
-	\left.\av{\hat g^{r}_{LM} \hat c^{*, r'}_{L' M'} }\right|_{\rm Gauss.} &= 0 = \left.\av{\hat c^{r}_{LM} \hat g^{*, r'}_{L' M'} }\right|_{\rm Gauss.} \\
-	&\left(\textrm{if   } C_\ell^{\bar T \bar B} =  C_\ell^{\bar E \bar B} = 0\right)
-\end{split}
-\end{equation}
+Ref.~\cite{Aghanim:2018oex} calculates the covariance matrix based on these equations using the empirical, realisation dependent power spectra $\bar C_\ell^{s_i,t_i}$. A gradient-curl mode cross-covariance  may be sourced by gradient-curl couplings in the inverse-variance filtered CMB fields (i.e., non-zero $C_\ell^{\bar T \bar B}$ or $C_\ell^{\bar E \bar B}$). In most relevant situations there is no such couplings and the gradient to curl and curl to gradient covariance vanish.
 \subsection{Responses}
 We now turn to the calculation of the response of the estimator to a source of anisotropy. Anisotropy can sometimes be parametrized at the level of the CMB maps, (for example for lensing), with
 \begin{equation}\label{eq:mapresp}
@@ -138,7 +130,7 @@ We now turn to the calculation of the response of the estimator to a source of a
 \end{equation}
 for response kernel functions $R^{r,s}_\ell$. More generally, let the covariance of the CMB data respond as follows to a spin-$r$ anisotropy source $\alpha$:
 \begin{equation}\label{eq:covresp}
-	\delta  \av{_sX(\hn) \:_tX^*(\hn')} =   \sum_{\ell m, a = \pm r}\:_{a}\alpha(\hn) W_\ell^{a, st} \:_{s - a}Y_{\ell m}(\hn)  \:_{t}Y^*_{\ell m}(\hn')  +   W_\ell^{a, ts} \:_{s}Y_{\ell m}(\hn)  \:_{t-a}Y^*_{\ell m}(\hn')\:_{-a}\alpha(\hn')
+	\delta  \av{_sX(\hn) \:_tX^*(\hn')} =   \sum_{\ell m, a = \pm r}\:_{a}\alpha(\hn) W_\ell^{a, st} \:_{s - a}Y_{\ell m}(\hn)  \:_{t}Y^*_{\ell m}(\hn')  +   W_\ell^{* a, ts} \:_{s}Y_{\ell m}(\hn)  \:_{t-a}Y^*_{\ell m}(\hn')\:_{-a}\alpha(\hn')
 \end{equation}
 for some weights functions $W_\ell^{a, st}$. For map-level descriptions in Eq.~\eqref{eq:mapresp} then holds
 \begin{equation}
@@ -158,12 +150,16 @@ Examples include:
 	\item CMB modulation: The source is spin 0, with response
 	\begin{equation}
 	\delta _sX(\hn) = \:_0\alpha(\hn) _{s}X(\hn)	
-	\textrm{   hence   } R_\ell^{st} = \delta_{st}
+	\textrm{   hence   } R_\ell^{0,s} = 1
 	\end{equation}
 	\item Point sources in temperature ($S^2$, from Ref.~\cite{Osborne:2013nna}): here anisotropy is sought of the form
 	\begin{equation}
 	\delta  \av{T(\hn) \:T(\hn')} = \delta_{\hat n\hat n'}S^2(\hn)\textrm{    hence     }
 	W^{r, st}_\ell = \frac 14\delta_{r0}\delta_{s0}\delta_{t0} 
+	\end{equation}
+	\item Polarization rotation (for example from polarization angle miscalibration). There the observed polarization is rotated according to $_{\pm 2} X$ is $e^{\mp 2i \:_{0}\alpha} \: _{\pm 2}X$.
+	\begin{equation}
+		_{\pm 2}\delta X (\hn)= \mp 2i \:_{0}\alpha(\hn) \:_{\pm 2}X(\hn), \textrm{ hence } R_\ell^{0, \pm 2} = \mp 2i
 	\end{equation}
 	\item Noise variance map anisotropies (basically the same as point sources but acting on beam-convolved maps)	\begin{equation}
 	W^{r, st}_\ell = \frac 14\delta_{r0}\delta_{s0}\delta_{t0}  \frac{1}{b_\ell^2}
@@ -173,9 +169,10 @@ Examples include:
 
 Let as before $s, t$ denote collectively the QE spins and weight functions for an estimator $_r\hat \alpha(\hn)$ of spin $r = s_o + t_o$, and let $r'$ be the spin of anisotropy source $_{r'}\beta(\hn)$ with covariance response kernel $W^{r'}$ as above. Let $\mathcal R_L^{g_r g_{r'}} \delta_{LL'}\delta_{MM'}$ be defined as the response of the gradient mode of $\alpha_{LM}$ to the gradient mode of $\beta_{L'M'}$, and similarly for the curl. It holds: \begin{equation}\boxed{
 	\begin{split}
-		\resp^{g_rg_{r'}}_L &= R_L^{st, r'} + (-1)^{r'} R_L^{st, -r'}\\
-		\resp^{c_rc_{r'}}_L &= R_L^{st, r'} - (-1)^{r'} R_L^{st, -r'} \\
-		\resp^{g_rc_{r'}}_L &= 0 = \resp^{c_rg_{r'}}_L, \\
+		\resp^{g_rg_{r'}}_L &= \Re\left[R_L^{st, r'} + (-1)^{r'} R_L^{st, -r'}\right]\\
+		\resp^{c_rc_{r'}}_L &= \Re\left[R_L^{st, r'} - (-1)^{r'} R_L^{st, -r'}\right] \\
+		\resp^{g_rc_{r'}}_L &= \Im\left[-R_L^{st, r'} + (-1)^{r'} R_L^{st, -r'} \right]  \\
+		\resp^{c_rg_{r'}}_L &= \Im\left[R_L^{st, r'} + (-1)^{r'} R_L^{st, -r'} \right] \\
 	\end{split}}
 \end{equation}
 where
@@ -190,10 +187,10 @@ and
 \boxed{
 \begin{split}
 \xi^{\so\si \tilde s_i}(\mu) &\equiv  \sum_\ell \left(\frac{2\ell + 1}{4\pi}\right)w^{\so\si}_\ell F_\ell^{\si \tilde \si} d^\ell_{\so,\tilde \si}(\mu) \\
-\psi^{\so\si \tilde \si \tilde \ti, r'}(\mu) &\equiv  (-1)^{r'} \sum_\ell \left(\frac{2\ell + 1}{4\pi}\right)w^{\so \si}F^{\si \tilde \si}_\ell W_\ell^{-r', -\tilde \ti \tilde \si} d^\ell_{\so,-\tilde \ti + r'}(\mu) 
+\psi^{\so\si \tilde \si \tilde \ti, r'}(\mu) &\equiv  (-1)^{r'} \sum_\ell \left(\frac{2\ell + 1}{4\pi}\right)w^{\so \si}F^{\si \tilde \si}_\ell W_\ell^{*-r', -\tilde \ti \tilde \si} d^\ell_{\so,-\tilde \ti + r'}(\mu) 
 \end{split}}
 \end{equation}
-If there is a unique source of anisotropy, properly normalized gradient and curl estimators are then given by $\hat g^r_{LM} / \mathcal R_L^{g_rg_r}$ and $\hat c^r_{LM} / \mathcal R_L^{c_r c_r}$.
+Again, in most relevant cases, the gradient to curl and curl to gradient responses do vanish. If there is a unique source of anisotropy, properly normalized gradient and curl estimators are then given by $\hat g^r_{LM} / \mathcal R_L^{g_rg_r}$ and $\hat c^r_{LM} / \mathcal R_L^{c_r c_r}$.
 
 \subsection{Optimal QE weights}Optimal (in the sense of minimal Gaussian variance) QE weights are easily gained from the representation in Eq.~\ref{eq:covresp} of the anisotropy. Let the CMB likelihood gradients be
 \begin{equation}
@@ -204,6 +201,16 @@ Using Eq.~\eqref{eq:covresp} and comparing to Eq.~\eqref{QE}, we find
 \begin{equation}\boxed{
 	w_\ell^{st} = \delta_{st} \textrm{   (1st leg)  } \quad 	w_\ell^{-s + r, t} = 2W^{-r, -st}_\ell \textrm{   (2nd leg)  }}
 \end{equation} \JC{why 2 again? }
-
+\JC{FIXME: The right expression is 
+\begin{equation}
+	_{r}\hat g(\hn) = \sum_{s}\: _{-s}\bar X(\hn)\cdot \left( 2W_{\ell}^{-r, st} \:_{t}\bar X_{\ell m}\: _{s + r}Y_{\ell m}(\hn)\right)
+\end{equation}
+where $\bar X$ has the $(0, 2, -2)$ elements (note the additional factor of 2! in pol w.r.t. to naive spin defs.)
+\begin{equation}
+\begin{pmatrix}
+	\bar T \\ -\frac 12 \left( \bar E + i \bar B \right) \\-\frac 12 \left( \bar E - i \bar B \right)
+\end{pmatrix}	
+\end{equation}
+Factor of 2 in front of W comes from 2 $ \delta/  \delta\: _{-r}\alpha(\hn)$ to get $d/dre + d/dim$ (?).}
 \bibliography{lensing}
 \end{document}
