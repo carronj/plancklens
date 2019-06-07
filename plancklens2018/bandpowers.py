@@ -62,23 +62,31 @@ class ffp10_binner:
             ksource: anisotropy source (defaults to 'p', lensing)
 
         """
-        assert ksource == 'p', ksource +  ' source not implemented'
-
         lmaxphi = 2048
-        clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lenspotentialCls.dat'))['pp'][:lmaxphi+1]
-        kappaswitch = (np.arange(0, lmaxphi + 1, dtype=float) * (np.arange(1, lmaxphi + 2))) ** 2 / (2. * np.pi) * 1e7
-        clkk_fid = clpp_fid * kappaswitch
 
+        if ksource == 'p':
+            kswitch = (np.arange(0, lmaxphi + 1, dtype=float) * (np.arange(1, lmaxphi + 2))) ** 2 / (2. * np.pi) * 1e7
+            if k1[0] == 'p' and k2[0] == 'p':
+                clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lenspotentialCls.dat'))['pp'][:lmaxphi+1]
+            elif k1[0] == 'x' and k2[0] == 'x':
+                clpp_fid = np.ones(lmaxphi + 1, dtype=float)
+            else:
+                assert 0, 'not implemented'
+        else:
+            kswitch  = np.ones(lmaxphi + 1, dtype=float)
+            clpp_fid = np.ones(lmaxphi + 1, dtype=float)
+
+        clkk_fid = clpp_fid * kswitch
         qc_resp = parfile.qresp_dd.get_response(k1, ksource)[:lmaxphi+1] * parfile.qresp_dd.get_response(k2, ksource)[:lmaxphi+1]
         bin_lmins, bin_lmaxs, bin_centers = get_blbubc(btype)
         vlpp_inv = qc_resp * (2 * np.arange(lmaxphi + 1) + 1) * (0.5 * parfile.qcls_dd.fsky1234)
-        vlpp_inv *= utils.cli(kappaswitch) ** 2
+        vlpp_inv *= utils.cli(kswitch) ** 2
         vlpp_den = [np.sum(clkk_fid[slice(lmin, lmax + 1)] ** 2 * vlpp_inv[slice(lmin, lmax + 1)]) for lmin, lmax in zip(bin_lmins, bin_lmaxs)]
 
         fid_bandpowers = np.ones(len(bin_centers))  # We will renormalize that as soon as l_av is calculated.
 
         def _get_bil(i, L):  # Bin i window function to be applied to cLpp-like arrays as just described
-            ret = (fid_bandpowers[i] / vlpp_den[i]) * vlpp_inv[L] * clkk_fid[L] * kappaswitch[L]
+            ret = (fid_bandpowers[i] / vlpp_den[i]) * vlpp_inv[L] * clkk_fid[L] * kswitch[L]
             ret *= (L >= bin_lmins[i]) * (L <= bin_lmaxs[i])
             return ret
 
@@ -102,10 +110,10 @@ class ffp10_binner:
         self.vlpp_den = vlpp_den
         self.vlpp_inv = vlpp_inv
         self.clkk_fid = clkk_fid
-        self.kappaswitch = kappaswitch
+        self.kswitch = kswitch
 
     def _get_bil(self, i, L):
-        ret = (self.fid_bandpowers[i] / self.vlpp_den[i]) * self.vlpp_inv[L] * self.clkk_fid[L] * self.kappaswitch[L]
+        ret = (self.fid_bandpowers[i] / self.vlpp_den[i]) * self.vlpp_inv[L] * self.clkk_fid[L] * self.kswitch[L]
         ret *= (L >= self.bin_lmins[i]) * (L <= self.bin_lmaxs[i])
         return ret
 
