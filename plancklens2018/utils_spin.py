@@ -55,31 +55,34 @@ def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
     lmax2 = len(cl2) - 1
     lmax_out = lmax1 + lmax2 if lmax_out is None else lmax_out
     lmaxtot = lmax1 + lmax2 + lmax_out
-    N = (lmaxtot + 2 - lmaxtot % 2) // 2
-    if not 'xg wg %s' % N in GL_cache.keys():
-        GL_cache['xg wg %s' % N] = wigners.get_xgwg(-1., 1., N) if HASWIGNER else gauleg.get_xgwg(N)
-    xg, wg = GL_cache['xg wg %s' % N]
+    if np.any(cl1) and np.any(cl2):
+        N = (lmaxtot + 2 - lmaxtot % 2) // 2
+        if not 'xg wg %s' % N in GL_cache.keys():
+            GL_cache['xg wg %s' % N] = wigners.get_xgwg(-1., 1., N) if HASWIGNER else gauleg.get_xgwg(N)
+        xg, wg = GL_cache['xg wg %s' % N]
 
-    if HASWIGNER:
-        if np.iscomplexobj(cl1):
-            xi1 = wigners.wignerpos(np.real(cl1), xg, sp1, s1) + 1j * wigners.wignerpos(np.imag(cl1), xg, sp1, s1)
+        if HASWIGNER:
+            if np.iscomplexobj(cl1):
+                xi1 = wigners.wignerpos(np.real(cl1), xg, sp1, s1) + 1j * wigners.wignerpos(np.imag(cl1), xg, sp1, s1)
+            else:
+                xi1 = wigners.wignerpos(cl1, xg, sp1, s1)
+            if np.iscomplexobj(cl2):
+                xi2 = wigners.wignerpos(np.real(cl2), xg, sp2, s2) + 1j * wigners.wignerpos(np.imag(cl2), xg, sp2, s2)
+            else:
+                xi2 = wigners.wignerpos(cl2, xg, sp2, s2)
+            xi1xi2w = xi1 * xi2 * wg
+            if np.iscomplexobj(xi1xi2w):
+                ret = wigners.wignercoeff(np.real(xi1xi2w), xg, sp1 + sp2, s1 + s2, lmax_out)
+                ret = ret + 1j * wigners.wignercoeff(np.imag(xi1xi2w), xg, sp1 + sp2, s1 + s2, lmax_out)
+                return ret
+            else:
+                return wigners.wignercoeff(xi1xi2w, xg, sp1 + sp2, s1 + s2, lmax_out)
         else:
-            xi1 = wigners.wignerpos(cl1, xg, sp1, s1)
-        if np.iscomplexobj(cl2):
-            xi2 = wigners.wignerpos(np.real(cl2), xg, sp2, s2) + 1j * wigners.wignerpos(np.imag(cl2), xg, sp2, s2)
-        else:
-            xi2 = wigners.wignerpos(cl2, xg, sp2, s2)
-        xi1xi2w = xi1 * xi2 * wg
-        if np.iscomplexobj(xi1xi2w):
-            ret = wigners.wignercoeff(np.real(xi1xi2w), xg, sp1 + sp2, s1 + s2, lmax_out)
-            ret = ret + 1j * wigners.wignercoeff(np.imag(xi1xi2w), xg, sp1 + sp2, s1 + s2, lmax_out)
-            return ret
-        else:
-            return wigners.wignercoeff(xi1xi2w, xg, sp1 + sp2, s1 + s2, lmax_out)
+            xi1 = gaujac.get_rspace(cl1, xg, sp1, s1)
+            xi2 = gaujac.get_rspace(cl2, xg, sp2, s2)
+            return 2. * np.pi * np.dot(gaujac.get_wignerd(lmax_out, xg, sp1 + sp2, s1 + s2), wg * xi1 * xi2)
     else:
-        xi1 = gaujac.get_rspace(cl1, xg, sp1, s1)
-        xi2 = gaujac.get_rspace(cl2, xg, sp2, s2)
-        return 2. * np.pi * np.dot(gaujac.get_wignerd(lmax_out, xg, sp1 + sp2, s1 + s2), wg * xi1 * xi2)
+        return np.zeros(lmax_out, dtype=float)
 
 
 def get_spin_raise(s, lmax):
