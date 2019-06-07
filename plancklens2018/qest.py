@@ -19,6 +19,9 @@ from . import qresp
 def eval_qe(qe_key, lmax_ivf, cls_weight, get_alm, nside, verbose=True):
     """Evaluates a quadratic estimator gradient and curl terms.
 
+        Useful for quick checks on single maps.
+        See 'library' below for QE estimation coupled to CMB inverse-variance filtered simulation libraries.
+
         qe_key: QE key defining the estimator (as defined in the qresp module)
         lmax_ivf: CMB multipoles up to lmax are used in the QE
         cls_weights: set of CMB spectra entering the QE estimator weights
