@@ -148,7 +148,8 @@ def get_resp_legs(source, lmax):
 
     """
     lmax_cL = 2 *  lmax
-    if source == 'p': # lensing (gradient and curl): _sX -> _sX -  1/2 alpha_1 \eth _sX - 1/2 \alpha_{-1} \bar \eth _sX
+    if source in ['p', 'x']:
+        # lensing (gradient and curl): _sX -> _sX -  1/2 alpha_1 \eth _sX - 1/2 \alpha_{-1} \bar \eth _sX
         return {s : (1, -0.5 * uspin.get_spin_lower(s, lmax), -0.5 * uspin.get_spin_raise(s, lmax),
                      uspin.get_spin_raise(0, lmax_cL)) for s in [0, -2, 2]}
     if source == 'f': # Modulation: _sX -> _sX + f _sX.
