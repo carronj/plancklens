@@ -4,28 +4,18 @@ FIXME: spin-0 QE sign conventions (stt, ftt, ...)
 """
 
 from __future__ import absolute_import
+from __future__ import print_function
 
+import healpy as hp
 import os
 import numpy as np
 import pickle as pk
 
-
 from plancklens2018 import sql
+from plancklens2018 import utils
+from plancklens2018 import utils_spin as uspin
 from plancklens2018.utils import clhash, hash_check, joincls
 from plancklens2018 import mpi
-
-try:
-    from plancklens2018.wigners import wigners  # fortran shared object
-    HASWIGNER = True
-except:
-    print("wigners.so fortran shared object not found")
-    print('try f2py -c -m wigners wigners.f90 from the command line in wigners directory')
-    print("Falling back on python2 weave implementation")
-    HASWIGNER = False
-    from plancklens2018.wigners import gaujac, gauleg
-
-verbose = False
-
 
 class qeleg:
     def __init__(self, spin_in, spin_out, cl):
@@ -33,8 +23,58 @@ class qeleg:
         self.spin_ou = spin_out
         self.cl = cl
 
+    def __eq__(self, leg):
+        if self.spin_in != leg.spin_in or self.spin_ou != leg.spin_ou or self.get_lmax() != self.get_lmax():
+            return False
+        return np.all(self.cl == leg.cl)
+
     def get_lmax(self):
         return len(self.cl) - 1
+
+
+class qeleg_multi:
+    def __init__(self, spins_in, spin_out, cls):
+        assert isinstance(spins_in, list) and isinstance(cls, list)
+        assert len(spins_in) == len(cls)
+        self.spins_in = spins_in
+        self.cls = cls
+        self.spin_ou = spin_out
+
+    def __iadd__(self, qeleg):
+        """Adds one spin_in/cl tuple.
+
+        """
+        assert qeleg.spin_ou == self.spin_ou, (qeleg.spin_ou, self.spin_ou)
+        self.spins_in.append(qeleg.spin_in)
+        self.cls.append(np.copy(qeleg.cl))
+        return self
+
+    def __call__(self, get_alm, nside):
+        """Returns the spin-weighted real-space map of the estimator.
+
+        We first build X_lm in the wanted _{si}X_lm _{so}Y_lm and then convert this alm2map_spin conventions.
+        """
+        lmax = self.get_lmax()
+        glm = np.zeros(hp.Alm.getsize(lmax), dtype=complex)
+        clm = np.zeros(hp.Alm.getsize(lmax), dtype=complex) # X_{lm} is here glm + i clm
+        for i, (si, cl) in enumerate(zip(self.spins_in, self.cls)):
+            gclm = [get_alm('e'), get_alm('b')] if abs(si) == 2 else [-get_alm('t'), 0.]
+            assert len(gclm) == 2
+            sgn_g = -(-1) ** si if si < 0 else -1
+            sgn_c = (-1) ** si if si < 0 else -1
+            glm += hp.almxfl(utils.alm_copy(gclm[0], lmax), sgn_g * cl)
+            if np.any(gclm[1]):
+                clm += hp.almxfl(utils.alm_copy(gclm[1], lmax), sgn_c * cl)
+        glm *= -1
+        if self.spin_ou > 0: clm *= -1
+        Red, Imd = uspin.alm2map_spin((glm, clm), nside, abs(self.spin_ou), lmax)
+        if self.spin_ou < 0 and self.spin_ou % 2 == 1: Red *= -1
+        if self.spin_ou < 0 and self.spin_ou % 2 == 0: Imd *= -1
+        return Red + 1j * Imd
+
+
+    def get_lmax(self):
+        return np.max([len(cl) for cl in self.cls]) - 1
 
 class qe:
     def __init__(self, leg_a, leg_b, cL):
@@ -43,9 +83,6 @@ class qe:
         self.leg_b = leg_b
         self.cL = cL
 
-    def __call__(self, lega_dlm, legb_dlm, nside):
-        pass
-        # FIXME
     def get_lmax_a(self):
         return self.leg_a.get_lmax()
 
@@ -54,6 +91,46 @@ class qe:
 
     def get_lmax_qlm(self):
         return len(self.cL)
+
+def compress_qe(qes, verbose=True):
+    skip = []
+    qes_compressed = []
+    for i, qe in enumerate(qes):
+        if i not in skip:
+            lega = qe.leg_a
+            lega_m=  qeleg_multi([qe.leg_a.spin_in], qe.leg_a.spin_ou, [qe.leg_a.cl])
+            legb_m = qeleg_multi([qe.leg_b.spin_in], qe.leg_b.spin_ou, [qe.leg_b.cl])
+            for j, qej in enumerate(qes[i + 1:]):
+                if qej.leg_a == lega and legb_m.spin_ou == qej.leg_b.spin_ou:
+                    legb_m += qej.leg_b
+                    skip.append(i + 1 + j)
+            qes_compressed.append( (lega_m, legb_m, qe.cL))
+    if len(skip) > 0 and verbose:
+        print("%s alm2map_spin transforms now required, down from %s"%(2 * (len(qes) -len(skip)) , 2 * len(qes)) )
+
+    return qes_compressed
+
+
+def eval_qe(qes_list, nside, get_alm, verbose=True):
+    qes = compress_qe(qes_list, verbose=verbose) # triple lega (leg_multi) legb, clout
+    qe_spin = qes[0][0].spin_ou + qes[0][1].spin_ou
+    cL_out = qes[0][-1]
+    assert qe_spin >= 0, qe_spin
+    for qe in qes[1:]:
+        assert np.all(qe[-1] == cL_out)
+        assert qe[0].spin_ou + qe[1].spin_ou == qe_spin
+    d = np.zeros(hp.nside2npix(nside), dtype=complex)
+    for i, qe in enumerate(qes):
+        if verbose:
+            print("QE %s out of %s :"%(i + 1, len(qes)))
+            print(qe[0].spins_in, qe[0].spin_ou)
+            print(qe[1].spins_in, qe[1].spin_ou)
+        d += qe[0](get_alm, nside) * qe[1](get_alm, nside)
+    glm, clm = uspin.map2alm_spin((d.real, d.imag),qe_spin, lmax=len(cL_out) - 1)
+    hp.almxfl(glm, cL_out, inplace=True)
+    if np.any(clm):
+        hp.almxfl(clm, cL_out, inplace=True)
+    return glm, clm
 
 
 def get_resp_legs(source, lmax):
@@ -71,8 +148,8 @@ def get_resp_legs(source, lmax):
     """
     lmax_cL = 2 *  lmax
     if source == 'p': # lensing (gradient and curl): _sX -> _sX -  1/2 alpha_1 \eth _sX - 1/2 \alpha_{-1} \bar \eth _sX
-        return {s : (1, -0.5 * get_spin_lower(s, lmax), -0.5 * get_spin_raise(s, lmax),
-                     get_spin_raise(0, lmax_cL)) for s in [0, -2, 2]}
+        return {s : (1, -0.5 * uspin.get_spin_lower(s, lmax), -0.5 * uspin.get_spin_raise(s, lmax),
+                     uspin.get_spin_raise(0, lmax_cL)) for s in [0, -2, 2]}
     if source == 'f': # Modulation: _sX -> _sX + f _sX.
         return {s : (0, 0.5 * np.ones(lmax + 1, dtype=float), 0.5 * np.ones(lmax + 1, dtype=float),
                         np.ones(lmax_cL + 1, dtype=float)) for s in [0, -2, 2]}
@@ -96,7 +173,7 @@ def get_covresp(source, s1, s2, cls, lmax):
     if source in ['p', 'f', 'a', 'a_p']:
         # Lensing, modulation, or pol. rotation field from the field representation
         s_source, prR, mrR, cL_scal = get_resp_legs(source, lmax)[s1]
-        coupl = get_spin_coupling(s1, s2, cls)[:lmax + 1]
+        coupl = uspin.get_spin_coupling(s1, s2, cls)[:lmax + 1]
         return s_source, prR * coupl, mrR * coupl, cL_scal
     elif source in ['stt', 's']:
         # Point source 'S^2': Cov -> Cov + B delta_nn' S^2(n) B^\dagger on the diagonal.
@@ -108,7 +185,7 @@ def get_covresp(source, s1, s2, cls, lmax):
         cL_scal = np.ones(2 * lmax + 1, dtype=float) * cond
         return s_source, prR, mrR, cL_scal
     else:
-        assert 0, 'source ' + source + ' not implemented'
+        assert 0, 'source ' + source + ' cov. response not implemented'
 
 
 def get_qes(qe_key, lmax, cls_weight):
@@ -249,29 +326,29 @@ def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1, fal_leg2=None, lmax_
         si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
         so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
         for s2 in ([0, -2, 2]):
-            FA = get_spin_matrix(si, s2, fal_leg1)
+            FA = uspin.get_spin_matrix(si, s2, fal_leg1)
             if np.any(FA):
                 for t2 in ([0, -2, 2]):
-                    FB = get_spin_matrix(ti, t2, fal_leg2)
+                    FB = uspin.get_spin_matrix(ti, t2, fal_leg2)
                     if np.any(FB):
                         rW_st, prW_st, mrW_st, s_cL_st = get_covresp(source, -s2, t2, cls_cmb, len(FB) - 1)
                         clA = joincls([qe.leg_a.cl, FA])
                         clB = joincls([qe.leg_b.cl, FB, mrW_st.conj()])
-                        Rpr_st = wignerc(clA, clB, so, s2, to, -s2 + rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
+                        Rpr_st = uspin.wignerc(clA, clB, so, s2, to, -s2 + rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
 
                         rW_ts, prW_ts, mrW_ts, s_cL_ts = get_covresp(source, -t2, s2, cls_cmb, len(FA) - 1)
                         clA = joincls([qe.leg_a.cl, FA, mrW_ts.conj()])
                         clB = joincls([qe.leg_b.cl, FB])
-                        Rpr_st = Rpr_st + wignerc(clA, clB, so, -t2 + rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
+                        Rpr_st = Rpr_st + uspin.wignerc(clA, clB, so, -t2 + rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
                         assert rW_st == rW_ts and rW_st >= 0, (rW_st, rW_ts)
                         if rW_st > 0:
                             clA = joincls([qe.leg_a.cl, FA])
                             clB = joincls([qe.leg_b.cl, FB, prW_st.conj()])
-                            Rmr_st = wignerc(clA, clB, so, s2, to, -s2 - rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
+                            Rmr_st = uspin.wignerc(clA, clB, so, s2, to, -s2 - rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
 
                             clA = joincls([qe.leg_a.cl, FA, prW_ts.conj()])
                             clB = joincls([qe.leg_b.cl, FB])
-                            Rmr_st = Rmr_st + wignerc(clA, clB, so, -t2 - rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
+                            Rmr_st = Rmr_st + uspin.wignerc(clA, clB, so, -t2 - rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
                         else:
                             Rmr_st = Rpr_st
                         prefac = (-1) ** (so + to + rW_ts) * qe.cL[:lmax_qlm + 1]
@@ -324,30 +401,30 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
 
     for s1 in spins:
         for s2 in spins:
-            cl1 = get_spin_coupling(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
+            cl1 = uspin.get_spin_coupling(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
             # These 1/2 factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to T E B.
-            cl2 = get_spin_coupling(s2, s1, cls_cmb)[:lmax_cmb + 1]
-            cl2[:lmax_qe + 1] -= get_spin_coupling(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
+            cl2 = uspin.get_spin_coupling(s2, s1, cls_cmb)[:lmax_cmb + 1]
+            cl2[:lmax_qe + 1] -= uspin.get_spin_coupling(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
             if np.any(cl1) and np.any(cl2):
                 for a in [-1, 1]:
-                    ai = get_spin_lower(s2, lmax_cmb) if a == - 1 else get_spin_raise(s2, lmax_cmb)
+                    ai = uspin.get_spin_lower(s2, lmax_cmb) if a == - 1 else uspin.get_spin_raise(s2, lmax_cmb)
                     for b in [1]: # a, b symmetry
-                        aj = get_spin_lower(-s1, lmax_cmb) if b == 1 else get_spin_raise(-s1, lmax_cmb)
-                        hL = 2 * (-1) ** (s1 + s2) * wignerc(cl1, cl2 * ai * aj, s2, s1, -s2 - a, -s1 - b, lmax_out=lmax_out)
+                        aj = uspin.get_spin_lower(-s1, lmax_cmb) if b == 1 else uspin.get_spin_raise(-s1, lmax_cmb)
+                        hL = 2 * (-1) ** (s1 + s2) * uspin.wignerc(cl1, cl2 * ai * aj, s2, s1, -s2 - a, -s1 - b, lmax_out=lmax_out)
                         GL += (- a * b) * hL
                         CL += (-1) * hL
 
     # Build remaining Fisher term II:
     for s1 in spins:
         for s2 in spins:
-            cl1 = get_spin_coupling(s2, s1, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s1 != 0))
-            cl2 = get_spin_coupling(s1, s2, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s2 != 0))
+            cl1 = uspin.get_spin_coupling(s2, s1, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s1 != 0))
+            cl2 = uspin.get_spin_coupling(s1, s2, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s2 != 0))
             if np.any(cl1) and np.any(cl2):
                 for a in [-1, 1]:
-                    ai = get_spin_lower(s2, lmax_qe) if a == -1 else get_spin_raise(s2, lmax_qe)
+                    ai = uspin.get_spin_lower(s2, lmax_qe) if a == -1 else uspin.get_spin_raise(s2, lmax_qe)
                     for b in [1]:
-                        aj = get_spin_lower(s1, lmax_qe) if b == 1 else get_spin_raise(s1, lmax_qe)
-                        hL = 2 * (-1) ** (s1 + s2) * wignerc(cl1 * ai, cl2 * aj, -s2 - a, -s1, s2, s1 - b, lmax_out=lmax_out)
+                        aj = uspin.get_spin_lower(s1, lmax_qe) if b == 1 else uspin.get_spin_raise(s1, lmax_qe)
+                        hL = 2 * (-1) ** (s1 + s2) * uspin.wignerc(cl1 * ai, cl2 * aj, -s2 - a, -s1, s2, s1 - b, lmax_out=lmax_out)
                         FisherGII += (- a * b) * hL
                         FisherCII += (-1) * hL
     GL -= FisherGII
@@ -361,130 +438,3 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     GL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
     CL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
     return GL, CL
-
-GL_cache = {}
-
-def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
-    """Legendre coeff. of $ (\\xi_{sp1,s1} * \\xi_{sp2,s2})(\\cos \\theta)$ from their harmonic series.
-
-        The integrand is always a polynomial, of max. degree lmax1 + lmax2 + lmax_out.
-        We use Gauss-Legendre integration to solve this exactly.
-    """
-    lmax1 = len(cl1) - 1
-    lmax2 = len(cl2) - 1
-    lmax_out = lmax1 + lmax2 if lmax_out is None else lmax_out
-    lmaxtot = lmax1 + lmax2 + lmax_out
-    N = (lmaxtot + 2 - lmaxtot % 2) // 2
-    if not 'xg wg %s' % N in GL_cache.keys():
-        GL_cache['xg wg %s' % N] = wigners.get_xgwg(-1., 1., N) if HASWIGNER else gauleg.get_xgwg(N)
-    xg, wg = GL_cache['xg wg %s' % N]
-
-    if HASWIGNER:
-        if np.iscomplexobj(cl1):
-            xi1 = wigners.wignerpos(np.real(cl1), xg, sp1, s1) + 1j * wigners.wignerpos(np.imag(cl1), xg, sp1, s1)
-        else:
-            xi1 = wigners.wignerpos(cl1, xg, sp1, s1)
-        if np.iscomplexobj(cl2):
-            xi2 = wigners.wignerpos(np.real(cl2), xg, sp2, s2) + 1j * wigners.wignerpos(np.imag(cl2), xg, sp2, s2)
-        else:
-            xi2 = wigners.wignerpos(cl2, xg, sp2, s2)
-        xi1xi2w = xi1 * xi2 * wg
-        if np.iscomplexobj(xi1xi2w):
-            ret = wigners.wignercoeff(np.real(xi1xi2w), xg, sp1 + sp2, s1 + s2, lmax_out)
-            ret = ret + 1j * wigners.wignercoeff(np.imag(xi1xi2w), xg, sp1 + sp2, s1 + s2, lmax_out)
-            return ret
-        else:
-            return wigners.wignercoeff(xi1xi2w, xg, sp1 + sp2, s1 + s2, lmax_out)
-    else:
-        xi1 = gaujac.get_rspace(cl1, xg, sp1, s1)
-        xi2 = gaujac.get_rspace(cl2, xg, sp2, s2)
-        return 2. * np.pi * np.dot(gaujac.get_wignerd(lmax_out, xg, sp1 + sp2, s1 + s2), wg * xi1 * xi2)
-
-
-def get_spin_raise(s, lmax):
-    """Response coefficient of spin-s spherical harmonic to spin raising operator.
-
-        +\sqrt{ (l - s) (l + s + 1) } for abs(s) <= l <= lmax
-
-    """
-    ret = np.zeros(lmax + 1, dtype=float)
-    ret[abs(s):] = np.sqrt(np.arange(abs(s) -s, lmax - s + 1) * np.arange(abs(s) + s + 1, lmax + s + 2))
-    return ret
-
-def get_spin_lower(s, lmax):
-    """Response coefficient of spin-s spherical harmonic to spin lowering operator.
-
-        -\sqrt{ (l + s) (l - s + 1) } for abs(s) <= l <= lmax
-
-    """
-    ret = np.zeros(lmax + 1, dtype=float)
-    ret[abs(s):] = -np.sqrt(np.arange(s + abs(s), lmax + s + 1) * np.arange(abs(s) - s + 1, lmax - s + 2))
-    return ret
-
-def get_spin_coupling(s1, s2, cls):
-    """Spin-weighted power spectrum <_{s1}X_{lm} _{s2}X^*{lm}>
-
-    Note:
-        The output is real unless necessary. This uses the spin-field conventions where _0X_{lm} = -T_{lm}.
-
-    """
-    if s1 < 0:
-        return (-1) ** (s1 + s2) * np.conjugate(get_spin_coupling(-s1, -s2, cls))
-    assert s1 in [0, -2, 2] and s2 in [0, -2, 2], (s1, s2, 'not implemented')
-    if s1 == 0:
-        if s2 == 0:
-            return cls['tt']
-        tb = cls.get('tb', None)
-        return  cls['te'] if tb is None else  cls['te'] - 1j * np.sign(s2) * tb
-    elif s1 == 2:
-        if s2 == 0:
-            tb = cls.get('tb', None)
-            return  cls['te'] if tb is None else  cls['te'] + 1j * tb
-        elif s2 == 2:
-            return cls['ee'] + cls['bb']
-        elif s2 == -2:
-            eb = cls.get('eb', None)
-            return  cls['ee'] - cls['bb'] if eb is None else  cls['ee'] - cls['bb'] + 2j * eb
-        else:
-            assert 0
-
-def get_spin_matrix(sout, sin, cls):
-    """Spin-space matrix R^{-1} cls[T, E, B] R where R is the mapping from _{0, \pm 2}X to T, E, B.
-
-
-        cls is dictionary with keys 'tt', 'te', 'ee', 'bb'.
-        If not present the corresponding spectrum is assumed to be zero.
-        ('t' 'e' and 'b' keys also works in place of 'tt' 'ee', 'bb'.)
-
-        Output is complex only when necessary (that is, TB and/or EB present and relevant).
-
-    """
-    assert sin in [0, 2, -2] and sout in [0, 2, -2], (sin, sout)
-    if sin == 0:
-        if sout == 0:
-            return cls.get('tt', cls.get('t', 0.))
-        tb = cls.get('tb', None)
-        return (cls.get('te', 0.) + 1j * np.sign(sout) * tb) if tb is not None else cls.get('te', 0.)
-    if sin == 2:
-        if sout == 0:
-            te = cls.get('te', 0.)
-            tb = cls.get('tb', None)
-            return 0.5 * (te - 1j * tb) if tb is not None else 0.5 * te
-        if sout == 2:
-            return 0.5 * (cls.get('ee', cls.get('e', 0.)) + cls.get('bb', cls.get('b', 0.)))
-        if sout == -2:
-            ret =  0.5 * (cls.get('ee', cls.get('e', 0.)) - cls.get('bb', cls.get('b', 0.)))
-            eb = cls.get('eb', None)
-            return ret - 1j * eb if eb is not None else ret
-    if sin == -2:
-        if sout == 0:
-            te = cls.get('te', 0.)
-            tb = cls.get('tb', None)
-            return 0.5 * (te + 1j * tb) if tb is not None else 0.5 * te
-        if sout == 2:
-            ret =  0.5 * (cls.get('ee', cls.get('e', 0.)) - cls.get('bb', cls.get('b', 0.)))
-            eb = cls.get('eb', None)
-            return ret + 1j * eb if eb is not None else ret
-        if sout == -2:
-            return 0.5 * (cls.get('ee', cls.get('e', 0.)) + cls.get('bb', cls.get('b', 0.)))
-    assert 0, (sin, sout)
