@@ -308,7 +308,7 @@ class ffp10_binner:
                           * self.parfile.qresp_dd.get_response(self.k2, self.ksource))
         for i, idx in utils.enumerate_progress(mc_sims_dd):
             dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
-            nhl_cov.add(self._get_binnedcl(qc_norm * (dd- self.parfile.nhl_dd.get_sim_nhl(idx, self.k1, self.k2))))
+            nhl_cov.add(self._get_binnedcl(qc_norm * (dd- self.parfile.nhl_dd.get_sim_nhl(int(idx), self.k1, self.k2))))
         return nhl_cov.cov()
 
     def get_mcn0_cov(self, mc_sims_dd=None):
