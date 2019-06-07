@@ -1,8 +1,26 @@
+"""Module with spin-weight related utilities.
+
+    Conventions are $_{\pm |s|} X_{lm} = - (\pm)^{|s|} (G_{lm} \pm i  C_{lm})$.
+
+    For CMB maps,
+
+    $ _{0}X_{lm} = T_{lm} $
+    $ _{\pm}X_{lm} = -1/2 (E_{lm} \pm i B_{lm}) $
+
+    hence
+
+    $ G^{0}_{lm} = -T_{lm} $
+    $ G^{2}_{lm} =  E_{lm} $
+    $ C^{2}_{lm} =  B_{lm} $.
+
+"""
+
 import healpy as hp
 import numpy as np
 
 def alm2map_spin(gclm, nside, spin, lmax, mmax=None):
     assert spin >= 0, spin
+    assert len(gclm) == 2, len(gclm)
     if spin > 0:
         return hp.alm2map_spin(gclm, nside, spin, lmax, mmax=mmax)
     elif spin == 0:
@@ -13,10 +31,10 @@ def map2alm_spin(maps, spin, lmax=None, mmax=None):
     if spin > 0:
         return hp.map2alm_spin(maps, spin, lmax=lmax, mmax=mmax)
     else:
-        return hp.map2alm(-maps[0], lmax=lmax, mmax=mmax, iter=0), 0.
+        return -hp.map2alm(maps[0], lmax=lmax, mmax=mmax, iter=0), 0.
 
 try:
-    from plancklens2018.wigners import wigners  # fortran shared object
+    from plancklens2018.wigners import wigners  # fortran 90 shared object
     HASWIGNER = True
 except:
     print("wigners.so fortran shared object not found")
@@ -30,8 +48,8 @@ GL_cache = {}
 def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
     """Legendre coeff. of $ (\\xi_{sp1,s1} * \\xi_{sp2,s2})(\\cos \\theta)$ from their harmonic series.
 
-        The integrand is always a polynomial, of max. degree lmax1 + lmax2 + lmax_out.
-        We use Gauss-Legendre integration to solve this exactly.
+        This uses Gauss-Legendre quadrature to solve this exactly.
+
     """
     lmax1 = len(cl1) - 1
     lmax2 = len(cl2) - 1
@@ -67,7 +85,7 @@ def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
 def get_spin_raise(s, lmax):
     """Response coefficient of spin-s spherical harmonic to spin raising operator.
 
-        +\sqrt{ (l - s) (l + s + 1) } for abs(s) <= l <= lmax
+        $+\sqrt{ (l - s) (l + s + 1) }$ for abs(s) <= l <= lmax
 
     """
     ret = np.zeros(lmax + 1, dtype=float)
@@ -77,7 +95,7 @@ def get_spin_raise(s, lmax):
 def get_spin_lower(s, lmax):
     """Response coefficient of spin-s spherical harmonic to spin lowering operator.
 
-        -\sqrt{ (l + s) (l - s + 1) } for abs(s) <= l <= lmax
+        $-\sqrt{ (l + s) (l - s + 1) }$ for abs(s) <= l <= lmax
 
     """
     ret = np.zeros(lmax + 1, dtype=float)
@@ -85,10 +103,10 @@ def get_spin_lower(s, lmax):
     return ret
 
 def get_spin_coupling(s1, s2, cls):
-    """Spin-weighted power spectrum <_{s1}X_{lm} _{s2}X^*{lm}>
+    """Spin-weighted power spectrum $<_{s1}X_{lm} _{s2}X^{*}_{lm}>$
 
     Note:
-        The output is real unless necessary. This uses the spin-field conventions where _0X_{lm} = -T_{lm}.
+        The output is real unless necessary.
 
     """
     if s1 < 0:
@@ -98,11 +116,11 @@ def get_spin_coupling(s1, s2, cls):
         if s2 == 0:
             return cls['tt']
         tb = cls.get('tb', None)
-        return  cls['te'] if tb is None else  cls['te'] - 1j * np.sign(s2) * tb
+        return  -cls['te'] if tb is None else  -cls['te'] + 1j * np.sign(s2) * tb
     elif s1 == 2:
         if s2 == 0:
             tb = cls.get('tb', None)
-            return  cls['te'] if tb is None else  cls['te'] + 1j * tb
+            return  -cls['te'] if tb is None else  -cls['te'] - 1j * tb
         elif s2 == 2:
             return cls['ee'] + cls['bb']
         elif s2 == -2:
@@ -114,9 +132,8 @@ def get_spin_coupling(s1, s2, cls):
 def get_spin_matrix(sout, sin, cls):
     """Spin-space matrix R^{-1} cls[T, E, B] R where R is the mapping from _{0, \pm 2}X to T, E, B.
 
-
         cls is dictionary with keys 'tt', 'te', 'ee', 'bb'.
-        If not present the corresponding spectrum is assumed to be zero.
+        If a key is not present the corresponding spectrum is assumed to be zero.
         ('t' 'e' and 'b' keys also works in place of 'tt' 'ee', 'bb'.)
 
         Output is complex only when necessary (that is, TB and/or EB present and relevant).
@@ -127,12 +144,12 @@ def get_spin_matrix(sout, sin, cls):
         if sout == 0:
             return cls.get('tt', cls.get('t', 0.))
         tb = cls.get('tb', None)
-        return (cls.get('te', 0.) + 1j * np.sign(sout) * tb) if tb is not None else cls.get('te', 0.)
+        return (-cls.get('te', 0.) - 1j * np.sign(sout) * tb) if tb is not None else -cls.get('te', 0.)
     if sin == 2:
         if sout == 0:
             te = cls.get('te', 0.)
             tb = cls.get('tb', None)
-            return 0.5 * (te - 1j * tb) if tb is not None else 0.5 * te
+            return -0.5 * (te - 1j * tb) if tb is not None else -0.5 * te
         if sout == 2:
             return 0.5 * (cls.get('ee', cls.get('e', 0.)) + cls.get('bb', cls.get('b', 0.)))
         if sout == -2:
@@ -143,7 +160,7 @@ def get_spin_matrix(sout, sin, cls):
         if sout == 0:
             te = cls.get('te', 0.)
             tb = cls.get('tb', None)
-            return 0.5 * (te + 1j * tb) if tb is not None else 0.5 * te
+            return -0.5 * (te + 1j * tb) if tb is not None else -0.5 * te
         if sout == 2:
             ret =  0.5 * (cls.get('ee', cls.get('e', 0.)) - cls.get('bb', cls.get('b', 0.)))
             eb = cls.get('eb', None)
