@@ -271,12 +271,13 @@ class ffp10_binner:
         assert self.k1[0] == 'p' and self.k2[0] == 'p' and self.ksource == 'p', (self.k1, self.k2, self.ksource)
         ss2 = 2 * self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
         cl_pred =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp'][:len(ss2)]
-        qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
+        qc_norm = utils.cli(self.parfile.qresp_dd.get_response(self.k1, self.ksource)
+                          * self.parfile.qresp_dd.get_response(self.k2, self.ksource))
         bp_stats = utils.stats(self.nbins)
         bp_n1 = self.get_n1()
         for i, idx in utils.enumerate_progress(self.parfile.mc_sims_var, label='collecting BP stats'):
             dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
-            bp_stats.add(self._get_binnedcl(utils.cli(qc_resp) *(dd - ss2) - cl_pred) - bp_n1)
+            bp_stats.add(self._get_binnedcl(qc_norm *(dd - ss2) - cl_pred) - bp_n1)
         NMF = len(self.parfile.qcls_dd.mc_sims_mf)
         NB = len(self.parfile.mc_sims_var)
         return bp_stats.mean(), bp_stats.sigmas_on_mean() * np.sqrt((1. + 1. + 2. / NMF + 2 * NB / (float(NMF * NMF))))
@@ -296,4 +297,30 @@ class ffp10_binner:
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
         bps = self._get_binnedcl(utils.cli(qc_resp) *(dd - 2 * ss) - cl_pred[:len(dd)]) - self.get_n1()
         return 1. / (1 + bps / self.fid_bandpowers)
+
+    def get_nhl_cov(self, mc_sims_dd=None):
+        """Covariance matrix obtained from the semi-analytical N0 debiaser.
+
+        """
+        if mc_sims_dd is None: mc_sims_dd = self.parfile.mc_sims_var
+        nhl_cov = utils.stats(self.nbins)
+        qc_norm = utils.cli(self.parfile.qresp_dd.get_response(self.k1, self.ksource)
+                          * self.parfile.qresp_dd.get_response(self.k2, self.ksource))
+        for i, idx in utils.enumerate_progress(mc_sims_dd):
+            dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
+            nhl_cov.add(self._get_binnedcl(qc_norm * (dd- self.parfile.nhl_dd.get_sim_nhl(idx, self.k1, self.k2))))
+        return nhl_cov.cov()
+
+    def get_mcn0_cov(self, mc_sims_dd=None):
+        """Covariance matrix obtained from the realization-independent debiaser.
+
+        """
+        if mc_sims_dd is None: mc_sims_dd = self.parfile.mc_sims_var
+        mcn0_cov = utils.stats(self.nbins)
+        qc_norm = utils.cli(self.parfile.qresp_dd.get_response(self.k1, self.ksource)
+                          * self.parfile.qresp_dd.get_response(self.k2, self.ksource))
+        for i, idx in utils.enumerate_progress(mc_sims_dd):
+            dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
+            mcn0_cov.add(self._get_binnedcl(qc_norm * dd))
+        return mcn0_cov.cov()
 
