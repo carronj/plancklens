@@ -1,37 +1,100 @@
+"""Quadratic estimation implementation module.
+
+
+"""
 from __future__ import print_function
+from __future__ import absolute_import
 import healpy as hp
 import numpy as np
 import os
 import pickle as pk
 import collections
 
-from . import utils
+from . import utils, utils_spin as uspin
 from . import mpi
-
+from . import qresp
 #FIXME lmax_qlm's
 
-def library_jtTP(lib_dir, ivfs1, ivfs2, nside, lmax_qlm=None, resplib=None):
+
+def eval_qe(qe_key, lmax_ivf, cls_weight, get_alm, nside, verbose=True):
+    """Evaluates a quadratic estimator gradient and curl terms.
+
+        qe_key: QE key defining the estimator (as defined in the qresp module)
+        lmax_ivf: CMB multipoles up to lmax are used in the QE
+        cls_weights: set of CMB spectra entering the QE estimator weights
+        get_alm: callable with 't', 'e', 'b' arguments, returning the corresponding inverse-variance filtered CMB maps
+        nside: the estimator are calculated in position space at healpy resolution nside.
+
+    """
+    qe_list = qresp.get_qes(qe_key, lmax_ivf, cls_weight)
+    return _eval_qe(qe_list, nside, get_alm, verbose=verbose)
+
+def _eval_qe(qes_list, nside, get_alm, verbose=True):
+    """Evaluation of a QE from its list of leg definitions.
+
+        qes_list: list of qresp.qe instances
+        nside: the estimator are calculated in position space at healpy resolution nside.
+        get_alm: callable with 't', 'e', 'b' arguments, returning the corresponding inverse-variance filtered CMB maps
+
+    """
+    qes = _compress_qe(qes_list, verbose=verbose)
+    qe_spin = qes[0][0].spin_ou + qes[0][1].spin_ou
+    cL_out = qes[0][-1]
+    assert qe_spin >= 0, qe_spin
+    for qe in qes[1:]:
+        assert np.all(qe[-1] == cL_out)
+        assert qe[0].spin_ou + qe[1].spin_ou == qe_spin
+    d = np.zeros(hp.nside2npix(nside), dtype=complex)
+    for i, qe in enumerate(qes):
+        if verbose:
+            print("QE %s out of %s :"%(i + 1, len(qes)))
+            print("in-spins 1st leg" ,qe[0].spins_in, qe[0].spin_ou)
+            print("in-spins 2nd leg", qe[1].spins_in, qe[1].spin_ou)
+        d += qe[0](get_alm, nside) * qe[1](get_alm, nside)
+    glm, clm = uspin.map2alm_spin((d.real, d.imag),qe_spin, lmax=len(cL_out) - 1)
+    hp.almxfl(glm, cL_out, inplace=True)
+    if np.any(clm):
+        hp.almxfl(clm, cL_out, inplace=True)
+    return glm, clm
+
+def _compress_qe(qes, verbose=True):
+    """This combines pairs of estimators with identical 1st leg to reduce the number of spin transform in its evaluation
+
+    """
+    # NB: this only compares first legs.
+    skip = []
+    qes_compressed = []
+    for i, qe in enumerate(qes):
+        if i not in skip:
+            lega = qe.leg_a
+            lega_m=  qresp.qeleg_multi([qe.leg_a.spin_in], qe.leg_a.spin_ou, [qe.leg_a.cl])
+            legb_m = qresp.qeleg_multi([qe.leg_b.spin_in], qe.leg_b.spin_ou, [qe.leg_b.cl])
+            for j, qej in enumerate(qes[i + 1:]):
+                if qej.leg_a == lega and legb_m.spin_ou == qej.leg_b.spin_ou:
+                    legb_m += qej.leg_b
+                    skip.append(i + 1 + j)
+            qes_compressed.append( (lega_m, legb_m, qe.cL))
+    if len(skip) > 0 and verbose:
+        print("%s alm2map_spin transforms now required, down from %s"%(2 * (len(qes) -len(skip)) , 2 * len(qes)) )
+    return qes_compressed
+
+def library_jtTP(lib_dir, ivfs1, ivfs2, nside, lmax_qlm=None):
     if lmax_qlm is None: lmax_qlm={'T': 4096, 'P': 4096, 'PS': 4096}
-    return library(lib_dir, ivfs1, ivfs2, nside, lmax_qlm=lmax_qlm, resplib=resplib)
+    return library(lib_dir, ivfs1, ivfs2, nside, lmax_qlm=lmax_qlm)
 
 
-def library_sepTP(lib_dir, ivfs1, ivfs2, clte, nside, lmax_qlm=None, resplib=None):
+def library_sepTP(lib_dir, ivfs1, ivfs2, clte, nside, lmax_qlm=None):
     if lmax_qlm is None: lmax_qlm={'T': 4096, 'P': 4096, 'PS': 4096}
-    return library(lib_dir, ivfs1, ivfs2, nside, clte=clte, lmax_qlm=lmax_qlm, resplib=resplib)
+    return library(lib_dir, ivfs1, ivfs2, nside, clte=clte, lmax_qlm=lmax_qlm)
 
 
 class library:
-    """
-    If clte is set, this assume separately filtered T and P maps.
-    Else, maps are jointly filtered.
-    For jointly filtered T/P library 'p_tp' and 'x_tp' becomes the true MV estimator.
-    For separatly filtered T/P library, the gmaps need to be modified according to clte.
-    """
+    """Library for QE evaluation on inverse-variance filtered CMB simulation libraries.
 
-    # FIXME: could differentiate the two libraries. For jtl filt there is no need to make 'p','x'
-    # FIXME a fundamental key
+        If clte is set, this assume separately filtered T and P maps. Otherwise maps are jointly filtered.
 
-    def __init__(self, lib_dir, ivfs1, ivfs2, nside, clte=None, lmax_qlm=None, resplib=None):
+    """
+    def __init__(self, lib_dir, ivfs1, ivfs2, nside, clte=None, lmax_qlm=None):
         if lmax_qlm is None : lmax_qlm = {'T': 4096, 'P': 4096, 'PS': 4096}
         self.lib_dir = lib_dir
         self.prefix = lib_dir
@@ -59,7 +122,8 @@ class library:
                     for j in [1, 2][i - 1:]:
                         fskies[10 * i + j] = np.mean(ms[i] * ms[j])
                 with open(os.path.join(lib_dir, 'fskies.dat'), 'w') as f:
-                    for lab, _f in zip(np.sort(list(fskies.keys())), np.array(list(fskies.values()))[np.argsort(list(fskies.keys()))]):
+                    for lab, _f in zip(np.sort(list(fskies.keys())),
+                                       np.array(list(fskies.values()))[np.argsort(list(fskies.keys()))]):
                         f.write('%4s %.5f \n' % (lab, _f))
         mpi.barrier()
         fskies = {}
@@ -72,7 +136,6 @@ class library:
         self.fsky12 = fskies[12]
         self.fsky22 = fskies[22]
 
-        self.resplib = resplib
         self.keys_fund = ['ptt', 'xtt', 'p_p', 'x_p', 'p', 'x', 'stt', 'ftt','f_p', 'f','dtt', 'ntt', 'a_p',
                           'pte', 'pet', 'ptb', 'pbt', 'pee', 'peb', 'pbe', 'pbb',
                           'xte', 'xet', 'xtb', 'xbt', 'xee', 'xeb', 'xbe', 'xbb']

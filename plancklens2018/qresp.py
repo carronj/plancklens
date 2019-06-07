@@ -6,16 +6,54 @@ FIXME: spin-0 QE sign conventions (stt, ftt, ...)
 from __future__ import absolute_import
 from __future__ import print_function
 
-import healpy as hp
 import os
 import numpy as np
 import pickle as pk
+import healpy as hp
 
-from plancklens2018 import sql
+
 from plancklens2018 import utils
+from plancklens2018 import sql
 from plancklens2018 import utils_spin as uspin
 from plancklens2018.utils import clhash, hash_check, joincls
 from plancklens2018 import mpi
+
+def get_qes(qe_key, lmax, cls_weight):
+    """ Defines the quadratic estimator weights for quadratic estimator key.
+
+    Args:
+        qe_key (str): quadratic estimator key (e.g., ptt, p_p, ... )
+        lmax (int): weights are built up to lmax.
+        cls_weight (dict): CMB spectra entering the weights
+
+    #FIXME:
+        * lmax_A, lmax_B, lmaxout!
+
+    The weights are defined by their action on the inverse-variance filtered $ _{s}\\bar X_{lm}$.
+
+    """
+    if qe_key[0] in ['p', 'x', 'a', 'f', 's']:
+        if qe_key in ['ptt', 'xtt', 'att', 'ftt', 'stt']:
+            s_lefts= [0]
+        elif qe_key in ['p_p', 'x_p', 'a_p', 'f_p']:
+            s_lefts= [-2, 2]
+        elif qe_key in ['p', 'x', 'a', 'f']:
+            s_lefts = [0, -2, 2]
+        else:
+            assert 0, qe_key + ' not implemented'
+        qes = []
+        s_rights_in = s_lefts
+        for s_left in s_lefts:
+            for sin in s_rights_in:
+                sout = -s_left
+                s_qe, irr1, cl_sosi, cL_out =  get_covresp(qe_key[0], sout, sin, cls_weight, lmax)
+                if np.any(cl_sosi):
+                    lega = qeleg(s_left, s_left, 0.5 *(1. + (s_left == 0)) * np.ones(lmax + 1, dtype=float))
+                    legb = qeleg(sin, sout + s_qe, 0.5 * (1. + (sin == 0)) * 2 * cl_sosi)
+                    qes.append(qe(lega, legb, cL_out))
+        return qes
+    else:
+        assert 0, qe_key + ' not implemented'
 
 class qeleg:
     def __init__(self, spin_in, spin_out, cl):
@@ -53,6 +91,7 @@ class qeleg_multi:
         """Returns the spin-weighted real-space map of the estimator.
 
         We first build X_lm in the wanted _{si}X_lm _{so}Y_lm and then convert this alm2map_spin conventions.
+
         """
         lmax = self.get_lmax()
         glm = np.zeros(hp.Alm.getsize(lmax), dtype=complex)
@@ -92,47 +131,6 @@ class qe:
 
     def get_lmax_qlm(self):
         return len(self.cL)
-
-def compress_qe(qes, verbose=True):
-    skip = []
-    qes_compressed = []
-    for i, qe in enumerate(qes):
-        if i not in skip:
-            lega = qe.leg_a
-            lega_m=  qeleg_multi([qe.leg_a.spin_in], qe.leg_a.spin_ou, [qe.leg_a.cl])
-            legb_m = qeleg_multi([qe.leg_b.spin_in], qe.leg_b.spin_ou, [qe.leg_b.cl])
-            for j, qej in enumerate(qes[i + 1:]):
-                if qej.leg_a == lega and legb_m.spin_ou == qej.leg_b.spin_ou:
-                    legb_m += qej.leg_b
-                    skip.append(i + 1 + j)
-            qes_compressed.append( (lega_m, legb_m, qe.cL))
-    if len(skip) > 0 and verbose:
-        print("%s alm2map_spin transforms now required, down from %s"%(2 * (len(qes) -len(skip)) , 2 * len(qes)) )
-
-    return qes_compressed
-
-
-def eval_qe(qes_list, nside, get_alm, verbose=True):
-    qes = compress_qe(qes_list, verbose=verbose) # triple lega (leg_multi) legb, clout
-    qe_spin = qes[0][0].spin_ou + qes[0][1].spin_ou
-    cL_out = qes[0][-1]
-    assert qe_spin >= 0, qe_spin
-    for qe in qes[1:]:
-        assert np.all(qe[-1] == cL_out)
-        assert qe[0].spin_ou + qe[1].spin_ou == qe_spin
-    d = np.zeros(hp.nside2npix(nside), dtype=complex)
-    for i, qe in enumerate(qes):
-        if verbose:
-            print("QE %s out of %s :"%(i + 1, len(qes)))
-            print("in-spins 1st leg" ,qe[0].spins_in, qe[0].spin_ou)
-            print("in-spins 2nd leg", qe[1].spins_in, qe[1].spin_ou)
-        d += qe[0](get_alm, nside) * qe[1](get_alm, nside)
-    glm, clm = uspin.map2alm_spin((d.real, d.imag),qe_spin, lmax=len(cL_out) - 1)
-    hp.almxfl(glm, cL_out, inplace=True)
-    if np.any(clm):
-        hp.almxfl(clm, cL_out, inplace=True)
-    return glm, clm
-
 
 def get_resp_legs(source, lmax):
     """Defines the responses terms for a CMB map anisotropy source.
@@ -182,51 +180,12 @@ def get_covresp(source, s1, s2, cls, lmax):
         # From the def. there are actually 4 identical W terms hence a factor 1/4.
         cond = s1 == 0 and s2 == 0
         s_source = 0
-        prR = 0.25 * np.ones(lmax + 1, dtype=float) * cond
-        mrR = 0.25 * np.ones(lmax + 1, dtype=float) * cond
-        cL_scal = np.ones(2 * lmax + 1, dtype=float) * cond
+        prR = 0.25 * cond * np.ones(lmax + 1, dtype=float)
+        mrR = 0.25 * cond * np.ones(lmax + 1, dtype=float)
+        cL_scal =  cond * np.ones(2 * lmax + 1, dtype=float)
         return s_source, prR, mrR, cL_scal
     else:
         assert 0, 'source ' + source + ' cov. response not implemented'
-
-
-def get_qes(qe_key, lmax, cls_weight):
-    """ Defines the quadratic estimator weights for quadratic estimator key.
-
-    Args:
-        qe_key (str): quadratic estimator key (e.g., ptt, p_p, ... )
-        lmax (int): weights are built up to lmax.
-        cls_weight (dict): CMB spectra entering the weights
-
-    #FIXME:
-        * lmax_A, lmax_B, lmaxout!
-
-    The weights are defined by their action on the inverse-variance filtered $ _{s}\\bar X_{lm}$.
-
-    """
-    if qe_key[0] in ['p', 'x', 'a', 'f', 's']:
-        if qe_key in ['ptt', 'xtt', 'att', 'ftt', 'stt']:
-            s_lefts= [0]
-        elif qe_key in ['p_p', 'x_p', 'a_p', 'f_p']:
-            s_lefts= [-2, 2]
-        elif qe_key in ['p', 'x', 'a', 'f']:
-            s_lefts = [0, -2, 2]
-        else:
-            assert 0, qe_key + ' not implemented'
-        qes = []
-        s_rights_in = s_lefts
-        for s_left in s_lefts:
-            for sin in s_rights_in:
-                sout = -s_left
-                s_qe, irr1, cl_sosi, cL_out =  get_covresp(qe_key[0], sout, sin, cls_weight, lmax)
-                if np.any(cl_sosi):
-                    lega = qeleg(s_left, s_left, 0.5 *(1. + (s_left == 0)) * np.ones(lmax + 1, dtype=float))
-                    legb = qeleg(sin, sout + s_qe, 0.5 * (1. + (sin == 0)) * 2 * cl_sosi)
-                    qes.append(qe(lega, legb, cL_out))
-        return qes
-    else:
-        assert 0, qe_key + ' not implemented'
-
 
 def qe_spin_data(qe_key):
     """Returns out and in spin-weights of quadratic estimator from its quadratic estimator key.
