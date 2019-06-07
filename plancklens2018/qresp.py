@@ -58,6 +58,7 @@ class qeleg_multi:
         glm = np.zeros(hp.Alm.getsize(lmax), dtype=complex)
         clm = np.zeros(hp.Alm.getsize(lmax), dtype=complex) # X_{lm} is here glm + i clm
         for i, (si, cl) in enumerate(zip(self.spins_in, self.cls)):
+            assert si in [0, -2, 2], str(si) + ' input spin not implemented'
             gclm = [get_alm('e'), get_alm('b')] if abs(si) == 2 else [-get_alm('t'), 0.]
             assert len(gclm) == 2
             sgn_g = -(-1) ** si if si < 0 else -1
@@ -123,8 +124,8 @@ def eval_qe(qes_list, nside, get_alm, verbose=True):
     for i, qe in enumerate(qes):
         if verbose:
             print("QE %s out of %s :"%(i + 1, len(qes)))
-            print(qe[0].spins_in, qe[0].spin_ou)
-            print(qe[1].spins_in, qe[1].spin_ou)
+            print("in-spins 1st leg" ,qe[0].spins_in, qe[0].spin_ou)
+            print("in-spins 2nd leg", qe[1].spins_in, qe[1].spin_ou)
         d += qe[0](get_alm, nside) * qe[1](get_alm, nside)
     glm, clm = uspin.map2alm_spin((d.real, d.imag),qe_spin, lmax=len(cL_out) - 1)
     hp.almxfl(glm, cL_out, inplace=True)
@@ -170,7 +171,7 @@ def get_covresp(source, s1, s2, cls, lmax):
         _r\alpha^*(n') W^{r, ts}_l _{s}Y_{lm}(n) _{t-r}Y^*_{lm}(n')
 
     """
-    if source in ['p', 'f', 'a', 'a_p']:
+    if source in ['p','x', 'f', 'a', 'a_p']:
         # Lensing, modulation, or pol. rotation field from the field representation
         s_source, prR, mrR, cL_scal = get_resp_legs(source, lmax)[s1]
         coupl = uspin.get_spin_coupling(s1, s2, cls)[:lmax + 1]
@@ -200,7 +201,6 @@ def get_qes(qe_key, lmax, cls_weight):
         * lmax_A, lmax_B, lmaxout!
 
     The weights are defined by their action on the inverse-variance filtered $ _{s}\\bar X_{lm}$.
-    (It is useful to remember that by convention  $_{0}X_{lm} = - T_{lm}$)
 
     """
     if qe_key[0] in ['p', 'x', 'a', 'f', 's']:
