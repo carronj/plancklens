@@ -130,7 +130,7 @@ class nhl_lib_simple:
         s1, GC1, s1ins, ksp1 = qresp.qe_spin_data(k1)
         s2, GC2, s2ins, ksp2 = qresp.qe_spin_data(k2)
         fn = 'anhl_qe_' + ksp1 + k1[1:] + '_qe_' + ksp2 +  k2[1:] + GC1 + GC2
-        suf =  ('sim%04d'%int(idx)) * (idx >= 0) +  'dat' * (idx == -1)
+        suf =  ('sim%04d'%idx) * (int(idx) >= 0) +  'dat' * (idx == -1)
         if self.npdb.get(fn + suf) is None or recache:
             assert s1 >= 0 and s2 >= 0, (s1, s2)
             cls_ivfs, lmax_ivf = self._get_cls(idx, np.unique(np.concatenate([s1ins, s2ins])))
