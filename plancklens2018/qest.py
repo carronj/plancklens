@@ -73,7 +73,7 @@ class library:
         self.fsky22 = fskies[22]
 
         self.resplib = resplib
-        self.keys_fund = ['ptt', 'xtt', 'p_p', 'x_p', 'p', 'x', 'stt', 'ftt','f_p', 'f','dtt', 'ntt',
+        self.keys_fund = ['ptt', 'xtt', 'p_p', 'x_p', 'p', 'x', 'stt', 'ftt','f_p', 'f','dtt', 'ntt', 'a_p',
                           'pte', 'pet', 'ptb', 'pbt', 'pee', 'peb', 'pbe', 'pbb',
                           'xte', 'xet', 'xtb', 'xbt', 'xee', 'xeb', 'xbe', 'xbb']
         self.keys = self.keys_fund + ['p_tp', 'x_tp', 'p_te', 'p_tb', 'p_eb', 'x_te', 'x_tb', 'x_eb', 'ptt_bh_n',
@@ -126,14 +126,12 @@ class library:
             return self.get_sim_qlm('%stt' % k[0], idx, lmax=lmax) + self.get_sim_qlm('%s_p' % k[0], idx, lmax=lmax)
         if k in ['p_te', 'p_tb', 'p_eb', 'x_te', 'x_tb', 'x_eb']:
             return 0.5 * (self.get_sim_qlm(k[0]+k[2]+k[3], idx, lmax=lmax) + self.get_sim_qlm(k[0]+k[3]+k[2], idx, lmax=lmax))
-        if 'tt_bh_'in k:
+        if 'tt_bh_'in k: # Bias-hardening
             _k,f = k.split('_bh_')
             assert self.get_lmax_qlm(_k) == self.get_lmax_qlm(f + 'tt'),'fix this (easy)'
             lmax = self.get_lmax_qlm(_k)
-            wL = self.resplib.get_response(_k,f + 'tt') * self.resplib.get_response(f + 'tt',f + 'tt').inverse()
-            rethp = self.get_sim_qlm(_k, idx, lmax=lmax)
-            rethp -= hp.almxfl(self.get_sim_qlm(f + 'tt', idx, lmax=lmax),wL[:])
-            return rethp
+            wL = self.resplib.get_response(_k,f + 'tt') * utils.cli(self.resplib.get_response(f + 'tt',f + 'tt'))
+            return self.get_sim_qlm(_k, idx, lmax=lmax) - hp.almxfl(self.get_sim_qlm(f + 'tt', idx, lmax=lmax), wL)
 
         assert k in self.keys_fund, (k, self.keys_fund)
         fname = os.path.join(self.lib_dir, 'sim_%s_%04d.fits'%(k, idx) if idx != -1 else 'dat_%s.fits'%k)
@@ -146,6 +144,7 @@ class library:
             elif k in ['ftt']: self._build_sim_ftt(idx)
             elif k in ['f_p']: self._build_sim_f_p(idx)
             elif k in ['ntt']: self._build_sim_ntt(idx)
+            elif k in ['a_p']: self._build_sim_a_p(idx)
             elif k in ['ptt', 'pte', 'pet', 'ptb', 'pbt', 'pee', 'peb', 'pbe', 'pbb',
                        'xtt', 'xte', 'xet', 'xtb', 'xbt', 'xee', 'xeb', 'xbe', 'xbb']:
                 self._build_sim_xfiltMVgclm(idx, k)
@@ -171,10 +170,8 @@ class library:
             _k,f = k.split('_bh_')
             assert self.get_lmax_qlm(_k) == self.get_lmax_qlm(f + 'tt'),'fix this (easy)'
             lmax = self.get_lmax_qlm(_k)
-            wL = self.resplib.get_response(_k,f + 'tt') * self.resplib.get_response(f + 'tt',f + 'tt').inverse()
-            rethp = self.get_sim_qlm_mf(_k, mc_sims, lmax=lmax)
-            rethp -= hp.almxfl(self.get_sim_qlm_mf(f + 'tt',mc_sims, lmax=lmax),wL[:])
-            return rethp
+            wL = self.resplib.get_response(_k,f + 'tt') * utils.cli(self.resplib.get_response(f + 'tt',f + 'tt'))
+            return self.get_sim_qlm_mf(_k, mc_sims, lmax=lmax) - hp.almxfl(self.get_sim_qlm_mf(f + 'tt',mc_sims, lmax=lmax),wL)
         assert k in self.keys_fund, (k, self.keys_fund)
         fname = self.lib_dir + '/simMF_k1%s_%s.fits' % (k, utils.mchash(mc_sims))
         if not os.path.exists(fname):
@@ -228,30 +225,35 @@ class library:
 
     def _get_sim_stt(self, idx, swapped=False):
         """ Point source estimator """
-        #FIXME: sign consistent with Planck Lensing 2015, but couter-intuitive and should be fixed.
         tmap1 = self.f2map1.get_irestmap(idx) if not swapped else self.f2map2.get_irestmap(idx)  # healpy map
         tmap1 *= (self.f2map2.get_irestmap(idx) if not swapped else self.f2map1.get_irestmap(idx))  # healpy map
-        return -0.5 * hp.map2alm(tmap1, lmax=self.get_lmax_qlm('PS'),iter=0)
+        return -0.5 * hp.map2alm(tmap1, lmax=self.get_lmax_qlm('PS'), iter=0)
 
     def _get_sim_ntt(self, idx, swapped=False):
         """ Noise inhomogeneity estimator (same as point-source estimator but acting on beam-deconvolved maps) """
-        #FIXME: sign consistent with Planck Lensing 2015, but couter-intuitive and should be fixed.
         f1 = self.f2map1 if not swapped else self.f2map2
         f2 = self.f2map2 if not swapped else self.f2map1
         tmap1 = f1.get_wirestmap(idx, f1.ivfs.get_tal('t')[:]) * f2.get_wirestmap(idx, f2.ivfs.get_tal('t')[:])
-        return -0.5 * hp.map2alm(tmap1, lmax=self.get_lmax_qlm('T'),iter=0)
+        return -0.5 * hp.map2alm(tmap1, lmax=self.get_lmax_qlm('T'), iter=0)
 
     def _get_sim_ftt(self, idx, joint=False, swapped=False):
+        #FIXME: sign inconsistent with spin-weight gradient-curl conventions.
         """Modulation estimator, temperature only."""
         tmap1 = self.f2map1.get_irestmap(idx) if not swapped else self.f2map2.get_irestmap(idx)  # healpy map
         tmap1 *= (self.f2map2.get_tmap(idx, joint=joint) if not swapped else self.f2map1.get_tmap(idx, joint=joint))  # healpy map
-        return hp.map2alm(tmap1, lmax=self.get_lmax_qlm('T'), iter = 0)
+        return hp.map2alm(tmap1, lmax=self.get_lmax_qlm('T'), iter=0)
 
     def _get_sim_f_p(self, idx, joint=False, swapped=False):
-        """Modulation estimator, polarization only."""
+        """Modulation estimator, polarization only. """
         Q1, U1 = self.f2map1.get_irespmap(idx) if not swapped else self.f2map2.get_irespmap(idx)
         Q2, U2 = (self.f2map2.get_pmap(idx, joint=joint) if not swapped else self.f2map1.get_pmap(idx, joint=joint))
         return hp.map2alm(2 * Q1 * Q2 + 2 * U1 * U2 , lmax=self.get_lmax_qlm('P'), iter=0)
+
+    def _get_sim_a_p(self, idx, joint=False, swapped=False):
+        """Polarization rotation estimator. """
+        Q1, U1 = self.f2map1.get_irespmap(idx) if not swapped else self.f2map2.get_irespmap(idx)
+        Q2, U2 = (self.f2map2.get_pmap(idx, joint=joint) if not swapped else self.f2map1.get_pmap(idx, joint=joint))
+        return -4. * hp.map2alm(Q1 * U2 -  U1 * Q2 , lmax=self.get_lmax_qlm('P'), iter=0)
 
     def _build_sim_Tgclm(self, idx):
         """ T only lensing potentials estimators """
@@ -367,6 +369,14 @@ class library:
             fLM = 0.5 * (fLM + _fLM)
             del _fLM
         hp.write_alm(os.path.join(self.lib_dir, 'sim_f_p_%04d.fits'%idx if idx != -1 else 'dat_f_p.fits'), fLM)
+
+    def _build_sim_a_p(self, idx):
+        fLM = self._get_sim_a_p(idx)
+        if not self.f2map1.ivfs == self.f2map2.ivfs:
+            _fLM = self._get_sim_f_p(idx,swapped=True)
+            fLM = 0.5 * (fLM + _fLM)
+            del _fLM
+        hp.write_alm(os.path.join(self.lib_dir, 'sim_a_p_%04d.fits'%idx if idx != -1 else 'dat_a_p.fits'), fLM)
 
     def get_response(self, k1, k2, recache=False):
         return self.resplib.get_response(k1, k2, recache=recache)
