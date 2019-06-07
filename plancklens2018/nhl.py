@@ -20,15 +20,15 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
     """(Semi-)Analytical noise level calculation for the cross-spectrum of two QE keys.
 
         Args:
-            qe_key1: QE key 1 ('ptt, 'p', 'xtt', ...)
-            qe_key2: QE key 2 ('ptt, 'p', 'xtt, ...)
+            qe_key1: QE key 1
+            qe_key2: QE key 2
             cls_weights: dictionary with the CMB spectra entering the QE weights.
                         (expected are 'tt', 'te', 'ee' when/if relevant)
             cls_ivfs: dictionary with the inverse-variance filtered CMB spectra.
                         (expected are 'tt', 'te', 'ee', 'bb', 'tb', 'eb' when/if relevant)
             lmax_ivf1: QE 1 uses CMB multipoles down to lmax_ivf1.
             lmax_ivf2: QE 2 uses CMB multipoles down to lmax_ivf2.
-            lmax_out(optional): output are calculated down to lmax_out. Defaults to lmax_ivf1 + lmax_ivf2
+            lmax_out(optional): outputs are calculated down to lmax_out. Defaults to lmax_ivf1 + lmax_ivf2
 
         Outputs:
             4-tuple of gradient (G) and curl (C) mode Gaussian noise co-variances GG, CC, GC, CG.
@@ -130,7 +130,7 @@ class nhl_lib_simple:
         s1, GC1, s1ins, ksp1 = qresp.qe_spin_data(k1)
         s2, GC2, s2ins, ksp2 = qresp.qe_spin_data(k2)
         fn = 'anhl_qe_' + ksp1 + k1[1:] + '_qe_' + ksp2 +  k2[1:] + GC1 + GC2
-        suf =  ('sim%04d'%idx) * (idx >= 0) +  'dat' * (idx == -1)
+        suf =  ('sim%04d'%int(idx)) * (idx >= 0) +  'dat' * (idx == -1)
         if self.npdb.get(fn + suf) is None or recache:
             assert s1 >= 0 and s2 >= 0, (s1, s2)
             cls_ivfs, lmax_ivf = self._get_cls(idx, np.unique(np.concatenate([s1ins, s2ins])))
