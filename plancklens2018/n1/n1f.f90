@@ -28,9 +28,11 @@ double precision function wf(k, l1x, l2x, l1y, l2y, l1abs, l2abs, cltt, clte, cl
                 clee(l2abs) * ((l1x + l2x) * l2x + (l1y + l2y) * l2y)) * cos(2d0 * (atan2(l2y, l2x) - atan2(l1y, l1x)))
 
     else if (k == 'peb') then
+        !Note clBB absent here. If adding it, note Hu astro-ph/0111606 paper has the wrong sign in front of ClBB.
         wf = (clee(l1abs) * ((l1x + l2x) * l1x + (l1y + l2y) * l1y)) * sin(2d0 * (atan2(l2y, l2x) - atan2(l1y, l1x)))
 
     else if (k == 'pbe') then
+        !Note clBB absent here. If adding it, note Hu astro-ph/0111606 paper has the wrong sign in front of ClBB.
         wf = (clee(l2abs) * ((l2x + l1x) * l2x + (l2y + l1y) * l2y)) * sin(2d0 * (atan2(l1y, l1x) - atan2(l2y, l2x)))
 
     else if ((k == 'pbb') .or. k =='xbb') then
@@ -59,9 +61,11 @@ double precision function wf(k, l1x, l2x, l1y, l2y, l1abs, l2abs, cltt, clte, cl
                 (-(l1y + l2y) * l2x + (l1x + l2x) * l2y)) * cos(2. * (atan2(l2y, l2x) - atan2(l1y, l1x)))
 
     else if (k == 'xeb') then
+        !Note clBB absent here. If adding it, note Hu astro-ph/0111606 paper has the wrong sign in front of ClBB.
         wf = (clee(l1abs) * (-(l1y + l2y) * l1x + (l1x + l2x) * l1y)) * sin(2d0 * (atan2(l2y, l2x) - atan2(l1y, l1x)))
 
     else if (k == 'xbe') then
+        !Note clBB absent here. If adding it, note Hu astro-ph/0111606 paper has the wrong sign in front of ClBB.
         wf = (clee(l2abs) * (-(l2y + l1y) * l2x + (l2x + l1x) * l2y)) * sin(2d0 * (atan2(l1y, l1x) - atan2(l2y, l2x)))
 
     else if (k == 'stt') then
