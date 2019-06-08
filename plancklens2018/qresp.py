@@ -170,7 +170,7 @@ def get_covresp(source, s1, s2, cls, lmax):
     if source in ['p','x', 'f', 'a', 'a_p']:
         # Lensing, modulation, or pol. rotation field from the field representation
         s_source, prR, mrR, cL_scal = get_resp_legs(source, lmax)[s1]
-        coupl = uspin.get_spin_coupling(s1, s2, cls)[:lmax + 1]
+        coupl = uspin.spin_cls(s1, s2, cls)[:lmax + 1]
         return s_source, prR * coupl, mrR * coupl, cL_scal
     elif source in ['stt', 's']:
         # Point source 'S^2': Cov -> Cov + B delta_nn' S^2(n) B^\dagger on the diagonal.
@@ -359,10 +359,10 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
 
     for s1 in spins:
         for s2 in spins:
-            cl1 = uspin.get_spin_coupling(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
+            cl1 = uspin.spin_cls(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
             # These 1/2 factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to T E B.
-            cl2 = uspin.get_spin_coupling(s2, s1, cls_cmb)[:lmax_cmb + 1]
-            cl2[:lmax_qe + 1] -= uspin.get_spin_coupling(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
+            cl2 = uspin.spin_cls(s2, s1, cls_cmb)[:lmax_cmb + 1]
+            cl2[:lmax_qe + 1] -= uspin.spin_cls(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
             if np.any(cl1) and np.any(cl2):
                 for a in [-1, 1]:
                     ai = uspin.get_spin_lower(s2, lmax_cmb) if a == - 1 else uspin.get_spin_raise(s2, lmax_cmb)
@@ -375,8 +375,8 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     # Build remaining Fisher term II:
     for s1 in spins:
         for s2 in spins:
-            cl1 = uspin.get_spin_coupling(s2, s1, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s1 != 0))
-            cl2 = uspin.get_spin_coupling(s1, s2, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s2 != 0))
+            cl1 = uspin.spin_cls(s2, s1, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s1 != 0))
+            cl2 = uspin.spin_cls(s1, s2, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s2 != 0))
             if np.any(cl1) and np.any(cl2):
                 for a in [-1, 1]:
                     ai = uspin.get_spin_lower(s2, lmax_qe) if a == -1 else uspin.get_spin_raise(s2, lmax_qe)

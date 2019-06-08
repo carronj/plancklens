@@ -105,14 +105,14 @@ def get_spin_lower(s, lmax):
     ret[abs(s):] = -np.sqrt(np.arange(s + abs(s), lmax + s + 1) * np.arange(abs(s) - s + 1, lmax - s + 2))
     return ret
 
-def get_spin_coupling(s1, s2, cls):
+def spin_cls(s1, s2, cls):
     """Spin-weighted power spectrum $<_{s1}X_{lm} _{s2}X^{*}_{lm}>$
 
         The output is real unless necessary.
 
     """
     if s1 < 0:
-        return (-1) ** (s1 + s2) * np.conjugate(get_spin_coupling(-s1, -s2, cls))
+        return (-1) ** (s1 + s2) * np.conjugate(spin_cls(-s1, -s2, cls))
     assert s1 in [0, -2, 2] and s2 in [0, -2, 2], (s1, s2, 'not implemented')
     if s1 == 0:
         if s2 == 0:
