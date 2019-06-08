@@ -16,7 +16,7 @@ from . import qresp
 #FIXME lmax_qlm's
 
 
-def eval_qe(qe_key, lmax_ivf, cls_weight, get_alm, nside, verbose=True):
+def eval_qe(qe_key, lmax_ivf, cls_weight, get_alm, nside, lmax_qlm, verbose=True):
     """Evaluates a quadratic estimator gradient and curl terms.
 
         Useful for quick checks on single maps.
@@ -27,12 +27,14 @@ def eval_qe(qe_key, lmax_ivf, cls_weight, get_alm, nside, verbose=True):
         cls_weights: set of CMB spectra entering the QE estimator weights
         get_alm: callable with 't', 'e', 'b' arguments, returning the corresponding inverse-variance filtered CMB maps
         nside: the estimator are calculated in position space at healpy resolution nside.
+        lmax_qlm: gradient and curl terms are obtained up to multipole lmax_qlm.
+
 
     """
     qe_list = qresp.get_qes(qe_key, lmax_ivf, cls_weight)
-    return _eval_qe(qe_list, nside, get_alm, verbose=verbose)
+    return _eval_qe(qe_list, nside, get_alm, lmax_qlm, verbose=verbose)
 
-def _eval_qe(qes_list, nside, get_alm, verbose=True):
+def _eval_qe(qes_list, nside, get_alm, lmax_qlm, verbose=True):
     """Evaluation of a QE from its list of leg definitions.
 
         qes_list: list of qresp.qe instances
@@ -42,19 +44,19 @@ def _eval_qe(qes_list, nside, get_alm, verbose=True):
     """
     qes = _compress_qe(qes_list, verbose=verbose)
     qe_spin = qes[0][0].spin_ou + qes[0][1].spin_ou
-    cL_out = qes[0][-1]
+    cL_out = qes[0][-1](np.arange(lmax_qlm + 1))
     assert qe_spin >= 0, qe_spin
     for qe in qes[1:]:
-        assert np.all(qe[-1] == cL_out)
+        assert np.all(qe[-1](np.arange(lmax_qlm + 1)) == cL_out)
         assert qe[0].spin_ou + qe[1].spin_ou == qe_spin
     d = np.zeros(hp.nside2npix(nside), dtype=complex)
     for i, qe in enumerate(qes):
         if verbose:
             print("QE %s out of %s :"%(i + 1, len(qes)))
-            print("in-spins 1st leg" ,qe[0].spins_in, qe[0].spin_ou)
-            print("in-spins 2nd leg", qe[1].spins_in, qe[1].spin_ou)
+            print("in-spins 1st leg and out-spin" ,qe[0].spins_in, qe[0].spin_ou)
+            print("in-spins 2nd leg and out-spin", qe[1].spins_in, qe[1].spin_ou)
         d += qe[0](get_alm, nside) * qe[1](get_alm, nside)
-    glm, clm = uspin.map2alm_spin((d.real, d.imag),qe_spin, lmax=len(cL_out) - 1)
+    glm, clm = uspin.map2alm_spin((d.real, d.imag), qe_spin, lmax=lmax_qlm)
     hp.almxfl(glm, cL_out, inplace=True)
     if np.any(clm):
         hp.almxfl(clm, cL_out, inplace=True)
@@ -70,7 +72,7 @@ def _compress_qe(qes, verbose=True):
     for i, qe in enumerate(qes):
         if i not in skip:
             lega = qe.leg_a
-            lega_m=  qresp.qeleg_multi([qe.leg_a.spin_in], qe.leg_a.spin_ou, [qe.leg_a.cl])
+            lega_m = qresp.qeleg_multi([qe.leg_a.spin_in], qe.leg_a.spin_ou, [qe.leg_a.cl])
             legb_m = qresp.qeleg_multi([qe.leg_b.spin_in], qe.leg_b.spin_ou, [qe.leg_b.cl])
             for j, qej in enumerate(qes[i + 1:]):
                 if qej.leg_a == lega and legb_m.spin_ou == qej.leg_b.spin_ou:

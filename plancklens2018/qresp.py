@@ -129,9 +129,6 @@ class qe:
     def get_lmax_b(self):
         return self.leg_b.get_lmax()
 
-    def get_lmax_qlm(self):
-        return len(self.cL)
-
 def get_resp_legs(source, lmax):
     """Defines the responses terms for a CMB map anisotropy source.
 
@@ -149,14 +146,14 @@ def get_resp_legs(source, lmax):
     if source in ['p', 'x']:
         # lensing (gradient and curl): _sX -> _sX -  1/2 alpha_1 \eth _sX - 1/2 \alpha_{-1} \bar \eth _sX
         return {s : (1, -0.5 * uspin.get_spin_lower(s, lmax), -0.5 * uspin.get_spin_raise(s, lmax),
-                     uspin.get_spin_raise(0, lmax_cL)) for s in [0, -2, 2]}
+                     lambda ell : uspin.get_spin_raise(0, np.max(ell))[ell]) for s in [0, -2, 2]}
     if source == 'f': # Modulation: _sX -> _sX + f _sX.
         return {s : (0, 0.5 * np.ones(lmax + 1, dtype=float), 0.5 * np.ones(lmax + 1, dtype=float),
-                        np.ones(lmax_cL + 1, dtype=float)) for s in [0, -2, 2]}
+                        lambda ell: np.ones(len(ell), dtype=float)) for s in [0, -2, 2]}
     if source in ['a', 'a_p']: # Polarisation rotation _\pm 2 X ->  _\pm 2 X + \mp 2 i a _\pm 2 X
         ret = {s: (0,  -np.sign(s) * 1j * np.ones(lmax + 1, dtype=float),
                        -np.sign(s) * 1j * np.ones(lmax + 1, dtype=float),
-                        np.ones(lmax_cL + 1, dtype=float)) for s in [-2, 2]}
+                        lambda ell: np.ones(len(ell), dtype=float)) for s in [-2, 2]}
         ret[0]=(0, np.zeros(lmax + 1, dtype=float),np.zeros(lmax + 1, dtype=float),np.ones(lmax_cL + 1, dtype=float))
         return ret
 
@@ -182,7 +179,7 @@ def get_covresp(source, s1, s2, cls, lmax):
         s_source = 0
         prR = 0.25 * cond * np.ones(lmax + 1, dtype=float)
         mrR = 0.25 * cond * np.ones(lmax + 1, dtype=float)
-        cL_scal =  cond * np.ones(2 * lmax + 1, dtype=float)
+        cL_scal =  lambda ell : np.ones(len(ell), dtype=float)
         return s_source, prR, mrR, cL_scal
     else:
         assert 0, 'source ' + source + ' cov. response not implemented'
@@ -253,15 +250,6 @@ class resp_lib_simple:
                 self.npdb.add('qe_' + ksp + k[1:] + '_source_%s' % ksource + '_CC', CC)
         return self.npdb.get(fn)
 
-def get_dresponse_dlncl(qe_key, l, cl_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
-    """QE isotropic response derivative function dR_L / dlnC_l.
-
-    """
-    dcls_cmb = {k: np.zeros_like(cls_cmb[k]) for k in cls_cmb.keys()}
-    dcls_cmb[cl_key][l] = cls_cmb[cl_key][l]
-    qes = get_qes(qe_key, lmax_qe, cls_weight)
-    return _get_response(qes, lmax_qe, source, dcls_cmb, fal_leg1, fal_leg2=fal_leg2, lmax_out=lmax_out)
-
 
 def get_response(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
     """QE isotropic response.
@@ -271,6 +259,15 @@ def get_response(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg
     """
     qes = get_qes(qe_key, lmax_qe, cls_weight)
     return _get_response(qes, lmax_qe, source, cls_cmb, fal_leg1, fal_leg2=fal_leg2, lmax_out=lmax_out)
+
+def get_dresponse_dlncl(qe_key, l, cl_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
+    """QE isotropic response derivative function dR_L / dlnC_l.
+
+    """
+    dcls_cmb = {k: np.zeros_like(cls_cmb[k]) for k in cls_cmb.keys()}
+    dcls_cmb[cl_key][l] = cls_cmb[cl_key][l]
+    qes = get_qes(qe_key, lmax_qe, cls_weight)
+    return _get_response(qes, lmax_qe, source, dcls_cmb, fal_leg1, fal_leg2=fal_leg2, lmax_out=lmax_out)
 
 get_response_sepTP = get_response # Here only for historical reasons.
 
@@ -282,6 +279,7 @@ def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1, fal_leg2=None, lmax_
     RCC = np.zeros(lmax_qlm + 1, dtype=float)
     RGC = np.zeros(lmax_qlm + 1, dtype=float)
     RCG = np.zeros(lmax_qlm + 1, dtype=float)
+    Ls = np.arange(lmax_qlm + 1, dtype=int)
     for qe in qes:
         si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
         so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
@@ -294,24 +292,24 @@ def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1, fal_leg2=None, lmax_
                         rW_st, prW_st, mrW_st, s_cL_st = get_covresp(source, -s2, t2, cls_cmb, len(FB) - 1)
                         clA = joincls([qe.leg_a.cl, FA])
                         clB = joincls([qe.leg_b.cl, FB, mrW_st.conj()])
-                        Rpr_st = uspin.wignerc(clA, clB, so, s2, to, -s2 + rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
+                        Rpr_st = uspin.wignerc(clA, clB, so, s2, to, -s2 + rW_st, lmax_out=lmax_qlm) * s_cL_st(Ls)
 
                         rW_ts, prW_ts, mrW_ts, s_cL_ts = get_covresp(source, -t2, s2, cls_cmb, len(FA) - 1)
                         clA = joincls([qe.leg_a.cl, FA, mrW_ts.conj()])
                         clB = joincls([qe.leg_b.cl, FB])
-                        Rpr_st = Rpr_st + uspin.wignerc(clA, clB, so, -t2 + rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
+                        Rpr_st = Rpr_st + uspin.wignerc(clA, clB, so, -t2 + rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts(Ls)
                         assert rW_st == rW_ts and rW_st >= 0, (rW_st, rW_ts)
                         if rW_st > 0:
                             clA = joincls([qe.leg_a.cl, FA])
                             clB = joincls([qe.leg_b.cl, FB, prW_st.conj()])
-                            Rmr_st = uspin.wignerc(clA, clB, so, s2, to, -s2 - rW_st, lmax_out=lmax_qlm) * s_cL_st[:lmax_qlm + 1]
+                            Rmr_st = uspin.wignerc(clA, clB, so, s2, to, -s2 - rW_st, lmax_out=lmax_qlm) * s_cL_st(Ls)
 
                             clA = joincls([qe.leg_a.cl, FA, prW_ts.conj()])
                             clB = joincls([qe.leg_b.cl, FB])
-                            Rmr_st = Rmr_st + uspin.wignerc(clA, clB, so, -t2 - rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts[:lmax_qlm + 1]
+                            Rmr_st = Rmr_st + uspin.wignerc(clA, clB, so, -t2 - rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts(Ls)
                         else:
                             Rmr_st = Rpr_st
-                        prefac = (-1) ** (so + to + rW_ts) * qe.cL[:lmax_qlm + 1]
+                        prefac = (-1) ** (so + to + rW_ts) * qe.cL(Ls)
                         RGG += prefac * ( Rpr_st.real + Rmr_st.real * (-1) ** rW_st)
                         RCC += prefac * ( Rpr_st.real - Rmr_st.real * (-1) ** rW_st)
                         RGC += prefac * (-Rpr_st.imag + Rmr_st.imag * (-1) ** rW_st)

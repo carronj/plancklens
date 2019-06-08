@@ -48,7 +48,7 @@ GL_cache = {}
 def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
     """Legendre coeff. of $ (\\xi_{sp1,s1} * \\xi_{sp2,s2})(\\cos \\theta)$ from their harmonic series.
 
-        This uses Gauss-Legendre quadrature to solve this exactly.
+        Uses Gauss-Legendre quadrature to solve this exactly.
 
     """
     lmax1 = len(cl1) - 1
@@ -108,7 +108,6 @@ def get_spin_lower(s, lmax):
 def get_spin_coupling(s1, s2, cls):
     """Spin-weighted power spectrum $<_{s1}X_{lm} _{s2}X^{*}_{lm}>$
 
-    Note:
         The output is real unless necessary.
 
     """

@@ -52,7 +52,9 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None)
     cls_ivfs_ba = cls_ivfs_ab
 
     for qe1 in qes1:
+        cL1 = qe1.cL(np.arange(lmax_out + 1))
         for qe2 in qes2:
+            cL2 = qe2.cL(np.arange(lmax_out + 1))
             si, ti, ui, vi = (qe1.leg_a.spin_in, qe1.leg_b.spin_in, qe2.leg_a.spin_in, qe2.leg_b.spin_in)
             so, to, uo, vo = (qe1.leg_a.spin_ou, qe1.leg_b.spin_ou, qe2.leg_a.spin_ou, qe2.leg_b.spin_ou)
             assert so + to >= 0 and uo + vo >= 0, (so, to, uo, vo)
@@ -61,12 +63,12 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None)
             clsu = utils.joincls([qe1.leg_a.cl, qe2.leg_a.cl.conj(), uspin.get_spin_coupling(si, ui, cls_ivfs_aa)])
             cltv = utils.joincls([qe1.leg_b.cl, qe2.leg_b.cl.conj(), uspin.get_spin_coupling(ti, vi, cls_ivfs_bb)])
             R_sutv = sgn_R * utils.joincls(
-                [uspin.wignerc(clsu, cltv, so, uo, to, vo, lmax_out=lmax_out), qe1.cL, qe2.cL])
+                [uspin.wignerc(clsu, cltv, so, uo, to, vo, lmax_out=lmax_out), cL1, cL2])
 
             clsv = utils.joincls([qe1.leg_a.cl, qe2.leg_b.cl.conj(), uspin.get_spin_coupling(si, vi, cls_ivfs_ab)])
             cltu = utils.joincls([qe1.leg_b.cl, qe2.leg_a.cl.conj(), uspin.get_spin_coupling(ti, ui, cls_ivfs_ba)])
             R_sutv = R_sutv + sgn_R * utils.joincls(
-                [uspin.wignerc(clsv, cltu, so, vo, to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
+                [uspin.wignerc(clsv, cltu, so, vo, to, uo, lmax_out=lmax_out), cL1, cL2])
 
             # we now need -s-t uv
             sgnms = (-1) ** (si + so)
@@ -74,12 +76,12 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None)
             clsu = utils.joincls([sgnms * qe1.leg_a.cl.conj(), qe2.leg_a.cl.conj(), uspin.get_spin_coupling(-si, ui, cls_ivfs_aa)])
             cltv = utils.joincls([sgnmt * qe1.leg_b.cl.conj(), qe2.leg_b.cl.conj(), uspin.get_spin_coupling(-ti, vi, cls_ivfs_bb)])
             R_msmtuv = sgn_R * utils.joincls(
-                [uspin.wignerc(clsu, cltv, -so, uo, -to, vo, lmax_out=lmax_out), qe1.cL, qe2.cL])
+                [uspin.wignerc(clsu, cltv, -so, uo, -to, vo, lmax_out=lmax_out), cL1, cL2])
 
             clsv = utils.joincls([sgnms * qe1.leg_a.cl.conj(), qe2.leg_b.cl.conj(), uspin.get_spin_coupling(-si, vi, cls_ivfs_ab)])
             cltu = utils.joincls([sgnmt * qe1.leg_b.cl.conj(), qe2.leg_a.cl.conj(), uspin.get_spin_coupling(-ti, ui, cls_ivfs_ba)])
             R_msmtuv = R_msmtuv + sgn_R * utils.joincls(
-                [uspin.wignerc(clsv, cltu, -so, vo, -to, uo, lmax_out=lmax_out), qe1.cL, qe2.cL])
+                [uspin.wignerc(clsv, cltu, -so, vo, -to, uo, lmax_out=lmax_out), cL1, cL2])
 
             GG_N0 +=  0.5 * R_sutv.real
             GG_N0 +=  0.5 * (-1) ** (to + so) * R_msmtuv.real
