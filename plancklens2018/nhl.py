@@ -16,7 +16,7 @@ from plancklens2018 import qresp
 
 
 def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
-            lmax_out=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
+            lmax_out=None, lmax_ivf12=None, lmax_ivf22=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
     """(Semi-)Analytical noise level calculation for the cross-spectrum of two QE keys.
 
         Args:
@@ -34,10 +34,12 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
             4-tuple of gradient (G) and curl (C) mode Gaussian noise co-variances GG, CC, GC, CG.
 
     """
-    qes1 = qresp.get_qes(qe_key1, lmax_ivf1, cls_weights)
-    qes2 = qresp.get_qes(qe_key2, lmax_ivf2, cls_weights)
+    if lmax_ivf12 is None: lmax_ivf12 = lmax_ivf1
+    if lmax_ivf22 is None: lmax_ivf22 = lmax_ivf2
+    qes1 = qresp.get_qes(qe_key1, lmax_ivf1, cls_weights, lmax2=lmax_ivf12)
+    qes2 = qresp.get_qes(qe_key2, lmax_ivf2, cls_weights, lmax2=lmax_ivf22)
     if lmax_out is None:
-        lmax_out = lmax_ivf1 + lmax_ivf2
+        lmax_out = max(lmax_ivf1, lmax_ivf12) + max(lmax_ivf2, lmax_ivf22)
     return  _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab)
 
 def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None):

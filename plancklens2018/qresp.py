@@ -18,20 +18,19 @@ from plancklens2018 import utils_spin as uspin
 from plancklens2018.utils import clhash, hash_check, joincls
 from plancklens2018 import mpi
 
-def get_qes(qe_key, lmax, cls_weight):
+def get_qes(qe_key, lmax, cls_weight, lmax2=None):
     """ Defines the quadratic estimator weights for quadratic estimator key.
 
     Args:
         qe_key (str): quadratic estimator key (e.g., ptt, p_p, ... )
         lmax (int): weights are built up to lmax.
-        cls_weight (dict): CMB spectra entering the weights
+        cls_weight (dict): CMB spectra entering the weights (when relevant).
+        lmax2 (int, optional): weight on the second leg are built up to lmax2 (default to lmax)
 
-    #FIXME:
-        * lmax_A, lmax_B, lmaxout!
-
-    The weights are defined by their action on the inverse-variance filtered $ _{s}\\bar X_{lm}$.
+    The weights are defined by their action on the inverse-variance filtered spin-weight $ _{s}\bar X_{lm}$.
 
     """
+    if lmax2 is None: lmax2 = lmax
     if qe_key[0] in ['p', 'x', 'a', 'f', 's']:
         if qe_key in ['ptt', 'xtt', 'att', 'ftt', 'stt']:
             s_lefts= [0]
@@ -46,7 +45,7 @@ def get_qes(qe_key, lmax, cls_weight):
         for s_left in s_lefts:
             for sin in s_rights_in:
                 sout = -s_left
-                s_qe, irr1, cl_sosi, cL_out =  get_covresp(qe_key[0], sout, sin, cls_weight, lmax)
+                s_qe, irr1, cl_sosi, cL_out =  get_covresp(qe_key[0], sout, sin, cls_weight, lmax2)
                 if np.any(cl_sosi):
                     lega = qeleg(s_left, s_left, 0.5 *(1. + (s_left == 0)) * np.ones(lmax + 1, dtype=float))
                     legb = qeleg(sin, sout + s_qe, 0.5 * (1. + (sin == 0)) * 2 * cl_sosi)
@@ -251,29 +250,33 @@ class resp_lib_simple:
         return self.npdb.get(fn)
 
 
-def get_response(qe_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
+def get_response(qe_key, lmax_ivf, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_ivf2=None, lmax_out=None):
     """QE isotropic response.
 
     #FIXME: explain fal here
 
     """
-    qes = get_qes(qe_key, lmax_qe, cls_weight)
-    return _get_response(qes, lmax_qe, source, cls_cmb, fal_leg1, fal_leg2=fal_leg2, lmax_out=lmax_out)
+    if lmax_ivf2 is None: lmax_ivf2 = lmax_ivf
+    if lmax_out is None : lmax_out = lmax_ivf + lmax_ivf2
+    qes = get_qes(qe_key, lmax_ivf, cls_weight, lmax2=lmax_ivf2)
+    return _get_response(qes, source, cls_cmb, fal_leg1, lmax_out, fal_leg2=fal_leg2)
 
-def get_dresponse_dlncl(qe_key, l, cl_key, lmax_qe, source, cls_weight, cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
+def get_dresponse_dlncl(qe_key, l, cl_key, lmax_ivf, source, cls_weight, cls_cmb, fal_leg1,
+                        fal_leg2=None, lmax_ivf2=None, lmax_out=None):
     """QE isotropic response derivative function dR_L / dlnC_l.
 
     """
+    if lmax_ivf2 is None: lmax_ivf2 = lmax_ivf
+    if lmax_out is None : lmax_out = lmax_ivf2 + lmax_ivf
     dcls_cmb = {k: np.zeros_like(cls_cmb[k]) for k in cls_cmb.keys()}
     dcls_cmb[cl_key][l] = cls_cmb[cl_key][l]
-    qes = get_qes(qe_key, lmax_qe, cls_weight)
-    return _get_response(qes, lmax_qe, source, dcls_cmb, fal_leg1, fal_leg2=fal_leg2, lmax_out=lmax_out)
+    qes = get_qes(qe_key, lmax_ivf, cls_weight, lmax2=lmax_ivf2)
+    return _get_response(qes, source, dcls_cmb, fal_leg1,lmax_out, fal_leg2=fal_leg2)
 
 get_response_sepTP = get_response # Here only for historical reasons.
 
 
-def _get_response(qes, lmax_qe, source,  cls_cmb, fal_leg1, fal_leg2=None, lmax_out=None):
-    lmax_qlm = min(2 * lmax_qe,  2 * lmax_qe if lmax_out is None else lmax_out)
+def _get_response(qes, source, cls_cmb, fal_leg1, lmax_qlm, fal_leg2=None):
     fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
     RGG = np.zeros(lmax_qlm + 1, dtype=float)
     RCC = np.zeros(lmax_qlm + 1, dtype=float)
