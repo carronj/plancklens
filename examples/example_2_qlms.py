@@ -46,7 +46,7 @@ qlms_ss = qest.library_sepTP(libdir_qlmsss, ivfs, ivfs_s, clte, nside, lmax_qlm=
 
 if __name__ == '__main__':
     import argparse
-    from plancklens2018 import mpi
+    from plancklens2018.helpers import mpi
 
     parser = argparse.ArgumentParser(description='Planck 2018 QE calculation example')
     parser.add_argument('-imin', dest='imin', default=-1, type=int, help='starting index (-1 stands for data map)')
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     jobs += [ (idx, 'p') for idx in range(args.imin, args.imax + 1)]
 
     for i, (idx, lab) in enumerate(jobs[mpi.rank::mpi.size]):
-        print('rank %s filtering sim %s %s, job %s in %s'%(mpi.rank, idx, lab, i, len(jobs)))
+        print('rank %s filtering sim %s %s, job %s in %s' % (mpi.rank, idx, lab, i, len(jobs)))
         if lab == 't':
             ivfs.get_sim_tlm(idx)
         elif lab == 'p':

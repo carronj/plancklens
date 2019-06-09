@@ -11,7 +11,7 @@ import pickle as pk
 from healpy import Alm
 
 from .util_alm import eblm
-from plancklens2018.utils import enumerate_progress
+from plancklens2018.helpers import enumerate_progress
 
 def alm2rlm(alm):
     """Converts a complex alm to 'real harmonic' coefficients rlm.

@@ -11,12 +11,9 @@ import numpy as np
 import pickle as pk
 import healpy as hp
 
+from plancklens2018 import utils as ut, utils_spin as uspin
+from plancklens2018.helpers import mpi, sql
 
-from plancklens2018 import utils
-from plancklens2018 import sql
-from plancklens2018 import utils_spin as uspin
-from plancklens2018.utils import clhash, hash_check, joincls
-from plancklens2018 import mpi
 
 def get_qes(qe_key, lmax, cls_weight, lmax2=None):
     """ Defines the quadratic estimator weights for quadratic estimator key.
@@ -101,9 +98,9 @@ class qeleg_multi:
             assert len(gclm) == 2
             sgn_g = -(-1) ** si if si < 0 else -1
             sgn_c = (-1) ** si if si < 0 else -1
-            glm += hp.almxfl(utils.alm_copy(gclm[0], lmax), sgn_g * cl)
+            glm += hp.almxfl(ut.alm_copy(gclm[0], lmax), sgn_g * cl)
             if np.any(gclm[1]):
-                clm += hp.almxfl(utils.alm_copy(gclm[1], lmax), sgn_c * cl)
+                clm += hp.almxfl(ut.alm_copy(gclm[1], lmax), sgn_c * cl)
         glm *= -1
         if self.spin_ou > 0: clm *= -1
         Red, Imd = uspin.alm2map_spin((glm, clm), nside, abs(self.spin_ou), lmax)
@@ -215,17 +212,17 @@ class resp_lib_simple:
             if not os.path.exists(fn_hash):
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
         mpi.barrier()
-        hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
+        ut.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
         self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
 
     def hashdict(self):
         ret = {'lmaxqe':self.lmax_qe, 'lmax_qlm':self.lmax_qlm}
         for k in self.cls_weight.keys():
-            ret['clsweight ' + k] = clhash(self.cls_weight[k])
+            ret['clsweight ' + k] = ut.clhash(self.cls_weight[k])
         for k in self.cls_cmb.keys():
-            ret['clscmb ' + k] = clhash(self.cls_cmb[k])
+            ret['clscmb ' + k] = ut.clhash(self.cls_cmb[k])
         for k in self.fal.keys():
-            ret['fal' + k] = clhash(self.fal[k])
+            ret['fal' + k] = ut.clhash(self.fal[k])
         return ret
 
     def get_response(self, k, ksource, recache=False):
@@ -293,22 +290,22 @@ def _get_response(qes, source, cls_cmb, fal_leg1, lmax_qlm, fal_leg2=None):
                     FB = uspin.get_spin_matrix(ti, t2, fal_leg2)
                     if np.any(FB):
                         rW_st, prW_st, mrW_st, s_cL_st = get_covresp(source, -s2, t2, cls_cmb, len(FB) - 1)
-                        clA = joincls([qe.leg_a.cl, FA])
-                        clB = joincls([qe.leg_b.cl, FB, mrW_st.conj()])
+                        clA = ut.joincls([qe.leg_a.cl, FA])
+                        clB = ut.joincls([qe.leg_b.cl, FB, mrW_st.conj()])
                         Rpr_st = uspin.wignerc(clA, clB, so, s2, to, -s2 + rW_st, lmax_out=lmax_qlm) * s_cL_st(Ls)
 
                         rW_ts, prW_ts, mrW_ts, s_cL_ts = get_covresp(source, -t2, s2, cls_cmb, len(FA) - 1)
-                        clA = joincls([qe.leg_a.cl, FA, mrW_ts.conj()])
-                        clB = joincls([qe.leg_b.cl, FB])
+                        clA = ut.joincls([qe.leg_a.cl, FA, mrW_ts.conj()])
+                        clB = ut.joincls([qe.leg_b.cl, FB])
                         Rpr_st = Rpr_st + uspin.wignerc(clA, clB, so, -t2 + rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts(Ls)
                         assert rW_st == rW_ts and rW_st >= 0, (rW_st, rW_ts)
                         if rW_st > 0:
-                            clA = joincls([qe.leg_a.cl, FA])
-                            clB = joincls([qe.leg_b.cl, FB, prW_st.conj()])
+                            clA = ut.joincls([qe.leg_a.cl, FA])
+                            clB = ut.joincls([qe.leg_b.cl, FB, prW_st.conj()])
                             Rmr_st = uspin.wignerc(clA, clB, so, s2, to, -s2 - rW_st, lmax_out=lmax_qlm) * s_cL_st(Ls)
 
-                            clA = joincls([qe.leg_a.cl, FA, prW_ts.conj()])
-                            clB = joincls([qe.leg_b.cl, FB])
+                            clA = ut.joincls([qe.leg_a.cl, FA, prW_ts.conj()])
+                            clB = ut.joincls([qe.leg_b.cl, FB])
                             Rmr_st = Rmr_st + uspin.wignerc(clA, clB, so, -t2 - rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts(Ls)
                         else:
                             Rmr_st = Rpr_st

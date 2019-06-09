@@ -5,16 +5,15 @@ import healpy as hp
 import numpy as np
 import pickle as pk
 
+from plancklens2018.helpers import mpi, sql
+from plancklens2018 import utils
 
-from . import mpi
-from . import utils
-from . import sql
 
 class library(object):
     """Lensing estimator power spectra library.
 
     """
-    def __init__(self, lib_dir, qeA, qeB, mc_sims_mf, nhl_lib=None):
+    def __init__(self, lib_dir, qeA, qeB, mc_sims_mf):
         """ qeA and qeB are two quadratic estimator instances. """
         self.lib_dir = lib_dir
         self.prefix = lib_dir
@@ -55,8 +54,6 @@ class library(object):
         self.fsky11 = fskies[11]
         self.fsky12 = fskies[12]
         self.fsky22 = fskies[22]
-
-        self.nhl_lib = nhl_lib
 
     def hashdict(self):
         return {'qeA': self.qeA.hashdict(),
@@ -112,12 +109,6 @@ class library(object):
         if k2 is None: k2 = k1
         if s2 is None: s2 = s1
         return self.qeA.get_response(k1, s1) * self.qeB.get_response(k2, s2)
-
-    def get_sim_nhl(self, k1, idx, k2=None):
-        if self.nhl_lib is None:
-            print("Cant produce Nhl")
-            return
-        return self.nhl_lib.get_sim_nhl(k1, idx, k2=k2)
 
     def _alm2clfsky1234(self, qlm1, qlm2, k1, k2):
         return hp.alm2cl(qlm1, alms2=qlm2)

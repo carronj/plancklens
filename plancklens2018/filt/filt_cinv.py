@@ -10,9 +10,8 @@ import numpy  as np
 import pickle as pk
 import os
 
-
-from plancklens2018 import mpi
-from plancklens2018 import utils
+from plancklens2018.helpers import mpi
+from plancklens2018 import helpers
 from . import filt_simple
 from plancklens2018.qcinv import opfilt_pp, opfilt_tt
 from plancklens2018.qcinv import util, util_alm
@@ -42,7 +41,7 @@ class library_cinv_sepTP(filt_simple.library_sepTP):
                 hp.write_map(fname_mask, fmask)
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
+        helpers.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
 
     def hashdict(self):
         return {'cinv_t': self.cinv_t.hashdict(),
@@ -169,13 +168,13 @@ class cinv_t(cinv):
                 hp.write_map(os.path.join(self.lib_dir, "fmask.fits.gz"), self._calc_mask())
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
+        helpers.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
 
     def _ninv_hash(self):
         ret = []
         for ninv_comp in self.ninv:
             if isinstance(ninv_comp, np.ndarray) and ninv_comp.size > 1:
-                ret.append(utils.clhash(ninv_comp))
+                ret.append(helpers.clhash(ninv_comp))
             else:
                 ret.append(ninv_comp)
         return ret
@@ -192,14 +191,14 @@ class cinv_t(cinv):
         if s_cls['tt'][0] == 0.: assert self.chain.n_inv_filt.marge_monopole
         if s_cls['tt'][1] == 0.: assert self.chain.n_inv_filt.marge_dipole
 
-        ftl = utils.cli(s_cls['tt'][0:self.lmax + 1] + (NlevT_uKamin * np.pi / 180. / 60.) ** 2 / b_transf[0:self.lmax + 1] ** 2)
+        ftl = helpers.cli(s_cls['tt'][0:self.lmax + 1] + (NlevT_uKamin * np.pi / 180. / 60.) ** 2 / b_transf[0:self.lmax + 1] ** 2)
         if self.chain.n_inv_filt.marge_monopole: ftl[0] = 0.0
         if self.chain.n_inv_filt.marge_dipole: ftl[1] = 0.0
 
         return ftl
 
     def _calc_tal(self):
-        return utils.cli(self.transf)
+        return helpers.cli(self.transf)
 
     def _calc_mask(self):
         ninv = self.chain.n_inv_filt.n_inv
@@ -209,8 +208,8 @@ class cinv_t(cinv):
     def hashdict(self):
         return {'lmax': self.lmax,
                 'nside': self.nside,
-                'cltt': utils.clhash(self.cl['tt'][:self.lmax + 1]),
-                'transf': utils.clhash(self.transf[:self.lmax + 1]),
+                'cltt': helpers.clhash(self.cl['tt'][:self.lmax + 1]),
+                'transf': helpers.clhash(self.transf[:self.lmax + 1]),
                 'ninv': self._ninv_hash(),
                 'marge_monopole': self.marge_monopole,
                 'marge_dipole': self.marge_dipole,
@@ -268,15 +267,15 @@ class cinv_p(cinv):
                 hp.write_map(os.path.join(self.lib_dir,  "fmask.fits.gz"),  self._calc_mask())
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
+        helpers.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
 
     def hashdict(self):
         return {'lmax': self.lmax,
                 'nside': self.nside,
-                'clee': utils.clhash(self.cl.get('ee', np.array([0.]))),
-                'cleb': utils.clhash(self.cl.get('eb', np.array([0.]))),
-                'clbb': utils.clhash(self.cl.get('bb', np.array([0.]))),
-                'transf':utils.clhash(self.transf),
+                'clee': helpers.clhash(self.cl.get('ee', np.array([0.]))),
+                'cleb': helpers.clhash(self.cl.get('eb', np.array([0.]))),
+                'clbb': helpers.clhash(self.cl.get('bb', np.array([0.]))),
+                'transf':helpers.clhash(self.transf),
                 'ninv': self._ninv_hash()}
 
 
@@ -323,7 +322,7 @@ class cinv_p(cinv):
         return fel, fbl
 
     def _calc_tal(self):
-        return utils.cli(self.transf)
+        return helpers.cli(self.transf)
 
     def _calc_mask(self):
         mask = np.ones(hp.nside2npix(self.nside), dtype=float)
@@ -336,7 +335,7 @@ class cinv_p(cinv):
         ret = []
         for ninv_comp in self.ninv[0]:
             if isinstance(ninv_comp, np.ndarray) and ninv_comp.size > 1:
-                ret.append(utils.clhash(ninv_comp))
+                ret.append(helpers.clhash(ninv_comp))
             else:
                 ret.append(ninv_comp)
         return [ret]

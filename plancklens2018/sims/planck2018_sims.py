@@ -4,7 +4,7 @@
 import healpy as hp
 import numpy as np
 
-from plancklens2018 import utils
+from plancklens2018 import helpers
 
 class smica_dx12:
     """ SMICA 2018 release simulation and data library at NERSC.
@@ -54,7 +54,7 @@ class ffp10cmb_widnoise:
         self.nside = nside
 
     def hashdict(self):
-        return {'transf':utils.clhash(self.transf), 'nlevt':np.float32(self.nlevt), 'nlevp':np.float32(self.nlevp),
+        return {'transf':helpers.clhash(self.transf), 'nlevt':np.float32(self.nlevt), 'nlevp':np.float32(self.nlevp),
                 'pix_phas':self.pix_libphas.hashdict()}
 
     def get_sim_tmap(self, idx):

@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 import healpy as hp
 
-from plancklens2018 import utils
+from plancklens2018 import helpers
 
 verbose = False
 
@@ -46,7 +46,7 @@ class sims_cmb_unl:
 
         self._cl_hash = {}
         for k in cls_unl.keys():
-            self._cl_hash[k] =utils.clhash(cls_unl[k])
+            self._cl_hash[k] =helpers.clhash(cls_unl[k])
         self.rmat = rmat
         self.lib_pha = lib_pha
         self.fields = fields

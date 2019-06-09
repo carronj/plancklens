@@ -9,7 +9,6 @@
     rescale slightly the filtered alms as explained in the 2015 and 2018 Planck lensing papers.
 
 """
-
 import os
 import healpy as hp
 import numpy as np
@@ -91,8 +90,8 @@ qlms_dd = qest.library_sepTP(libdir_qlmsdd, ivfs, ivfs,   cl_len['te'], nside, l
 qlms_ds = qest.library_sepTP(libdir_qlmsds, ivfs, ivfs_d, cl_len['te'], nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
 qlms_ss = qest.library_sepTP(libdir_qlmsss, ivfs, ivfs_s, cl_len['te'], nside, lmax_qlm={'P': lmax_qlm, 'T':lmax_qlm})
 
-mc_sims_bias = np.arange(60)
-mc_sims_var  = np.arange(60, 300)
+mc_sims_bias = np.arange(60, dtype=int)
+mc_sims_var  = np.arange(60, 300, dtype=int)
 
 mc_sims_mf_dd = mc_sims_bias
 mc_sims_mf_ds = np.array([])

@@ -34,8 +34,8 @@ qcls_dd = qecl.library(libdir_qcls_dd, qlms.qlms_dd, qlms.qlms_dd, mc_sims_mf_dd
 qcls_ds = qecl.library(libdir_qcls_ds, qlms.qlms_ds, qlms.qlms_ds, mc_sims_mf_ds)
 qcls_ss = qecl.library(libdir_qcls_ss, qlms.qlms_ss, qlms.qlms_ss, mc_sims_mf_ss)
 
-cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
-cl_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
+cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lensedCls.dat'))
+cl_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lensedCls.dat'))
 cl_weight['bb'] *= 0.
 
 nhl_dd = nhl.nhl_lib_simple(libdir_nhl_dd, qlms.ivfs, cl_weight, qlms.lmax_qlm)
@@ -44,7 +44,7 @@ qresp_dd = qresp.resp_lib_simple(libdir_resp_dd, qlms.lmax_ivf, cl_weight, cl_le
 
 if __name__ == '__main__':
     import argparse
-    from plancklens2018 import mpi
+    from plancklens2018.helpers import mpi
 
     parser = argparse.ArgumentParser(description='Planck 2018 QE power spectra calc. example')
     parser.add_argument('-imin', dest='imin', default=-1, type=int, help='starting index (-1 stands for data map)')
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     jobs += [ (idx, 'p') for idx in range(args.imin, args.imax + 1)]
 
     for i, (idx, lab) in enumerate(jobs[mpi.rank::mpi.size]):
-        print('rank %s filtering sim %s %s, job %s in %s'%(mpi.rank, idx, lab, i, len(jobs)))
+        print('rank %s filtering sim %s %s, job %s in %s' % (mpi.rank, idx, lab, i, len(jobs)))
         if lab == 't':
             qlms.ivfs.get_sim_tlm(idx)
         elif lab == 'p':
@@ -110,7 +110,8 @@ if __name__ == '__main__':
                     jobs.append((qlib, idx, k))
 
     for i, (qlib, idx, k) in enumerate(jobs[mpi.rank::mpi.size]):
-        print('rank %s doing QE spectra sim %s %s, qcl_lib %s, job %s in %s' % (mpi.rank, idx, k, qlib.lib_dir, i, len(jobs)))
+        print('rank %s doing QE spectra sim %s %s, qcl_lib %s, job %s in %s' % (
+        mpi.rank, idx, k, qlib.lib_dir, i, len(jobs)))
         qlib.get_sim_qcl(k, idx)
 
     mpi.barrier()

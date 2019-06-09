@@ -7,7 +7,6 @@
 import os
 import healpy as hp
 import numpy as np
-import pickle as pk
 
 from plancklens2018.filt import filt_cinv
 from plancklens2018 import utils
@@ -23,8 +22,8 @@ nlev_p = 55.
 nsims = 300
 
 transf = hp.gauss_beam(5. / 60. / 180. * np.pi, lmax=lmax_ivf) * hp.pixwin(nside)[:lmax_ivf + 1]
-cl_unl = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))
-cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
+cl_unl = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lenspotentialCls.dat'))
+cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lensedCls.dat'))
 
 
 
@@ -62,7 +61,7 @@ ivfs    = filt_cinv.library_cinv_sepTP(libdir_ivfs, sims, cinv_t, cinv_p, cl_len
 
 if __name__ == '__main__':
     import argparse
-    from plancklens2018 import mpi
+    from plancklens2018.helpers import mpi
 
     parser = argparse.ArgumentParser(description='Planck 2018 filtering example')
     parser.add_argument('-imin', dest='imin', default=-1, type=int, help='starting index (-1 stands for data map)')
@@ -76,7 +75,7 @@ if __name__ == '__main__':
     if args.p: jobs +=  [ (idx, 'p') for idx in range(args.imin, args.imax + 1)]
 
     for i, (idx, lab) in enumerate(jobs[mpi.rank::mpi.size]):
-        print('rank %s doing sim %s %s, job %s in %s'%(mpi.rank, idx, lab, i, len(jobs)))
+        print('rank %s doing sim %s %s, job %s in %s' % (mpi.rank, idx, lab, i, len(jobs)))
         if lab == 't':
             ivfs.get_sim_tlm(idx)
         elif lab == 'p':

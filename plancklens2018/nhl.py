@@ -8,11 +8,8 @@ import pickle as pk
 import numpy as np
 import healpy as hp
 
-from plancklens2018 import utils
-from plancklens2018 import utils_spin as uspin
-from plancklens2018 import mpi
-from plancklens2018 import sql
-from plancklens2018 import qresp
+from plancklens2018 import qresp, utils, utils_spin as uspin
+from plancklens2018.helpers import mpi, sql
 
 
 def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,

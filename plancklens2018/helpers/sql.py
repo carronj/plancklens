@@ -8,7 +8,8 @@ import io
 import os
 import six # Hack for memoryview for py2.7 comptability
 
-from . import mpi
+from plancklens2018.helpers import mpi
+
 
 def adapt_array(arr):
     out = io.BytesIO(); np.save(out, arr)

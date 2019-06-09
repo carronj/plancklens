@@ -7,8 +7,8 @@ import healpy as hp
 import numpy as np
 import pickle as pk
 
-from plancklens2018 import mpi
-from plancklens2018 import utils
+from plancklens2018.helpers import mpi
+from plancklens2018 import helpers
 
 class rng_db:
     """ Class to save and read random number generators states in a sqlite database file.
@@ -77,7 +77,7 @@ class sim_lib(object):
         mpi.barrier()
 
         hsh = pk.load(open(fn_hash, 'rb'))
-        utils.hash_check(hsh, self.hashdict(), ignore=['lib_dir'])
+        helpers.hash_check(hsh, self.hashdict(), ignore=['lib_dir'])
 
         self._rng_db = rng_db(os.path.join(lib_dir, 'rngdb.db'), idtype='INTEGER')
         self._get_rng_state = get_state_func

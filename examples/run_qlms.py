@@ -1,6 +1,6 @@
 import argparse
 import imp
-from plancklens2018 import mpi
+from plancklens2018.helpers import mpi
 
 parser = argparse.ArgumentParser(description='Planck 2018 QE calculation example')
 parser.add_argument('parfile', type=str, nargs=1)
@@ -31,7 +31,7 @@ if args.ivp:
     jobs += [(idx, 'p') for idx in range(args.imin, args.imax + 1)]
 
 for i, (idx, lab) in enumerate(jobs[mpi.rank::mpi.size]):
-    print('rank %s filtering sim %s %s, job %s in %s'%(mpi.rank, idx, lab, i, len(jobs)))
+    print('rank %s filtering sim %s %s, job %s in %s' % (mpi.rank, idx, lab, i, len(jobs)))
     if lab == 't':
         par.ivfs.get_sim_tlm(idx)
     elif lab == 'p':
@@ -60,7 +60,8 @@ for qlib in qlibs:
                     jobs.append((qlib, idx, kA, kB))
 
 for i, (qlib, idx, kA, kB) in enumerate(jobs[mpi.rank::mpi.size]):
-    print('rank %s doing QE spectra sim %s %s %s, qcl_lib %s, job %s in %s' % (mpi.rank, idx, kA, kB, qlib.lib_dir, i, len(jobs)))
+    print('rank %s doing QE spectra sim %s %s %s, qcl_lib %s, job %s in %s' % (
+    mpi.rank, idx, kA, kB, qlib.lib_dir, i, len(jobs)))
     qlib.get_sim_qcl(kA, idx, k2=kB)
 
 # ---Nhl calculation

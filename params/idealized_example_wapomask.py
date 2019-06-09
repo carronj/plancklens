@@ -47,11 +47,11 @@ nsims = 300  # Total number of simulations to consider.
 transf = hp.gauss_beam(5. / 60. / 180. * np.pi, lmax=lmax_ivf) * hp.pixwin(nside)[:lmax_ivf + 1]
 #: CMB transfer function. Here a 5' Gaussian beam and healpix pixel window function.
 
-cl_unl = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))
-cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
+cl_unl = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lenspotentialCls.dat'))
+cl_len = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lensedCls.dat'))
 #: Fiducial unlensed and lensed power spectra used for the analysis.
 
-cl_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lensedCls.dat'))
+cl_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lensedCls.dat'))
 cl_weight['bb'] *= 0.
 #: CMB spectra entering the QE weights (the spectra multplying the inverse-variance filtered maps in the QE legs)
 
@@ -69,9 +69,9 @@ sims = maps_utils.sim_lib_shuffle(maps.cmb_maps_nlev(planck2018_sims.cmb_len_ffp
 
 # --- We turn to the inverse-variance filtering library. In this file we use trivial isotropic filtering,
 #     (independent T and Pol. filtering)
-ftl = utils.cli(cl_len['tt'][:lmax_ivf+ 1] + (nlev_t / 60. / 180. *np.pi  / transf) ** 2)
-fel = utils.cli(cl_len['ee'][:lmax_ivf+ 1] + (nlev_p / 60. / 180. *np.pi  / transf) ** 2)
-fbl = utils.cli(cl_len['bb'][:lmax_ivf+ 1] + (nlev_p / 60. / 180. *np.pi  / transf) ** 2)
+ftl = utils.cli(cl_len['tt'][:lmax_ivf + 1] + (nlev_t / 60. / 180. * np.pi / transf) ** 2)
+fel = utils.cli(cl_len['ee'][:lmax_ivf + 1] + (nlev_p / 60. / 180. * np.pi / transf) ** 2)
+fbl = utils.cli(cl_len['bb'][:lmax_ivf + 1] + (nlev_p / 60. / 180. * np.pi / transf) ** 2)
 ftl[:lmin_ivf] *= 0.
 fel[:lmin_ivf] *= 0.
 fbl[:lmin_ivf] *= 0.

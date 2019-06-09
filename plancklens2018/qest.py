@@ -10,10 +10,9 @@ import os
 import pickle as pk
 import collections
 
-from . import utils, utils_spin as uspin
-from . import mpi
+from plancklens2018 import utils as ut, utils_spin as uspin
+from plancklens2018.helpers import mpi
 from . import qresp
-#FIXME lmax_qlm's
 
 
 def eval_qe(qe_key, lmax_ivf, cls_weight, get_alm, nside, lmax_qlm, verbose=True):
@@ -117,7 +116,7 @@ class library:
             pk.dump(self.hashdict(), open(fnhash, 'wb'), protocol=2)
         mpi.barrier()
 
-        utils.hash_check(pk.load(open(fnhash, 'rb')), self.hashdict())
+        ut.hash_check(pk.load(open(fnhash, 'rb')), self.hashdict())
         if mpi.rank == 0:
             if not os.path.exists(os.path.join(lib_dir, 'fskies.dat')):
                 print("Caching sky fractions...")
@@ -195,10 +194,11 @@ class library:
         if k in ['p_te', 'p_tb', 'p_eb', 'x_te', 'x_tb', 'x_eb']:
             return 0.5 * (self.get_sim_qlm(k[0]+k[2]+k[3], idx, lmax=lmax) + self.get_sim_qlm(k[0]+k[3]+k[2], idx, lmax=lmax))
         if 'tt_bh_'in k: # Bias-hardening
+            #FIXME: need response library here.
             _k,f = k.split('_bh_')
             assert self.get_lmax_qlm(_k) == self.get_lmax_qlm(f + 'tt'),'fix this (easy)'
             lmax = self.get_lmax_qlm(_k)
-            wL = self.resplib.get_response(_k,f + 'tt') * utils.cli(self.resplib.get_response(f + 'tt',f + 'tt'))
+            wL = self.resplib.get_response(_k,f + 'tt') * ut.cli(self.resplib.get_response(f + 'tt',f + 'tt'))
             return self.get_sim_qlm(_k, idx, lmax=lmax) - hp.almxfl(self.get_sim_qlm(f + 'tt', idx, lmax=lmax), wL)
 
         assert k in self.keys_fund, (k, self.keys_fund)
@@ -219,7 +219,7 @@ class library:
             else:
                 assert 0, k
 
-        return  utils.alm_copy(hp.read_alm(fname), lmax=lmax)
+        return  ut.alm_copy(hp.read_alm(fname), lmax=lmax)
 
     def get_dat_qlm(self, k, **kwargs):
         return self.get_sim_qlm(k, -1, **kwargs)
@@ -235,22 +235,23 @@ class library:
             return 0.5 * (self.get_sim_qlm_mf(k[0] + k[2] + k[3], mc_sims, lmax=lmax) \
                         + self.get_sim_qlm_mf(k[0] + k[3] + k[2], mc_sims, lmax=lmax))
         elif 'tt_bh_' in k:
+            #FIXME: response library
             _k,f = k.split('_bh_')
             assert self.get_lmax_qlm(_k) == self.get_lmax_qlm(f + 'tt'),'fix this (easy)'
             lmax = self.get_lmax_qlm(_k)
-            wL = self.resplib.get_response(_k,f + 'tt') * utils.cli(self.resplib.get_response(f + 'tt',f + 'tt'))
+            wL = self.resplib.get_response(_k,f + 'tt') * ut.cli(self.resplib.get_response(f + 'tt',f + 'tt'))
             return self.get_sim_qlm_mf(_k, mc_sims, lmax=lmax) - hp.almxfl(self.get_sim_qlm_mf(f + 'tt',mc_sims, lmax=lmax),wL)
         assert k in self.keys_fund, (k, self.keys_fund)
-        fname = self.lib_dir + '/simMF_k1%s_%s.fits' % (k, utils.mchash(mc_sims))
+        fname = self.lib_dir + '/simMF_k1%s_%s.fits' % (k, ut.mchash(mc_sims))
         if not os.path.exists(fname):
             MF = np.zeros(hp.Alm.getsize(lmax), dtype=complex)
             if len(mc_sims) == 0: return MF
-            for i, idx in utils.enumerate_progress(mc_sims, label='calculating %s MF' % k):
+            for i, idx in ut.enumerate_progress(mc_sims, label='calculating %s MF' % k):
                 MF += self.get_sim_qlm(k, idx, lmax=lmax)
             MF /= len(mc_sims)
             hp.write_alm(fname, MF)
             print("Cached ", fname)
-        return utils.alm_copy(hp.read_alm(fname), lmax=lmax)
+        return ut.alm_copy(hp.read_alm(fname), lmax=lmax)
 
     def _get_sim_Tgclm(self, idx, k, swapped=False, xfilt1=None, xfilt2=None):
         """ T only lensing potentials estimators """
@@ -312,6 +313,7 @@ class library:
         return hp.map2alm(tmap1, lmax=self.get_lmax_qlm('T'), iter=0)
 
     def _get_sim_f_p(self, idx, joint=False, swapped=False):
+        #FIXME: sign inconsistent with spin-weight gradient-curl conventions.
         """Modulation estimator, polarization only. """
         Q1, U1 = self.f2map1.get_irespmap(idx) if not swapped else self.f2map2.get_irespmap(idx)
         Q2, U2 = (self.f2map2.get_pmap(idx, joint=joint) if not swapped else self.f2map1.get_pmap(idx, joint=joint))
@@ -447,6 +449,7 @@ class library:
         hp.write_alm(os.path.join(self.lib_dir, 'sim_a_p_%04d.fits'%idx if idx != -1 else 'dat_a_p.fits'), fLM)
 
     def get_response(self, k1, k2, recache=False):
+        #FIXME:
         return self.resplib.get_response(k1, k2, recache=recache)
 
 
@@ -549,7 +552,7 @@ class lib_filt2map_sepTP(lib_filt2map):
 
     def hashdict(self):
         return {'ivfs': self.ivfs.hashdict(), 'nside': self.nside,
-                'clte': utils.clhash(self.clte)}
+                'clte': ut.clhash(self.clte)}
 
     def get_tmap(self, idx, joint=False):
         """Real-space Wiener filtered tmap.

@@ -67,7 +67,7 @@ class ffp10_binner:
         if ksource == 'p':
             kswitch = (np.arange(0, lmaxphi + 1, dtype=float) * (np.arange(1, lmaxphi + 2))) ** 2 / (2. * np.pi) * 1e7
             if k1[0] == 'p' and k2[0] == 'p':
-                clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lenspotentialCls.dat'))['pp'][:lmaxphi+1]
+                clpp_fid = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lenspotentialCls.dat'))['pp'][:lmaxphi + 1]
             elif k1[0] == 'x' and k2[0] == 'x':
                 clpp_fid = np.ones(lmaxphi + 1, dtype=float)
             else:
@@ -189,7 +189,7 @@ class ffp10_binner:
         ftlB = ivfsB.get_ftl()
         felB = ivfsB.get_fel()
         fblB = ivfsB.get_fbl()
-        clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp']
+        clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lenspotentialCls.dat'))['pp']
         qc_resp = self.parfile.qresp_dd.get_response(k1, self.ksource) * self.parfile.qresp_dd.get_response(k2, self.ksource)
         n1pp = self.parfile.n1_dd.get_n1(k1, self.ksource, clpp_fid, ftlA, felA, fblA, len(qc_resp) - 1,
                                          kB=k2, ftlB=ftlB, felB=felB, fblB=fblB)
@@ -221,7 +221,7 @@ class ffp10_binner:
         s4_cl_check = s4_band_norm * twolpo * (dd_ptsrc - 2. * ss_ptsrc)
         s4_cl_systs = s4_band_norm * twolpo * (4. * ds_ptsrc - 4. * ss_ptsrc)
         # phi-induced PS estimator N1
-        clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp']
+        clpp_fid =  utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lenspotentialCls.dat'))['pp']
         s4_cl_clpp_n1 = s4_band_norm * twolpo * self.get_n1(k1=ks4, k2=ks4, unnormed=True)[:lmax_ss_s4+1]
 
         s4_cl_clpp_prim = s4_band_norm * twolpo * self.parfile.qresp_dd.get_response(ks4, self.ksource) [ :lmax_ss_s4 + 1] ** 2 * clpp_fid[:lmax_ss_s4 + 1]
@@ -270,9 +270,9 @@ class ffp10_binner:
         """
         assert self.k1[0] == 'p' and self.k2[0] == 'p' and self.ksource == 'p', (self.k1, self.k2, self.ksource)
         ss2 = 2 * self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
-        cl_pred =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp'][:len(ss2)]
+        cl_pred = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lenspotentialCls.dat'))['pp'][:len(ss2)]
         qc_norm = utils.cli(self.parfile.qresp_dd.get_response(self.k1, self.ksource)
-                          * self.parfile.qresp_dd.get_response(self.k2, self.ksource))
+                              * self.parfile.qresp_dd.get_response(self.k2, self.ksource))
         bp_stats = utils.stats(self.nbins)
         bp_n1 = self.get_n1()
         for i, idx in utils.enumerate_progress(self.parfile.mc_sims_var, label='collecting BP stats'):
@@ -293,9 +293,9 @@ class ffp10_binner:
         if mc_sims_ss is None: mc_sims_ss = self.parfile.mc_sims_var
         dd = self.parfile.qcls_dd.get_sim_stats_qcl(self.k1, mc_sims_dd, k2=self.k2).mean()
         ss = self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, mc_sims_ss, k2=self.k2).mean()
-        cl_pred =  utils.camb_clfile(os.path.join(PL2018, 'inputs','cls','FFP10_wdipole_lenspotentialCls.dat'))['pp']
+        cl_pred =  utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lenspotentialCls.dat'))['pp']
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
-        bps = self._get_binnedcl(utils.cli(qc_resp) *(dd - 2 * ss) - cl_pred[:len(dd)]) - self.get_n1()
+        bps = self._get_binnedcl(utils.cli(qc_resp) * (dd - 2 * ss) - cl_pred[:len(dd)]) - self.get_n1()
         return 1. / (1 + bps / self.fid_bandpowers)
 
     def get_nhl_cov(self, mc_sims_dd=None):
@@ -305,7 +305,7 @@ class ffp10_binner:
         if mc_sims_dd is None: mc_sims_dd = self.parfile.mc_sims_var
         nhl_cov = utils.stats(self.nbins)
         qc_norm = utils.cli(self.parfile.qresp_dd.get_response(self.k1, self.ksource)
-                          * self.parfile.qresp_dd.get_response(self.k2, self.ksource))
+                              * self.parfile.qresp_dd.get_response(self.k2, self.ksource))
         for i, idx in utils.enumerate_progress(mc_sims_dd):
             dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
             nhl_cov.add(self._get_binnedcl(qc_norm * (dd- self.parfile.nhl_dd.get_sim_nhl(int(idx), self.k1, self.k2))))
@@ -318,7 +318,7 @@ class ffp10_binner:
         if mc_sims_dd is None: mc_sims_dd = self.parfile.mc_sims_var
         mcn0_cov = utils.stats(self.nbins)
         qc_norm = utils.cli(self.parfile.qresp_dd.get_response(self.k1, self.ksource)
-                          * self.parfile.qresp_dd.get_response(self.k2, self.ksource))
+                              * self.parfile.qresp_dd.get_response(self.k2, self.ksource))
         for i, idx in utils.enumerate_progress(mc_sims_dd):
             dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
             mcn0_cov.add(self._get_binnedcl(qc_norm * dd))

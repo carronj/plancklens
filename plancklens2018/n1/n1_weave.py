@@ -17,8 +17,8 @@ import pickle as pk
 from scipy.interpolate import UnivariateSpline as spline
 import weave
 
-from plancklens2018.utils import hash_check, clhash
-from plancklens2018.sql import npdb
+from plancklens2018.helpers import hash_check, clhash
+from plancklens2018.helpers.sql import npdb
 
 #FIXME: a lot to clean in this file
 
