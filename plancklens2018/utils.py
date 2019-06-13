@@ -1,6 +1,6 @@
 """Planck 2018 lensing utils module
 
-Collects a couple of utility functions.
+Collects a couple of misc. utility functions.
 
 """
 from __future__ import print_function

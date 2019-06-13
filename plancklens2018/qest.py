@@ -10,7 +10,7 @@ import os
 import pickle as pk
 import collections
 
-from plancklens2018 import utils as ut, utils_spin as uspin
+from plancklens2018 import utils as ut, utils_spin as uspin, utils_qe as uqe
 from plancklens2018.helpers import mpi
 from . import qresp
 
@@ -31,56 +31,8 @@ def eval_qe(qe_key, lmax_ivf, cls_weight, get_alm, nside, lmax_qlm, verbose=True
 
     """
     qe_list = qresp.get_qes(qe_key, lmax_ivf, cls_weight)
-    return _eval_qe(qe_list, nside, get_alm, lmax_qlm, verbose=verbose)
+    return uqe.qe_eval(qe_list, nside, get_alm, lmax_qlm, verbose=verbose)
 
-def _eval_qe(qes_list, nside, get_alm, lmax_qlm, verbose=True):
-    """Evaluation of a QE from its list of leg definitions.
-
-        qes_list: list of qresp.qe instances
-        nside: the estimator are calculated in position space at healpy resolution nside.
-        get_alm: callable with 't', 'e', 'b' arguments, returning the corresponding inverse-variance filtered CMB maps
-
-    """
-    qes = _compress_qe(qes_list, verbose=verbose)
-    qe_spin = qes[0][0].spin_ou + qes[0][1].spin_ou
-    cL_out = qes[0][-1](np.arange(lmax_qlm + 1))
-    assert qe_spin >= 0, qe_spin
-    for qe in qes[1:]:
-        assert np.all(qe[-1](np.arange(lmax_qlm + 1)) == cL_out)
-        assert qe[0].spin_ou + qe[1].spin_ou == qe_spin
-    d = np.zeros(hp.nside2npix(nside), dtype=complex)
-    for i, qe in enumerate(qes):
-        if verbose:
-            print("QE %s out of %s :"%(i + 1, len(qes)))
-            print("in-spins 1st leg and out-spin" ,qe[0].spins_in, qe[0].spin_ou)
-            print("in-spins 2nd leg and out-spin", qe[1].spins_in, qe[1].spin_ou)
-        d += qe[0](get_alm, nside) * qe[1](get_alm, nside)
-    glm, clm = uspin.map2alm_spin((d.real, d.imag), qe_spin, lmax=lmax_qlm)
-    hp.almxfl(glm, cL_out, inplace=True)
-    if np.any(clm):
-        hp.almxfl(clm, cL_out, inplace=True)
-    return glm, clm
-
-def _compress_qe(qes, verbose=True):
-    """This combines pairs of estimators with identical 1st leg to reduce the number of spin transform in its evaluation
-
-    """
-    # NB: this only compares first legs.
-    skip = []
-    qes_compressed = []
-    for i, qe in enumerate(qes):
-        if i not in skip:
-            lega = qe.leg_a
-            lega_m = qresp.qeleg_multi([qe.leg_a.spin_in], qe.leg_a.spin_ou, [qe.leg_a.cl])
-            legb_m = qresp.qeleg_multi([qe.leg_b.spin_in], qe.leg_b.spin_ou, [qe.leg_b.cl])
-            for j, qej in enumerate(qes[i + 1:]):
-                if qej.leg_a == lega and legb_m.spin_ou == qej.leg_b.spin_ou:
-                    legb_m += qej.leg_b
-                    skip.append(i + 1 + j)
-            qes_compressed.append( (lega_m, legb_m, qe.cL))
-    if len(skip) > 0 and verbose:
-        print("%s alm2map_spin transforms now required, down from %s"%(2 * (len(qes) -len(skip)) , 2 * len(qes)) )
-    return qes_compressed
 
 def library_jtTP(lib_dir, ivfs1, ivfs2, nside, lmax_qlm=None):
     if lmax_qlm is None: lmax_qlm={'T': 4096, 'P': 4096, 'PS': 4096}

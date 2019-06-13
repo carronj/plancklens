@@ -9,9 +9,8 @@ from __future__ import print_function
 import os
 import numpy as np
 import pickle as pk
-import healpy as hp
 
-from plancklens2018 import utils as ut, utils_spin as uspin
+from plancklens2018 import utils as ut, utils_spin as uspin, utils_qe as uqe
 from plancklens2018.helpers import mpi, sql
 
 
@@ -44,86 +43,13 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None):
                 sout = -s_left
                 s_qe, irr1, cl_sosi, cL_out =  get_covresp(qe_key[0], sout, sin, cls_weight, lmax2)
                 if np.any(cl_sosi):
-                    lega = qeleg(s_left, s_left, 0.5 *(1. + (s_left == 0)) * np.ones(lmax + 1, dtype=float))
-                    legb = qeleg(sin, sout + s_qe, 0.5 * (1. + (sin == 0)) * 2 * cl_sosi)
-                    qes.append(qe(lega, legb, cL_out))
+                    lega = uqe.qeleg(s_left, s_left, 0.5 *(1. + (s_left == 0)) * np.ones(lmax + 1, dtype=float))
+                    legb = uqe.qeleg(sin, sout + s_qe, 0.5 * (1. + (sin == 0)) * 2 * cl_sosi)
+                    qes.append(uqe.qe(lega, legb, cL_out))
         return qes
     else:
         assert 0, qe_key + ' not implemented'
 
-class qeleg:
-    def __init__(self, spin_in, spin_out, cl):
-        self.spin_in = spin_in
-        self.spin_ou = spin_out
-        self.cl = cl
-
-    def __eq__(self, leg):
-        if self.spin_in != leg.spin_in or self.spin_ou != leg.spin_ou or self.get_lmax() != self.get_lmax():
-            return False
-        return np.all(self.cl == leg.cl)
-
-    def get_lmax(self):
-        return len(self.cl) - 1
-
-
-class qeleg_multi:
-    def __init__(self, spins_in, spin_out, cls):
-        assert isinstance(spins_in, list) and isinstance(cls, list)
-        assert len(spins_in) == len(cls)
-        self.spins_in = spins_in
-        self.cls = cls
-        self.spin_ou = spin_out
-
-    def __iadd__(self, qeleg):
-        """Adds one spin_in/cl tuple.
-
-        """
-        assert qeleg.spin_ou == self.spin_ou, (qeleg.spin_ou, self.spin_ou)
-        self.spins_in.append(qeleg.spin_in)
-        self.cls.append(np.copy(qeleg.cl))
-        return self
-
-    def __call__(self, get_alm, nside):
-        """Returns the spin-weighted real-space map of the estimator.
-
-        We first build X_lm in the wanted _{si}X_lm _{so}Y_lm and then convert this alm2map_spin conventions.
-
-        """
-        lmax = self.get_lmax()
-        glm = np.zeros(hp.Alm.getsize(lmax), dtype=complex)
-        clm = np.zeros(hp.Alm.getsize(lmax), dtype=complex) # X_{lm} is here glm + i clm
-        for i, (si, cl) in enumerate(zip(self.spins_in, self.cls)):
-            assert si in [0, -2, 2], str(si) + ' input spin not implemented'
-            gclm = [get_alm('e'), get_alm('b')] if abs(si) == 2 else [-get_alm('t'), 0.]
-            assert len(gclm) == 2
-            sgn_g = -(-1) ** si if si < 0 else -1
-            sgn_c = (-1) ** si if si < 0 else -1
-            glm += hp.almxfl(ut.alm_copy(gclm[0], lmax), sgn_g * cl)
-            if np.any(gclm[1]):
-                clm += hp.almxfl(ut.alm_copy(gclm[1], lmax), sgn_c * cl)
-        glm *= -1
-        if self.spin_ou > 0: clm *= -1
-        Red, Imd = uspin.alm2map_spin((glm, clm), nside, abs(self.spin_ou), lmax)
-        if self.spin_ou < 0 and self.spin_ou % 2 == 1: Red *= -1
-        if self.spin_ou < 0 and self.spin_ou % 2 == 0: Imd *= -1
-        return Red + 1j * Imd
-
-
-    def get_lmax(self):
-        return np.max([len(cl) for cl in self.cls]) - 1
-
-class qe:
-    def __init__(self, leg_a, leg_b, cL):
-        assert leg_a.spin_ou +  leg_b.spin_ou >= 0
-        self.leg_a = leg_a
-        self.leg_b = leg_b
-        self.cL = cL
-
-    def get_lmax_a(self):
-        return self.leg_a.get_lmax()
-
-    def get_lmax_b(self):
-        return self.leg_b.get_lmax()
 
 def get_resp_legs(source, lmax):
     """Defines the responses terms for a CMB map anisotropy source.
