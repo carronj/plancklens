@@ -5,7 +5,8 @@ import pickle as pk
 import healpy as hp
 import numpy as np
 
-from plancklens2018.helpers import clhash, hash_check, mpi
+from plancklens2018.utils import clhash, hash_check
+from plancklens2018.helpers import mpi
 from plancklens2018.sims import phas
 
 class cmb_maps(object):
