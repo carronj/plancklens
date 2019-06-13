@@ -12,7 +12,8 @@ import numpy as np
 import pickle as pk
 from scipy.interpolate import UnivariateSpline as spline
 
-from plancklens2018.helpers import hash_check, clhash, cli, sql
+from plancklens2018.utils import hash_check, clhash, cli
+from plancklens2018.helpers import sql
 
 try:
     from . import n1f
