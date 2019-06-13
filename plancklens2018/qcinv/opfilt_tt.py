@@ -16,7 +16,7 @@ import healpy as hp
 from healpy import alm2map, map2alm
 #: Exporting these two methods so that they can be easily customized / optimized.
 
-from plancklens2018.helpers import clhash, enumerate_progress
+from plancklens2018.utils import clhash, enumerate_progress
 
 from . import util
 from . import template_removal

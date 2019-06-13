@@ -13,7 +13,7 @@ import pickle as pk
 import os
 
 from plancklens2018.helpers import mpi
-from plancklens2018 import helpers
+from plancklens2018 import utils
 
 #FIXME: problems with different lmax in ftl, fel, fbl ?
 
@@ -43,7 +43,7 @@ class library_sepTP(object):
             if not os.path.exists(fn_hash):
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
         mpi.barrier()
-        helpers.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
 
     def hashdict(self):
         assert 0, 'override this'
@@ -157,16 +157,16 @@ class library_apo_sepTP(library_sepTP):
 
     def hashdict(self):
         return {'sim_lib':self.sim_lib.hashdict(),
-                'apomask': self.apomask_path, 'transf': helpers.clhash(self.transf),
-                'cl_len': {k: helpers.clhash(self.cl[k]) for k in ['tt', 'ee', 'bb']},
-                'ftl': helpers.clhash(self.ftl), 'fel': helpers.clhash(self.fel), 'fbl': helpers.clhash(self.fbl)}
+                'apomask': self.apomask_path, 'transf': utils.clhash(self.transf),
+                'cl_len': {k: utils.clhash(self.cl[k]) for k in ['tt', 'ee', 'bb']},
+                'ftl': utils.clhash(self.ftl), 'fel': utils.clhash(self.fel), 'fbl': utils.clhash(self.fbl)}
 
     def get_fmask(self):
         return hp.read_map(self.apomask_path)
 
     def get_tal(self, a):
         assert (a.lower() in ['t', 'e', 'b'])
-        return helpers.cli(self.transf)
+        return utils.cli(self.transf)
 
     def get_ftl(self):
         return np.copy(self.ftl)
@@ -180,13 +180,13 @@ class library_apo_sepTP(library_sepTP):
     def _apply_ivf_t(self, tmap, soltn=None):
         assert len(tmap) == hp.nside2npix(self.nside), (hp.npix2nside(tmap.size), self.nside)
         alm = hp.map2alm(tmap * self.get_fmask(), lmax=self.lmax_fl, iter=0)
-        return hp.almxfl(alm, self.get_ftl() * helpers.cli(self.transf[:len(self.ftl)]))
+        return hp.almxfl(alm, self.get_ftl() * utils.cli(self.transf[:len(self.ftl)]))
 
     def _apply_ivf_p(self, pmap, soltn=None):
         assert len(pmap[0]) == hp.nside2npix(self.nside) and len(pmap[0]) == len(pmap[1])
         elm, blm = hp.map2alm_spin([m * self.get_fmask() for m in pmap], 2, lmax=self.lmax_fl)
-        elm = hp.almxfl(elm, self.get_fel() * helpers.cli(self.transf[:len(self.fel)]))
-        blm = hp.almxfl(blm, self.get_fbl() * helpers.cli(self.transf[:len(self.fbl)]))
+        elm = hp.almxfl(elm, self.get_fel() * utils.cli(self.transf[:len(self.fel)]))
+        blm = hp.almxfl(blm, self.get_fbl() * utils.cli(self.transf[:len(self.fbl)]))
         return elm, blm
 
 class library_fullsky_sepTP(library_sepTP):
@@ -217,16 +217,16 @@ class library_fullsky_sepTP(library_sepTP):
         super(library_fullsky_sepTP, self).__init__(lib_dir, sim_lib, cl_len, cache=cache)
 
     def hashdict(self):
-        return {'sim_lib':self.sim_lib.hashdict(), 'transf': helpers.clhash(self.transf),
-                'cl_len': {k: helpers.clhash(self.cl[k]) for k in ['tt', 'ee', 'bb']},
-                'ftl': helpers.clhash(self.ftl), 'fel': helpers.clhash(self.fel), 'fbl': helpers.clhash(self.fbl)}
+        return {'sim_lib':self.sim_lib.hashdict(), 'transf': utils.clhash(self.transf),
+                'cl_len': {k: utils.clhash(self.cl[k]) for k in ['tt', 'ee', 'bb']},
+                'ftl': utils.clhash(self.ftl), 'fel': utils.clhash(self.fel), 'fbl': utils.clhash(self.fbl)}
 
     def get_fmask(self):
         return np.ones(hp.nside2npix(self.nside), dtype=float)
 
     def get_tal(self, a):
         assert (a.lower() in ['t', 'e', 'b'])
-        return helpers.cli(self.transf)
+        return utils.cli(self.transf)
 
     def get_ftl(self):
         return np.copy(self.ftl)
@@ -240,11 +240,11 @@ class library_fullsky_sepTP(library_sepTP):
     def _apply_ivf_t(self, tmap, soltn=None):
         assert len(tmap) == hp.nside2npix(self.nside), (hp.npix2nside(tmap.size), self.nside)
         alm = hp.map2alm(tmap, lmax=self.lmax_fl, iter=0)
-        return hp.almxfl(alm, self.get_ftl() * helpers.cli(self.transf[:len(self.ftl)]))
+        return hp.almxfl(alm, self.get_ftl() * utils.cli(self.transf[:len(self.ftl)]))
 
     def _apply_ivf_p(self, pmap, soltn=None):
         assert len(pmap[0]) == hp.nside2npix(self.nside) and len(pmap[0]) == len(pmap[1])
         elm, blm = hp.map2alm_spin([m for m in pmap], 2, lmax=self.lmax_fl)
-        elm = hp.almxfl(elm, self.get_fel() * helpers.cli(self.transf[:len(self.fel)]))
-        blm = hp.almxfl(blm, self.get_fbl() * helpers.cli(self.transf[:len(self.fbl)]))
+        elm = hp.almxfl(elm, self.get_fel() * utils.cli(self.transf[:len(self.fel)]))
+        blm = hp.almxfl(blm, self.get_fbl() * utils.cli(self.transf[:len(self.fbl)]))
         return elm, blm
