@@ -40,14 +40,14 @@ subroutine get_xgwg(x1, x2, x, w, n)
   double precision, dimension(n), intent(out) :: x, w
   integer :: i, j, m
   double precision :: p1, p2, p3, pp, xl, xm, z, z1
-  double precision, parameter :: eps=3.d-14
+  double precision, parameter :: eps=1.d-15
 
   m = (n+1)/2
   xm = 0.5d0*(x2+x1)
   xl = 0.5d0*(x2-x1)
   do i=1,m
-    z = cos(3.141592654d0*(i-0.25d0)/(n+0.5d0))
-    z1 = 0.0
+    z = cos(3.14159265358979323846d0*(i-0.25d0)/(n+0.5d0))
+    z1 = 0.d0
     do while(abs(z-z1) > eps)
       p1 = 1.0d0
       p2 = 0.0d0
