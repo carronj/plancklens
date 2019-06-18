@@ -32,10 +32,8 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None):
             s_lefts= [0]
         elif qe_key in ['p_p', 'x_p', 'a_p', 'f_p']:
             s_lefts= [-2, 2]
-        elif qe_key in ['p', 'x', 'a', 'f']:
-            s_lefts = [0, -2, 2]
         else:
-            assert 0, qe_key + ' not implemented'
+            s_lefts = [0, -2, 2]
         qes = []
         s_rights_in = s_lefts
         for s_left in s_lefts:
@@ -46,7 +44,11 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None):
                     lega = uqe.qeleg(s_left, s_left, 0.5 *(1. + (s_left == 0)) * np.ones(lmax + 1, dtype=float))
                     legb = uqe.qeleg(sin, sout + s_qe, 0.5 * (1. + (sin == 0)) * 2 * cl_sosi)
                     qes.append(uqe.qe(lega, legb, cL_out))
-        return qes
+        if qe_key[1:] in ['te', 'et', 'tb', 'bt', 'ee', 'eb', 'be', 'bb']:
+            return uqe.qe_simplify(uqe.qe_proj(qes, qe_key[1], qe_key[2]))
+        elif qe_key[1:] in ['_te', '_tb', '_eb']:
+            return uqe.qe_simplify(uqe.qe_proj(qes, qe_key[2], qe_key[3]) + uqe.qe_proj(qes, qe_key[3], qe_key[2]))
+        return uqe.qe_simplify(qes)
     else:
         assert 0, qe_key + ' not implemented'
 
@@ -113,7 +115,7 @@ def qe_spin_data(qe_key):
         unordered list of unique spins (>= 0) input to the estimator, and the spin-1 qe key.
 
     """
-    qes = get_qes(qe_key, 1, {k:np.array([1.]) for k in ['tt', 'te', 'ee', 'tb', 'eb', 'bb']})
+    qes = get_qes(qe_key, 3, {k:np.array([1.]) for k in ['tt', 'te', 'ee', 'tb', 'eb', 'bb']})
     spins_out = [qe.leg_a.spin_ou + qe.leg_b.spin_ou for qe in qes]
     spins_in = np.unique(np.abs([qe.leg_a.spin_in for qe in qes] + [qe.leg_b.spin_in for qe in qes]))
     assert len(np.unique(spins_out)) == 1, spins_out
