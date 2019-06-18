@@ -186,7 +186,8 @@ def qe_simplify(qe_list, _swap=False, verbose=False):
                         if np.all(qe1.cL(Ls) == qe2.cL(Ls)):
                             leg_b += qe2.leg_b
                             skip.append(j + i + 1)
-            qes_ret.append(qe(leg_a, leg_b, qe1.cL))
+            if np.any(leg_a.cl) and np.any(leg_b.cl):
+                qes_ret.append(qe(leg_a, leg_b, qe1.cL))
     if verbose and len(skip) > 0:
         print("%s terms down from %s" % (len(qes_ret), len(qes)))
     if not _swap:
