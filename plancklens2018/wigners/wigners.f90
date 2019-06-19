@@ -46,7 +46,7 @@ subroutine get_xgwg(x1, x2, x, w, n)
   xm = 0.5d0*(x2+x1)
   xl = 0.5d0*(x2-x1)
   do i=1,m
-    z = cos(3.14159265358979323846d0*(i-0.25d0)/(n+0.5d0))
+    z = cos(3.141592654d0*(i-0.25d0)/(n+0.5d0))
     z1 = 0.d0
     do while(abs(z-z1) > eps)
       p1 = 1.0d0
