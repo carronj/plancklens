@@ -78,23 +78,16 @@ subroutine wignerpos(xi, cl, x, m1, m2, nx, lmax)
     double precision, external :: lngamma
     integer :: a, b, lmin, n, in, sgn
     double precision :: alfbet, a2, b2, n2_ab2, norm, a0, ak_km1, akm1_km2
-    lmin = max(abs(m1), abs(m2))
-    if (lmin == -m2) then
-        a = m1 - m2
-        sgn = (-1) ** (m1 - m2)
-    else if (lmin == m2) then
-        a = m2 - m1
-        sgn = 1
-    else if (lmin == -m1) then
-        a = m2 - m1
-        sgn = 1
-    else
-        a = m1 - m2
-        sgn = (-1) ** (m1 - m2)
-    end if
-    b = 2 * lmin - a
-    n = max(lmax, lmin) - lmin
 
+    lmin = max(abs(m1), abs(m2))
+    a = abs(m1 - m2)
+    b = abs(m1 + m2)
+    if (m1 > m2) then
+        sgn = (-1) ** (m1 - m2)
+    else
+        sgn = 1
+    end if
+    n = max(lmax, lmin) - lmin
     alfbet= a + b
     a2 = a * a
     b2 = b * b
@@ -139,22 +132,15 @@ subroutine wignercoeff(h, xiw, x, m1, m2, lmax, nx)
     double precision, external :: lngamma
     integer :: a, b, lmin, n, in, sgn
     double precision :: alfbet, a2, b2, n2_ab2, norm, a0, ak_km1, akm1_km2
-
     lmin = max(abs(m1), abs(m2))
-    if (lmin == -m2) then
-        a = m1 - m2
+    a = abs(m1 - m2)
+    b = abs(m1 + m2)
+    if (m1 > m2) then
         sgn = (-1) ** (m1 - m2)
-    else if (lmin == m2) then
-        a = m2 - m1
-        sgn = 1
-    else if (lmin == -m1) then
-        a = m2 - m1
-        sgn = 1
     else
-        a = m1 - m2
-        sgn = (-1) ** (m1 - m2)
+        sgn = 1
     end if
-    b = 2 * lmin - a
+    n = max(lmax, lmin) - lmin
     n = max(Lmax, lmin) - lmin
 
     alfbet= a + b
