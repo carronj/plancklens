@@ -142,7 +142,7 @@ where $d^\ell_{mm'}$ are Wigner small d-matrices.
 \end{figure}
 \subsection{Gaussian covariance calculations}
 Q.E. noise covariance can be evaluated with a series of one-dimensional integrals as was first demonstrated by Ref.~\cite{}. For two generic estimators as defined in Eq.~\eqref{QE}, we now obtain their gradient (g) and curl (c) covariances with four integrals as follows.
-
+\JC{describe here the matrix F}
 For an isotropy estimator $_{r}\hat \alpha$ let $s = (\si, \so, w^{\si\so})$ collectively describes the in and out spins and weight function of the left leg, and similarly with $t$ for the right leg (with $\so + \to = r$). In the same way, let $u$ and $v$ describes another estimator $_{r'}\hat \alpha$ (with $\uo + \vo = r'$). Then, their Gaussian correlation functions are
 \begin{equation}\boxed{
 	\xi^{rr'}_{\pm}(\beta) = \xi^{\pm s, u}(\beta) \xi^{\pm t, v}(\beta) +  \xi^{\pm s, v}(\beta) \xi^{\pm t, u}(\beta)},
@@ -181,7 +181,7 @@ where \begin{equation}
 C_L^{\pm rr'}  \equiv 2\pi  \int_{-1}^1 d \mu\:  d^L_{\pm rr'}(\mu) \xi^{rr'}_{\pm}(\beta)
 \end{equation}
 ($\Re$ and $\Im$ stands for real and imaginary parts respectively). 
-Ref.~\cite{Aghanim:2018oex} calculates the covariance matrix based on these equations using the empirical, realisation dependent power spectra $\bar C_\ell^{s_i,t_i}$. A gradient-curl mode cross-covariance  may be sourced by gradient-curl couplings in the inverse-variance filtered CMB fields (i.e., non-zero $C_\ell^{\bar T \bar B}$ or $C_\ell^{\bar E \bar B}$). In most relevant situations there is no such couplings and the gradient to curl and curl to gradient covariance vanish.
+Ref.~\cite{Aghanim:2018oex} calculates the covariance matrix based on these equations using the empirical,  realisation dependent power spectra $\bar C_\ell^{s_i,t_i}$. A gradient-curl mode cross-covariance  may be sourced by gradient-curl couplings in the inverse-variance filtered CMB fields (i.e., non-zero $C_\ell^{\bar T \bar B}$ or $C_\ell^{\bar E \bar B}$). In most relevant situations there is no such couplings and the gradient to curl and curl to gradient covariance vanish.
 
 
 \subsection{Response and cross-responses calculations}
