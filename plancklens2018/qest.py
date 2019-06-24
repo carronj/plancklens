@@ -10,7 +10,7 @@ import os
 import pickle as pk
 import collections
 
-from plancklens2018 import utils as ut, utils_spin as uspin, utils_qe as uqe
+from plancklens2018 import utils as ut, utils_qe as uqe
 from plancklens2018.helpers import mpi
 from . import qresp
 
@@ -144,6 +144,7 @@ class library:
         if k in ['p_tp', 'x_tp', 'f_tp', 's_tp']:
             return self.get_sim_qlm('%stt' % k[0], idx, lmax=lmax) + self.get_sim_qlm('%s_p' % k[0], idx, lmax=lmax)
         if k in ['p_te', 'p_tb', 'p_eb', 'x_te', 'x_tb', 'x_eb']:
+            #FIXME: remove factor of 1/2 here
             return 0.5 * (self.get_sim_qlm(k[0]+k[2]+k[3], idx, lmax=lmax) + self.get_sim_qlm(k[0]+k[3]+k[2], idx, lmax=lmax))
         if 'tt_bh_'in k: # Bias-hardening
             #FIXME: need response library here.
@@ -184,6 +185,7 @@ class library:
             return (self.get_sim_qlm_mf('%stt' % k[0], mc_sims, lmax=lmax)
                     + self.get_sim_qlm_mf('%s_p' % k[0], mc_sims, lmax=lmax))
         if k in ['p_te', 'p_tb', 'p_eb', 'x_te', 'x_tb', 'x_eb']:
+            #FIXME: remove factor of 1/2 here
             return 0.5 * (self.get_sim_qlm_mf(k[0] + k[2] + k[3], mc_sims, lmax=lmax) \
                         + self.get_sim_qlm_mf(k[0] + k[3] + k[2], mc_sims, lmax=lmax))
         elif 'tt_bh_' in k:
@@ -245,7 +247,7 @@ class library:
         return G, C
 
     def _get_sim_stt(self, idx, swapped=False):
-        """ Point source estimator """
+        """Point source estimator """
         tmap1 = self.f2map1.get_irestmap(idx) if not swapped else self.f2map2.get_irestmap(idx)  # healpy map
         tmap1 *= (self.f2map2.get_irestmap(idx) if not swapped else self.f2map1.get_irestmap(idx))  # healpy map
         return -0.5 * hp.map2alm(tmap1, lmax=self.get_lmax_qlm('PS'), iter=0)
@@ -258,18 +260,16 @@ class library:
         return -0.5 * hp.map2alm(tmap1, lmax=self.get_lmax_qlm('T'), iter=0)
 
     def _get_sim_ftt(self, idx, joint=False, swapped=False):
-        #FIXME: sign inconsistent with spin-weight gradient-curl conventions.
         """Modulation estimator, temperature only."""
         tmap1 = self.f2map1.get_irestmap(idx) if not swapped else self.f2map2.get_irestmap(idx)  # healpy map
         tmap1 *= (self.f2map2.get_tmap(idx, joint=joint) if not swapped else self.f2map1.get_tmap(idx, joint=joint))  # healpy map
-        return hp.map2alm(tmap1, lmax=self.get_lmax_qlm('T'), iter=0)
+        return -hp.map2alm(tmap1, lmax=self.get_lmax_qlm('T'), iter=0)
 
     def _get_sim_f_p(self, idx, joint=False, swapped=False):
-        #FIXME: sign inconsistent with spin-weight gradient-curl conventions.
         """Modulation estimator, polarization only. """
         Q1, U1 = self.f2map1.get_irespmap(idx) if not swapped else self.f2map2.get_irespmap(idx)
         Q2, U2 = (self.f2map2.get_pmap(idx, joint=joint) if not swapped else self.f2map1.get_pmap(idx, joint=joint))
-        return hp.map2alm(2 * Q1 * Q2 + 2 * U1 * U2 , lmax=self.get_lmax_qlm('P'), iter=0)
+        return -2 * hp.map2alm(Q1 * Q2 + U1 * U2 , lmax=self.get_lmax_qlm('P'), iter=0)
 
     def _get_sim_a_p(self, idx, joint=False, swapped=False):
         """Polarization rotation estimator. """
