@@ -237,7 +237,7 @@ def _get_response(qes, source, cls_cmb, fal_leg1, lmax_qlm, fal_leg2=None):
                             Rmr_st = Rmr_st + uspin.wignerc(clA, clB, so, -t2 - rW_ts, to, t2, lmax_out=lmax_qlm) * s_cL_ts(Ls)
                         else:
                             Rmr_st = Rpr_st
-                        prefac = (-1) ** (so + to + rW_ts) * qe.cL(Ls)
+                        prefac = qe.cL(Ls)
                         RGG += prefac * ( Rpr_st.real + Rmr_st.real * (-1) ** rW_st)
                         RCC += prefac * ( Rpr_st.real - Rmr_st.real * (-1) ** rW_st)
                         RGC += prefac * (-Rpr_st.imag + Rmr_st.imag * (-1) ** rW_st)

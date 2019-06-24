@@ -55,8 +55,8 @@ def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
     lmax2 = len(cl2) - 1
     lmax_out = lmax1 + lmax2 if lmax_out is None else lmax_out
     lmaxtot = lmax1 + lmax2 + lmax_out
-    spo = -sp1 - sp2
-    so = -s1 - s2
+    spo = sp1 + sp2
+    so = s1 + s2
     if np.any(cl1) and np.any(cl2):
         N = (lmaxtot + 2 - lmaxtot % 2) // 2
         if not 'xg wg %s' % N in GL_cache.keys():

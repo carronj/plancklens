@@ -39,7 +39,7 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
         lmax_out = max(lmax_ivf1, lmax_ivf12) + max(lmax_ivf2, lmax_ivf22)
     return  _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab)
 
-def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None):
+def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None, ret_terms=False):
     GG_N0 = np.zeros(lmax_out + 1, dtype=float)
     CC_N0 = np.zeros(lmax_out + 1, dtype=float)
     GC_N0 = np.zeros(lmax_out + 1, dtype=float)
@@ -49,7 +49,8 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None)
     cls_ivfs_bb = cls_ivfs if cls_ivfs_bb is None else cls_ivfs_bb
     cls_ivfs_ab = cls_ivfs if cls_ivfs_ab is None else cls_ivfs_ab
     cls_ivfs_ba = cls_ivfs_ab
-
+    if ret_terms:
+        terms = []
     for qe1 in qes1:
         cL1 = qe1.cL(np.arange(lmax_out + 1))
         for qe2 in qes2:
@@ -57,30 +58,25 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None)
             si, ti, ui, vi = (qe1.leg_a.spin_in, qe1.leg_b.spin_in, qe2.leg_a.spin_in, qe2.leg_b.spin_in)
             so, to, uo, vo = (qe1.leg_a.spin_ou, qe1.leg_b.spin_ou, qe2.leg_a.spin_ou, qe2.leg_b.spin_ou)
             assert so + to >= 0 and uo + vo >= 0, (so, to, uo, vo)
-            sgn_R = (-1) ** (so + to + uo + vo)
 
             clsu = utils.joincls([qe1.leg_a.cl, qe2.leg_a.cl.conj(), uspin.spin_cls(si, ui, cls_ivfs_aa)])
             cltv = utils.joincls([qe1.leg_b.cl, qe2.leg_b.cl.conj(), uspin.spin_cls(ti, vi, cls_ivfs_bb)])
-            R_sutv = sgn_R * utils.joincls(
-                [uspin.wignerc(clsu, cltv, so, uo, to, vo, lmax_out=lmax_out), cL1, cL2])
+            R_sutv = utils.joincls([uspin.wignerc(clsu, cltv, so, uo, to, vo, lmax_out=lmax_out), cL1, cL2])
 
             clsv = utils.joincls([qe1.leg_a.cl, qe2.leg_b.cl.conj(), uspin.spin_cls(si, vi, cls_ivfs_ab)])
             cltu = utils.joincls([qe1.leg_b.cl, qe2.leg_a.cl.conj(), uspin.spin_cls(ti, ui, cls_ivfs_ba)])
-            R_sutv = R_sutv + sgn_R * utils.joincls(
-                [uspin.wignerc(clsv, cltu, so, vo, to, uo, lmax_out=lmax_out), cL1, cL2])
+            R_sutv = R_sutv + utils.joincls([uspin.wignerc(clsv, cltu, so, vo, to, uo, lmax_out=lmax_out), cL1, cL2])
 
             # we now need -s-t uv
             sgnms = (-1) ** (si + so)
             sgnmt = (-1) ** (ti + to)
             clsu = utils.joincls([sgnms * qe1.leg_a.cl.conj(), qe2.leg_a.cl.conj(), uspin.spin_cls(-si, ui, cls_ivfs_aa)])
             cltv = utils.joincls([sgnmt * qe1.leg_b.cl.conj(), qe2.leg_b.cl.conj(), uspin.spin_cls(-ti, vi, cls_ivfs_bb)])
-            R_msmtuv = sgn_R * utils.joincls(
-                [uspin.wignerc(clsu, cltv, -so, uo, -to, vo, lmax_out=lmax_out), cL1, cL2])
+            R_msmtuv = utils.joincls([uspin.wignerc(clsu, cltv, -so, uo, -to, vo, lmax_out=lmax_out), cL1, cL2])
 
             clsv = utils.joincls([sgnms * qe1.leg_a.cl.conj(), qe2.leg_b.cl.conj(), uspin.spin_cls(-si, vi, cls_ivfs_ab)])
             cltu = utils.joincls([sgnmt * qe1.leg_b.cl.conj(), qe2.leg_a.cl.conj(), uspin.spin_cls(-ti, ui, cls_ivfs_ba)])
-            R_msmtuv = R_msmtuv + sgn_R * utils.joincls(
-                [uspin.wignerc(clsv, cltu, -so, vo, -to, uo, lmax_out=lmax_out), cL1, cL2])
+            R_msmtuv = R_msmtuv + utils.joincls([uspin.wignerc(clsv, cltu, -so, vo, -to, uo, lmax_out=lmax_out), cL1, cL2])
 
             GG_N0 +=  0.5 * R_sutv.real
             GG_N0 +=  0.5 * (-1) ** (to + so) * R_msmtuv.real
@@ -93,8 +89,9 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None)
 
             CG_N0 += 0.5 * R_sutv.imag
             CG_N0 -= 0.5 * (-1) ** (to + so) * R_msmtuv.imag
-
-    return GG_N0, CC_N0, GC_N0, CG_N0
+            if ret_terms:
+                terms += [0.5 * R_sutv, 0.5 * (-1) ** (to + so) * R_msmtuv]
+    return (GG_N0, CC_N0, GC_N0, CG_N0) if not ret_terms else (GG_N0, CC_N0, GC_N0, CG_N0, terms)
 
 
 class nhl_lib_simple:
