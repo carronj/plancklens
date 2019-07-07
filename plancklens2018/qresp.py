@@ -78,7 +78,9 @@ def get_resp_legs(source, lmax):
         ret = {s: (0,  -np.sign(s) * 1j * np.ones(lmax + 1, dtype=float),
                        -np.sign(s) * 1j * np.ones(lmax + 1, dtype=float),
                         lambda ell: np.ones(len(ell), dtype=float)) for s in [-2, 2]}
-        ret[0]=(0, np.zeros(lmax + 1, dtype=float),np.zeros(lmax + 1, dtype=float),np.ones(lmax_cL + 1, dtype=float))
+        ret[0]=(0, np.zeros(lmax + 1, dtype=float),
+                   np.zeros(lmax + 1, dtype=float),
+                   lambda ell: np.ones(len(ell), dtype=float))
         return ret
 
     assert 0, source + ' response legs not implemented'
