@@ -12,7 +12,6 @@ def configuration(parent_package='', top_path=''):
                          libraries=['gomp'],  extra_compile_args=['-Xpreprocessor', '-fopenmp'])
     return config
 
-#FIXME: put cls files under plancklens2018 and use package_data? or inputs -> plancklens2018/inputs?
 setup(
     name='Plancklens2018',
     version='0.0.1',
@@ -24,7 +23,7 @@ setup(
     url='',
     license='',
     author='Julien Carron',
-    author_email='j.carron@sussex.ac.uk',
+    author_email='to.jcarron@gmail.com',
     description='Planck 2018 lensing python pipeline',
     requires=['numpy', 'healpy', 'six'],
     long_description=long_description,
