@@ -1,9 +1,9 @@
 """Parameter file for lensing reconstrution on the Planck public release 3 SMICA CMB map.
 
-    The file follows the exact same structure than the idealized_example.py parameter file, described there.
+    The file follows the exact same structure than the idealized_example.py parameter file, which is described there.
     The differences lie in the simulation library used (here the Planck FFP10 CMB and noise simulations),
-    and the inverse-variance filtering instance, which now includes the Planck lensing mask and uses a conjugate-gradient
-    inversion.
+    and the inverse-variance filtering instance, which includes here the Planck lensing mask
+    and uses a conjugate-gradient inversion.
 
     We also add some extra power to the noise simulations to better match the data properties, and isotropically
     rescale slightly the filtered alms as explained in the 2015 and 2018 Planck lensing papers.
@@ -38,9 +38,7 @@ cl_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipo
 cl_weight['bb'] *= 0.
 
 # Masks
-#FIXME: paths
-#FIXME: not the 2018 mask...
-Tmaskpaths = ['/global/cscratch1/sd/jcarron/jpipe/inputs/PR3vJan18_temp_lensingmask_gPR2_70_psPR2_143_COT2_smicadx12_smicapoldx12_psPR2_217_sz.fits.gz']
+Tmaskpaths = ['/project/projectdirs/cmb/data/planck2018/pr3/Planck_L08_inputs/PR3vJan18_temp_lensingmask_gPR2_70_psPR2_143_COT2_smicadx12_smicapoldx12_psPR2_217_sz.fits.gz']
 libdir_cinvt = os.path.join(PL2018, 'temp', 'smicadx12', 'cinv_t')
 libdir_cinvp = os.path.join(PL2018, 'temp', 'smicadx12', 'cinv_p')
 libdir_ivfs  = os.path.join(PL2018, 'temp', 'smicadx12', 'ivfs')
@@ -48,9 +46,8 @@ libdir_dclphas = os.path.join(PL2018, 'temp', 'smicadx12', 'dcl_phas')
 
 dcl_phas = phas.lib_phas(libdir_dclphas, 3, 2048)
 
-#FIXME:
-dcl = np.loadtxt('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/dcls/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.dat').transpose()
-dcl_dat = np.loadtxt('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/dcls_dat/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.dat').transpose()
+dcl = np.loadtxt('/project/projectdirs/cmb/data/planck2018/pr3/Planck_L08_inputs/dcls/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.dat').transpose()
+dcl_dat = np.loadtxt('/project/projectdirs/cmb/data/planck2018/pr3/Planck_L08_inputs/dcls_dat/smicadx12_Dec5_dcl_tteebbsigsmo200b0a3f9a87d6dcdd4c8ec85ece9498540f7e742bcsmooth200_dcl.dat').transpose()
 
 sims_raw  = planck2018_sims.smica_dx12()
 sims_dcl_sim = maps.cmb_maps_noisefree(cmbs.sims_cmb_unl({'tt':dcl[0], 'ee':dcl[1], 'bb':dcl[2]}, dcl_phas), transf)
@@ -66,8 +63,8 @@ ninv_p = [[np.array([3. / nlev_p ** 2])] + Tmaskpaths]
 cinv_p = filt_cinv.cinv_p(libdir_cinvp, lmax_ivf, nside, cl_len, transf, ninv_p)
 
 ivfs_raw    = filt_cinv.library_cinv_sepTP(libdir_ivfs, sims, cinv_t, cinv_p, cl_len)
-#FIXME: paths
-fal_rs =np.loadtxt('/global/cscratch1/sd/jcarron/share/Planck_L08_inputs/ftls/smicadx12_PR3M_ftl.dat').transpose()
+
+fal_rs =np.loadtxt('/project/projectdirs/cmb/data/planck2018/pr3/Planck_L08_inputs/ftls/smicadx12_PR3M_ftl.dat').transpose()
 ftl_rs = fal_rs[0][:lmax_ivf + 1] * (np.arange(lmax_ivf + 1) >= lmin_ivf)
 fel_rs = fal_rs[1][:lmax_ivf + 1] * (np.arange(lmax_ivf + 1) >= lmin_ivf)
 fbl_rs = fal_rs[2][:lmax_ivf + 1] * (np.arange(lmax_ivf + 1) >= lmin_ivf)
