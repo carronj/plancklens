@@ -11,14 +11,14 @@ from plancklens2018 import nhl, qresp
 
 PL2018 = os.environ.get('PL2018', '.')
 
-ksource = 'a'
-fname = './figs/s4_polrot.pdf'#None # If set, will try to save figure to this file.
+ksource = 'p'
+fname = None # If set, will try to save figure to this file.
 
-lmax_ivf = 4000
+lmax_ivf = 2048
 lmin_ivf = 100
-nlev_t = 1.5
-nlev_p = 1.5 * np.sqrt(2.)
-beam_fwhm = 1.
+nlev_t = 35.
+nlev_p = 35. * np.sqrt(2.)
+beam_fwhm = 6.
 lmax_qlm = lmax_ivf
 
 
