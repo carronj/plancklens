@@ -5,13 +5,10 @@
 from __future__ import print_function
 import os
 
-
 verbose = False
 
-#FIXME:
 has_key = lambda key : key in os.environ.keys()
 cond4mpi4py = not has_key('NERSC_HOST') or (has_key('NERSC_HOST') and has_key('SLURM_SUBMIT_DIR'))
-"""Somehow my mpi4py import kills the python kernel on the NERSC login nodes ?!"""
 
 if cond4mpi4py:
     try:
