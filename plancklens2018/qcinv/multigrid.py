@@ -9,7 +9,6 @@ from plancklens2018.qcinv import util, util_alm
 from plancklens2018.qcinv import cd_solve
 from plancklens2018.qcinv import cd_monitors
 
-#FIXME: python 3, doc
 class multigrid_stage(object):
     def __init__(self, ids, pre_ops_descr, lmax, nside, iter_max, eps_min, tr, cache):
         self.depth = ids

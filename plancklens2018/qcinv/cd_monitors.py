@@ -1,4 +1,3 @@
-#FIXME: put this into cd_solve module?
 import sys
 import numpy as np
 

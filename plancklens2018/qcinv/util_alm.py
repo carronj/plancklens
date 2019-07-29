@@ -4,11 +4,11 @@
 
 import numpy as np
 from healpy import Alm
-#FIXME: / vs // in this file ?
-
 
 def alm_splice(alm_lo, alm_hi, lsplit):
-    """Returns an alm with lmax = lmax(alm_hi) which is alm_lo for (l <= lsplit) alm_hi for (l  > lsplit.) """
+    """Returns an alm with lmax = lmax(alm_hi) which is alm_lo for (l <= lsplit) alm_hi for (l  > lsplit.)
+
+    """
     if hasattr(alm_lo, 'alm_splice'):
         return alm_lo.alm_splice(alm_hi, lsplit)
 
@@ -25,7 +25,9 @@ def alm_splice(alm_lo, alm_hi, lsplit):
 
 
 def alm_copy(alm, lmax=None):
-    """Copies the alm array, with the option to reduce its lmax. """
+    """Copies the alm array, with the option to reduce its lmax.
+
+    """
     if hasattr(alm, 'alm_copy'):
         return alm.alm_copy(lmax=lmax)
 
