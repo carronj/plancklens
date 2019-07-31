@@ -6,10 +6,11 @@ import healpy as hp
 import pylab as pl
 import os
 
+import plancklens2018
 from plancklens2018 import utils
 from plancklens2018 import nhl, qresp
 
-PL2018 = os.environ.get('PL2018', '.')
+cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens2018.__file__)), 'data', 'cls')
 
 ksource = 'p'
 fname = None # If set, will try to save figure to this file.
@@ -33,8 +34,8 @@ else:
 
 transf = hp.gauss_beam(beam_fwhm / 60. / 180. * np.pi, lmax=lmax_ivf)
 
-cls_len = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lensedCls.dat'))
-cls_weight = utils.camb_clfile(os.path.join(PL2018, 'inputs', 'cls', 'FFP10_wdipole_lensedCls.dat'))
+cls_len = utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
+cls_weight = utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
 
 fal_sepTP =  {'tt': utils.cli(cls_len['tt'][:lmax_ivf + 1] + (nlev_t / 60. / 180. * np.pi) ** 2 / transf ** 2),
               'ee': utils.cli(cls_len['ee'][:lmax_ivf + 1] + (nlev_p / 60. / 180. * np.pi) ** 2 / transf ** 2),
