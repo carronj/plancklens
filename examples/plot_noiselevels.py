@@ -6,11 +6,11 @@ import healpy as hp
 import pylab as pl
 import os
 
-import plancklens2018
-from plancklens2018 import utils
-from plancklens2018 import nhl, qresp
+import plancklens
+from plancklens import utils
+from plancklens import nhl, qresp
 
-cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens2018.__file__)), 'data', 'cls')
+cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens.__file__)), 'data', 'cls')
 
 ksource = 'p'
 fname = None # If set, will try to save figure to this file.
@@ -75,7 +75,7 @@ ellc = np.arange(2, lmax_qlm + 1)
 
 for qe_key, label in zip(qe_keys, qe_keys_lab):
     NG, NC, NGC, NCG = nhl.get_nhl(qe_key, qe_key, cls_weight, cls_ivfs_sepTP, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)
-    RG, RC, RGC, RCG = qresp.get_response(qe_key, lmax_ivf, ksource, cls_weight, cls_len, fal_sepTP, lmax_out=lmax_qlm)
+    RG, RC, RGC, RCG = qresp.get_response(qe_key, lmax_ivf, ksource, cls_weight, cls_len, fal_sepTP, lmax_qlm=lmax_qlm)
 
     N0 = utils.cli(RG ** 2) * NG
     ln = pl.loglog(ellp, w(ellp) * N0[ellp], label=label + ' (sep. TP filt.)' * (qe_key == 'p'))
@@ -84,7 +84,7 @@ for qe_key, label in zip(qe_keys, qe_keys_lab):
         pl.loglog(ellc, w(ellc) * N0[ellc], label=(label.replace('\hat\phi', '\hat\omega') + ' (Curl)') * (qe_key == 'ptt'), c=ln[0].get_color(), ls='--')
 
 NG, NC, NGC, NCG = nhl.get_nhl(ksource, ksource, cls_weight, cls_ivfs_jtTP, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)
-RG, RC, RGC, RCG = qresp.get_response(ksource, lmax_ivf, ksource, cls_weight, cls_len, fal_jtTP, lmax_out=lmax_qlm)
+RG, RC, RGC, RCG = qresp.get_response(ksource, lmax_ivf, ksource, cls_weight, cls_len, fal_jtTP, lmax_qlm=lmax_qlm)
 N0 = utils.cli(RG ** 2) * NG
 ln =pl.loglog(ellp, w(ellp) * N0[ellp], label=label + ' (jt. TP filt.)')
 N0 = utils.cli(RC ** 2) * NC
