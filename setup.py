@@ -8,24 +8,25 @@ with open("README.md", "r") as fh:
 
 def configuration(parent_package='', top_path=''):
     config = Configuration('', parent_package, top_path)
-    config.add_extension('plancklens2018.wigners.wigners', ['plancklens2018/wigners/wigners.f90'])
-    config.add_extension('plancklens2018.n1.n1f', ['plancklens2018/n1/n1f.f90'],
+    config.add_extension('plancklens.wigners.wigners', ['plancklens/wigners/wigners.f90'])
+    config.add_extension('plancklens.n1.n1f', ['plancklens/n1/n1f.f90'],
                          libraries=['gomp'],  extra_compile_args=['-Xpreprocessor', '-fopenmp'])
     return config
 
 setup(
-    name='Plancklens2018',
+    name='plancklens',
     version='0.0.1',
-    packages=['plancklens2018', 'plancklens2018.n1', 'plancklens2018.filt', 'plancklens2018.sims',
-              'plancklens2018.qcinv', 'plancklens2018.wigners', 'plancklens2018.wigners'],
-    data_files=[('plancklens2018/data/cls', ['plancklens2018/data/cls/FFP10_wdipole_lensedCls.dat',
-                                'plancklens2018/data/cls/FFP10_wdipole_lenspotentialCls.dat',
-                                'plancklens2018/data/cls/FFP10_wdipole_params.ini'])],
+    packages=['plancklens', 'plancklens.n1', 'plancklens.filt', 'plancklens.sims', 'plancklens.helpers',
+              'plancklens.qcinv', 'plancklens.wigners', 'plancklens.wigners'],
+    data_files=[('plancklens/data/cls', ['plancklens/data/cls/FFP10_wdipole_lensedCls.dat',
+                                'plancklens/data/cls/FFP10_wdipole_lenspotentialCls.dat',
+                                'plancklens/data/cls/FFP10_wdipole_params.ini'])],
     url='',
     license='',
     author='Julien Carron',
     author_email='to.jcarron@gmail.com',
     description='Planck lensing python pipeline',
+    install_requires=['numpy', 'healpy', 'six', 'mpi4py'],
     requires=['numpy', 'healpy', 'six', 'mpi4py'],
     long_description=long_description,
     configuration=configuration)
