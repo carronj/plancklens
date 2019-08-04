@@ -10,7 +10,7 @@ def configuration(parent_package='', top_path=''):
     config = Configuration('', parent_package, top_path)
     config.add_extension('plancklens.wigners.wigners', ['plancklens/wigners/wigners.f90'])
     config.add_extension('plancklens.n1.n1f', ['plancklens/n1/n1f.f90'],
-                         libraries=['gomp'],  extra_compile_args=['-Xpreprocessor', '-fopenmp'])
+                         libraries=['gomp'],  extra_compile_args=['-Xpreprocessor', '-fopenmp', '-w'])
     return config
 
 setup(
@@ -21,13 +21,12 @@ setup(
     data_files=[('plancklens/data/cls', ['plancklens/data/cls/FFP10_wdipole_lensedCls.dat',
                                 'plancklens/data/cls/FFP10_wdipole_lenspotentialCls.dat',
                                 'plancklens/data/cls/FFP10_wdipole_params.ini'])],
-    url='',
-    license='',
+    url='https://github.com/carronj/plancklens',
     author='Julien Carron',
     author_email='to.jcarron@gmail.com',
     description='Planck lensing python pipeline',
     install_requires=['numpy', 'healpy', 'six', 'mpi4py'],
-    requires=['numpy', 'healpy', 'six', 'mpi4py'],
+    requires=['numpy', 'healpy', 'six', 'mpi4py', 'scipy'],
     long_description=long_description,
     configuration=configuration)
 
