@@ -37,14 +37,11 @@ try:
     from plancklens.wigners import wigners  # fortran 90 shared object
     HASWIGNER = True
 except:
-    print("wigners.so fortran shared object not found")
-    print('try f2py -c -m wigners wigners.f90 from the command line in wigners directory')
-    print("Falling back on python2 weave implementation")
     HASWIGNER = False
-    from plancklens.wigners import gaujac, gauleg
+    print("could not load wigners.so fortran shared object")
+    print('try f2py -c -m wigners wigners.f90 from the command line in wigners directory ?')
 
 GL_cache = {}
-
 def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
     """Legendre coeff. of $ (\\xi_{sp1,s1} * \\xi_{sp2,s2})(\\cos \\theta)$ from their harmonic series.
 
