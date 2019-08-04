@@ -18,11 +18,13 @@
 #
 import os
 import sys
+import sphinx_rtd_theme
 
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('../plancklens/filt'))
 sys.path.insert(0, os.path.abspath('../plancklens'))
+
 
 
 # -- General configuration ------------------------------------------------
@@ -35,6 +37,7 @@ sys.path.insert(0, os.path.abspath('../plancklens'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
+    'sphinx_rtd_theme',
     'sphinx.ext.napoleon',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
@@ -42,6 +45,9 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages']
+
+
+html_theme = "sphinx_rtd_theme"
 
 # mathjax settings
 mathjax_config ={
