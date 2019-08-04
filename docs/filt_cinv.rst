@@ -1,6 +1,6 @@
-=========
-filt_cinv
-=========
+=========================
+plancklens.filt.filt_cinv
+=========================
 
-.. automodule:: filt_cinv
+.. automodule:: plancklens.filt.filt_cinv
     :members: library_cinv_sepTP

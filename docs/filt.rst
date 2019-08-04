@@ -1,8 +1,8 @@
-====
-filt
-====
+===============
+plancklens.filt
+===============
 
-Module used for Wiener-filtering of CMB maps.
+This defines modules used for Wiener-filtering of CMB maps.
 
 .. toctree::
    :maxdepth: 1

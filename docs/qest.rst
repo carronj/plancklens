@@ -1,6 +1,6 @@
-=====
-qest
-=====
+===============
+plancklens.qest
+===============
 
 .. automodule:: qest
    :members: eval_qe

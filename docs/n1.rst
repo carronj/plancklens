@@ -1,6 +1,6 @@
-==
-n1
-==
+=============
+plancklens.n1
+=============
 
 .. automodule:: plancklens.n1
    :members:

@@ -1,6 +1,6 @@
-=====
-qresp
-=====
+================
+plancklens.qresp
+================
 
 .. automodule:: qresp
    :members: get_response
