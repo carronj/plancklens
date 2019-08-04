@@ -1,13 +1,12 @@
 # plancklens
 
-.. image:: https://readthedocs.org/projects/plancklens/badge/?version=latest
-   :target: https://plancklens.readthedocs.org/en/latest
+![alt text](https://readthedocs.org/projects/plancklens/badge/?version=latest)
 
 plancklens is is a python code for cosmology containing most of Planck 2018 CMB lensing pipeline, by Julien Carron ([see the publication here.](https://arxiv.org/abs/1807.06210))
 Some numerical parts are written in Fortran. Portions of it (structure and code) have been directly adapted from pre-existing work by Duncan Hanson.
 
 ###Installation
- 
+
 After cloning the repository, build an editable installation with
     
     pip install -e . [--user]
