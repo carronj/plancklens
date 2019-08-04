@@ -6,8 +6,6 @@
 Welcome to plancklens documentation!
 ====================================
 
-Is this working at all?
-
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
