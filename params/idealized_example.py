@@ -24,19 +24,18 @@ import os
 import healpy as hp
 import numpy as np
 
-import plancklens2018
-from plancklens2018.filt import filt_simple, filt_util
-from plancklens2018 import utils
-from plancklens2018 import qest, qecl, qresp
-from plancklens2018 import nhl
-from plancklens2018.n1 import n1
-from plancklens2018.sims import planck2018_sims, phas, maps, utils as maps_utils
+import plancklens
+from plancklens.filt import filt_simple, filt_util
+from plancklens import utils
+from plancklens import qest, qecl, qresp
+from plancklens import nhl
+from plancklens.n1 import n1
+from plancklens.sims import planck2018_sims, phas, maps, utils as maps_utils
 
 
-assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'
-TEMP =  os.path.join(os.environ['PL2018'], 'temp', 'idealized_example')
-
-cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens2018.__file__)), 'data', 'cls')
+assert 'PLENS' in os.environ.keys(), 'Set env. variable PLENS to a writeable folder'
+TEMP =  os.path.join(os.environ['PLENS'], 'temp', 'idealized_example')
+cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens.__file__)), 'data', 'cls')
 
 #--- definition of simulation and inverse-variance filtered simulation libraries:
 lmax_ivf = 2048
@@ -80,7 +79,7 @@ fel[:lmin_ivf] *= 0.
 fbl[:lmin_ivf] *= 0.
 #: Inverse CMB co-variance in T, E and B (neglecting TE coupling).
 
-ivfs    = filt_simple.library_fullsky_sepTP(os.path.join(TEMP, 'ivfs'), sims, nside, transf, cl_len, ftl, fel, fbl, cache=True)
+ivfs = filt_simple.library_fullsky_sepTP(os.path.join(TEMP, 'ivfs'), sims, nside, transf, cl_len, ftl, fel, fbl, cache=True)
 #: Inverse-variance filtering instance. Here a trivial isotropic inverse variance weighting.
 
 #---- QE libraries instances. For the MCN0, RDN0, MC-correction etc calculation, we need in general three of them,

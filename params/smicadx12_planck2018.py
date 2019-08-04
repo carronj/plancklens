@@ -13,18 +13,18 @@ import os
 import healpy as hp
 import numpy as np
 
-import plancklens2018
-from plancklens2018.filt import filt_cinv, filt_util
-from plancklens2018 import utils
-from plancklens2018 import qest, qecl, qresp
-from plancklens2018 import nhl
-from plancklens2018.n1 import n1
-from plancklens2018.sims import planck2018_sims, cmbs, phas, maps, utils as maps_utils
+import plancklens
+from plancklens.filt import filt_cinv, filt_util
+from plancklens import utils
+from plancklens import qest, qecl, qresp
+from plancklens import nhl
+from plancklens.n1 import n1
+from plancklens.sims import planck2018_sims, cmbs, phas, maps, utils as maps_utils
 
-assert 'PL2018' in os.environ.keys(), 'Set env. variable PL2018 to the planck 2018 lensing directory'
-TEMP =  os.path.join(os.environ['PL2018'], 'temp', 'idealized_example')
 
-cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens2018.__file__)), 'data', 'cls')
+assert 'PLENS' in os.environ.keys(), 'Set env. variable PLENS to a writeable folder'
+TEMP =  os.path.join(os.environ['PLENS'], 'temp', 'smicad12')
+cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens.__file__)), 'data', 'cls')
 
 lmax_ivf = 2048
 lmin_ivf = 100
@@ -42,10 +42,10 @@ cl_weight['bb'] *= 0.
 
 # Masks
 Tmaskpaths = ['/project/projectdirs/cmb/data/planck2018/pr3/Planck_L08_inputs/PR3vJan18_temp_lensingmask_gPR2_70_psPR2_143_COT2_smicadx12_smicapoldx12_psPR2_217_sz.fits.gz']
-libdir_cinvt = os.path.join(TEMP, 'smicadx12', 'cinv_t')
-libdir_cinvp = os.path.join(TEMP, 'smicadx12', 'cinv_p')
-libdir_ivfs  = os.path.join(TEMP, 'smicadx12', 'ivfs')
-libdir_dclphas = os.path.join(TEMP, 'smicadx12', 'dcl_phas')
+libdir_cinvt = os.path.join(TEMP, 'cinv_t')
+libdir_cinvp = os.path.join(TEMP, 'cinv_p')
+libdir_ivfs  = os.path.join(TEMP, 'ivfs')
+libdir_dclphas = os.path.join(TEMP, 'dcl_phas')
 
 dcl_phas = phas.lib_phas(libdir_dclphas, 3, 2048)
 
@@ -83,9 +83,9 @@ ds_dict = { k : -1 for k in range(300)}
 ivfs_d = filt_util.library_shuffle(ivfs, ds_dict)
 ivfs_s = filt_util.library_shuffle(ivfs, ss_dict)
 
-libdir_qlmsdd = os.path.join(TEMP, 'smicadx12', 'qlms_dd')
-libdir_qlmsds = os.path.join(TEMP, 'smicadx12', 'qlms_ds')
-libdir_qlmsss = os.path.join(TEMP, 'smicadx12', 'qlms_ss')
+libdir_qlmsdd = os.path.join(TEMP, 'qlms_dd')
+libdir_qlmsds = os.path.join(TEMP, 'qlms_ds')
+libdir_qlmsss = os.path.join(TEMP, 'qlms_ss')
 qlms_dd = qest.library_sepTP(libdir_qlmsdd, ivfs, ivfs,   cl_len['te'], nside, lmax_qlm=lmax_qlm)
 qlms_ds = qest.library_sepTP(libdir_qlmsds, ivfs, ivfs_d, cl_len['te'], nside, lmax_qlm=lmax_qlm)
 qlms_ss = qest.library_sepTP(libdir_qlmsss, ivfs, ivfs_s, cl_len['te'], nside, lmax_qlm=lmax_qlm)
@@ -97,20 +97,20 @@ mc_sims_mf_dd = mc_sims_bias
 mc_sims_mf_ds = np.array([])
 mc_sims_mf_ss = np.array([])
 
-libdir_qcls_dd = os.path.join(TEMP, 'smicadx12', 'qcls_dd')
-libdir_qcls_ds = os.path.join(TEMP, 'smicadx12', 'qcls_ds')
-libdir_qcls_ss = os.path.join(TEMP, 'smicadx12', 'qcls_ss')
+libdir_qcls_dd = os.path.join(TEMP, 'qcls_dd')
+libdir_qcls_ds = os.path.join(TEMP, 'qcls_ds')
+libdir_qcls_ss = os.path.join(TEMP, 'qcls_ss')
 qcls_dd = qecl.library(libdir_qcls_dd, qlms_dd, qlms_dd, mc_sims_mf_dd)
 qcls_ds = qecl.library(libdir_qcls_ds, qlms_ds, qlms_ds, mc_sims_mf_ds)
 qcls_ss = qecl.library(libdir_qcls_ss, qlms_ss, qlms_ss, mc_sims_mf_ss)
 
 
-libdir_nhl_dd = os.path.join(TEMP, 'smicadx12', 'nhl_dd')
+libdir_nhl_dd = os.path.join(TEMP, 'nhl_dd')
 nhl_dd = nhl.nhl_lib_simple(libdir_nhl_dd, ivfs, cl_weight, lmax_qlm)
 
 libdir_n1_dd = os.path.join(TEMP, 'n1_ffp10')
 n1_dd = n1.library_n1(libdir_n1_dd,cl_len['tt'],cl_len['te'],cl_len['ee'])
 
-libdir_resp_dd = os.path.join(TEMP, 'smicadx12', 'qresp')
+libdir_resp_dd = os.path.join(TEMP, 'qresp')
 qresp_dd = qresp.resp_lib_simple(libdir_resp_dd, lmax_ivf, cl_weight, cl_len,
                                  {'t': ivfs.get_ftl(), 'e':ivfs.get_fel(), 'b':ivfs.get_fbl()}, lmax_qlm)
