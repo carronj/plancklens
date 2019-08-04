@@ -19,5 +19,6 @@ To reproduce the 2018 lensing spectrum band-powers, use the [smicadx12_planck201
     
 Details on the structure of a parameter file are given in this one: [idealized_example.py](params/idealized_example.py)
 
+The basics on how to use them can be found in [this jupyter notebook](examples/lensingrec_quickstart.ipynb).
 Some details on the numerical computations are collected [in this document](supplement.pdf)
 ![alt text](https://erc.europa.eu/sites/default/files/content/erc_banner-vertical.jpg)
