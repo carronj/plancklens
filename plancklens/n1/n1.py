@@ -62,10 +62,8 @@ def _get_est_derived(k, lmax):
 
 if not HASN1F:
     print("*** n1f.so fortran shared object did not load properly")
-    print('*** try f2py -c -m n1f ./n1f.f90 --f90flags="-fopenmp" -lgomp from the command line in n1 directory')
+    print('*** try f2py -c -m n1f ./n1f.f90 --f90flags="-fopenmp" -lgomp from the command line in n1 directory ?')
     print("*** Now falling back on python2 weave implementation")
-    from . import n1_weave
-    library_n1 =  n1_weave.library_n1
 else:
     class library_n1:
         """
