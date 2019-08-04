@@ -1,6 +1,6 @@
-==================
-$N^{(1)}_L$ module
-==================
+==
+n1
+==
 
 .. automodule:: plancklens2018.n1
    :members:

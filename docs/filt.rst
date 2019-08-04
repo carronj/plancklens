@@ -1,6 +1,8 @@
-================================
-filtering CMB maps is soooo easy
-================================
+====
+filt
+====
+
+Module used for Wiener-filtering of CMB maps.
 
 .. toctree::
    :maxdepth: 1

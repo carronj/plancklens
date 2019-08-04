@@ -18,9 +18,11 @@
 #
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('/Users/jcarron/PycharmProjects/Plancklens2018/plancklens2018/filt'))
-sys.path.insert(0, os.path.abspath('/Users/jcarron/PycharmProjects/Plancklens2018'))
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../plancklens2018/filt'))
+sys.path.insert(0, os.path.abspath('../plancklens2018'))
 
 
 # -- General configuration ------------------------------------------------

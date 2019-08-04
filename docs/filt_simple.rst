@@ -1,6 +1,10 @@
-================
-Simple filtering
-================
+===========
+filt_simple
+===========
 
 .. automodule:: filt_simple
-   :members:
+    :members: library_sepTP
+
+.. autoclass:: library_fullsky_sepTP
+
+.. autoclass:: library_apo_sepTP

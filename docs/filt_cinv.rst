@@ -1,6 +1,6 @@
-================================
-Conjugate-gradient CMB filtering
-================================
+=========
+filt_cinv
+=========
 
 .. automodule:: filt_cinv
-   :members:
+    :members: library_cinv_sepTP

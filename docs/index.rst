@@ -11,6 +11,8 @@ Welcome to Plancklens2018's documentation!
    :caption: Contents:
 
    filt
+   qest
+   qresp
    n1
 
 Indices and tables
