@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Plancklens2018 documentation build configuration file, created by
+# plancklens documentation build configuration file, created by
 # sphinx-quickstart on Thu Oct 25 22:29:12 2018.
 #
 # This file is execfile()d with the current directory set to its
@@ -21,8 +21,8 @@ import sys
 
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('..'))
-sys.path.insert(0, os.path.abspath('../plancklens2018/filt'))
-sys.path.insert(0, os.path.abspath('../plancklens2018'))
+sys.path.insert(0, os.path.abspath('../plancklens/filt'))
+sys.path.insert(0, os.path.abspath('../plancklens'))
 
 
 # -- General configuration ------------------------------------------------
@@ -78,7 +78,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Plancklens2018'
+project = u'plancklens'
 copyright = u'2018, Julien Carron'
 author = u'Julien Carron'
 
@@ -132,7 +132,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Plancklens2018doc'
+htmlhelp_basename = 'plancklensdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -159,7 +159,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'Plancklens2018.tex', u'Plancklens2018 Documentation',
+    (master_doc, 'plancklens.tex', u'plancklens Documentation',
      u'Julien Carron', 'manual'),
 ]
 
@@ -169,7 +169,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'plancklens2018', u'Plancklens2018 Documentation',
+    (master_doc, 'plancklens', u'plancklens Documentation',
      [author], 1)
 ]
 
@@ -180,8 +180,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Plancklens2018', u'Plancklens2018 Documentation',
-     author, 'Plancklens2018', 'One line description of project.',
+    (master_doc, 'plancklens', u'plancklens Documentation',
+     author, 'plancklens', 'One line description of project.',
      'Miscellaneous'),
 ]
 

@@ -2,5 +2,5 @@
 n1
 ==
 
-.. automodule:: plancklens2018.n1
+.. automodule:: plancklens.n1
    :members:
