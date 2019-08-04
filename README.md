@@ -21,11 +21,5 @@ Details on the structure of a parameter file are given in
     
     params/idealized_example.py
 
-Some details on the numerical computations are collected here_.
-
-.. _here: https://github.com/carronj/plancklens/blob/master/supplement.pdf 
-
+Some details on the numerical computations are collected `here <https://github.com/carronj/plancklens/blob/master/supplement.pdf>`_
 ![alt text](https://erc.europa.eu/sites/default/files/content/erc_banner-vertical.jpg)
-
-External hyperlinks, like `Python
-<http://www.python.org/>`_.
