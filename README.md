@@ -14,11 +14,13 @@ The –-user is required only if you don’t have write permission to your main 
 *Example parameter files:*
 
 To use the examples lensing reconstruction parameter files, you will need further to define the environment variable $PLENS to some place safe to write.
-
-To reproduce the 2018 lensing spectrum band-powers, use the [smicadx12_planck2018.py](params/smicadx12_planck2018.py) parameter file.
     
 Details on the structure of a parameter file are given in this one: [idealized_example.py](params/idealized_example.py)
 
+To reproduce the 2018 lensing spectrum band-powers, use the [smicadx12_planck2018.py](params/smicadx12_planck2018.py) parameter file.
+
+
 The basics on how to use them can be found in [this jupyter notebook](examples/lensingrec_quickstart.ipynb).
 Some details on the numerical computations are collected [in this document](supplement.pdf)
+
 ![alt text](https://erc.europa.eu/sites/default/files/content/erc_banner-vertical.jpg)
