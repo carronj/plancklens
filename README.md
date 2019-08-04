@@ -11,6 +11,8 @@ After cloning the repository, build an editable installation with
 
 The –-user is required only if you don’t have write permission to your main python installation. A fortran compiler is required for a successful installation.
 
+*Example parameter files:*
+
 To use the examples lensing reconstruction parameter files, you will need further to define the environment variable $PLENS to some place safe to write.
 
 To reproduce the 2018 lensing spectrum band-powers, use the [smicadx12_planck2018.py](params/smicadx12_planck2018.py) parameter file.
