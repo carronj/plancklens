@@ -7,6 +7,7 @@ import os
 import plancklens
 from plancklens import utils
 from plancklens import nhl, qresp
+from plancklens.wigners import wigners
 
 def test_w():
     cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens.__file__)), 'data', 'cls')
