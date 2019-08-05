@@ -13,6 +13,7 @@ Welcome to plancklens documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   sims
    filt
    qest
    qecl

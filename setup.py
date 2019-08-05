@@ -17,7 +17,7 @@ setup(
     name='plancklens',
     version='0.0.1',
     packages=['plancklens', 'plancklens.n1', 'plancklens.filt', 'plancklens.sims', 'plancklens.helpers',
-              'plancklens.qcinv', 'plancklens.wigners', 'plancklens.wigners'],
+              'plancklens.qcinv', 'plancklens.wigners'],
     data_files=[('plancklens/data/cls', ['plancklens/data/cls/FFP10_wdipole_lensedCls.dat',
                                 'plancklens/data/cls/FFP10_wdipole_lenspotentialCls.dat',
                                 'plancklens/data/cls/FFP10_wdipole_params.ini'])],

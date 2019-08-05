@@ -1,5 +1,8 @@
 """Planck 2018 release simulation libraries.
 
+    Note:
+        These simulations are located on NERSC systems
+
 """
 import healpy as hp
 import numpy as np
@@ -37,15 +40,16 @@ class smica_dx12:
         return 1e6 * hp.read_map(self.data, field=1), 1e6 * hp.read_map(self.data, field=2)
 
 class ffp10cmb_widnoise:
+    r"""Simulation library with freq-0 FFP10 lensed CMB together with idealized, homogeneous noise.
+
+        Args:
+            transf: transfer function (beam and pixel window)
+            nlevt: temperature noise levels in :math:`\mu K`-arcmin.
+            nlevp: polarization noise levels in :math:`\mu K`-arcmin.
+            pix_libphas: random phases simulation library (see plancklens.sims.phas.py) of the noise maps.
+
+    """
     def __init__(self, transf, nlevt, nlevp, pix_libphas, nside=2048):
-        """Simulation library with freq-0 FFP10 CMB and ideal, homogeneous noise.
-
-            Args:
-                transf: transfer function (beam and pixel window)
-                nlevt, nlevp (float): temperature and polarization noise levels in uK-armin.
-                pix_libphas: random phases simulation library (see phas.py) of the noise maps.
-
-        """
         assert pix_libphas.shape == (hp.nside2npix(nside),), pix_libphas.shape
         self.nlevt = nlevt
         self.nlevp = nlevp
@@ -100,7 +104,7 @@ class cmb_len_ffp10:
 
 
 class cmb_unl_ffp10:
-    """ FFP10 input sim libraries, unlensed alms.
+    """FFP10 input sim libraries, unlensed alms.
 
     """
     def __init__(self):
