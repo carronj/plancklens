@@ -54,7 +54,7 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None):
 
 
 def get_resp_legs(source, lmax):
-    """Defines the responses terms for a CMB map anisotropy source.
+    r"""Defines the responses terms for a CMB map anisotropy source.
 
     Args:
         source (str): anisotropy source (e.g. 'p', 'f', ...).
@@ -85,7 +85,7 @@ def get_resp_legs(source, lmax):
     assert 0, source + ' response legs not implemented'
 
 def get_covresp(source, s1, s2, cls, lmax):
-    """Defines the responses terms for a CMB covariance anisotropy source.
+    r"""Defines the responses terms for a CMB covariance anisotropy source.
 
         \delta < s_d(n) _td^*(n')> \equiv
         _r\alpha(n) W^{r, st}_l _{s - r}Y_{lm}(n) _tY^*_{lm}(n') +
