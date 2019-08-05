@@ -1,7 +1,8 @@
-"""Planck 2018 release simulation libraries.
+r"""Planck 2018 release simulation libraries.
 
     Note:
         These simulations are located on NERSC systems
+        Units of the maps on NERSC :math:`K` but this module returns maps in :math:`\mu K`
 
 """
 import healpy as hp
@@ -10,7 +11,9 @@ import numpy as np
 from plancklens import utils
 
 class smica_dx12:
-    """ SMICA 2018 release simulation and data library at NERSC.
+    r""" SMICA 2018 release simulation and data library at NERSC.
+
+        Note:
 
     """
     def __init__(self):
