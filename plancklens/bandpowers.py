@@ -45,7 +45,7 @@ class ffp10_binner:
 
          In each of the methods defined here (e.g. MCN0, RDN0...),  if the relevant QE, QE spectra, etc cannot be found
          precomputed, this will be performed on the fly. Hence in a realistic configuration it is always advisable
-         to build them all previously.
+         to build them all previously (for example with *examples/run_qlms.py*)
 
 
         This library can be used to build the cross power spectra of two anisotropy estimators, calculates biases,
