@@ -13,7 +13,7 @@ class cmb_maps(object):
     r"""CMB simulation library combining a lensed CMB library and a transfer function.
 
         Args:
-            sims_cmb_len: lensed CMB library (*plancklens.sims.cmbs.py*)
+            sims_cmb_len: lensed CMB library (e.g. *plancklens.sims.planck2018_sims.cmb_len_ffp10*)
             cl_transf: CMB transfer function, identical in temperature and polarization
             nside: healpy resolution of the maps. Defaults to 2048.
             lib_dir(optional): hash checks will be cached, as well as possibly other things for subclasses.
