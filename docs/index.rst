@@ -20,7 +20,6 @@ Welcome to plancklens documentation!
    bandpowers
 
    qresp
-   n1
 
 Indices and tables
 ==================

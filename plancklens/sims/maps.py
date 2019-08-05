@@ -92,7 +92,7 @@ class cmb_maps_nlev(cmb_maps):
     r"""CMB simulation library combining a lensed CMB library, transfer function and idealized homogeneous noise.
 
         Args:
-            sims_cmb_len: lensed CMB library (*plancklens.sims.cmbs.py*)
+            sims_cmb_len: lensed CMB library (e.g. *plancklens.sims.planck2018_sims.cmb_len_ffp10*)
             cl_transf: CMB transfer function, identical in temperature and polarization
             nlev_t: temperature noise levels in :math:`\mu K`-arcmin
             nlev_p: polarization noise levels in :math:`\mu K`-arcmin
