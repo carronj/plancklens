@@ -1,11 +1,18 @@
 dist: xenial   # required for Python >= 3.7
 
+git:
+  depth: false
+
+install:
+  - mkdir -p gfortran-symlinks
+  - ln -s /usr/bin/gfortran-$GCC_VERSION gfortran-symlinks/gfortran
+  - export PATH=$PWD/gfortran-symlinks:$PATH
+  - gfortran --version
+  - pip install -e .
 language: python
 
 python:
   - "2.7"
   - "3.6"
-
-install: pip install -e .
 
 script: pytest
