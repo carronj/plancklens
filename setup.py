@@ -17,7 +17,7 @@ setup(
     name='plancklens',
     version='0.0.1',
     packages=['plancklens', 'plancklens.n1', 'plancklens.filt', 'plancklens.sims', 'plancklens.helpers',
-              'plancklens.qcinv', 'plancklens.wigners'],
+              'plancklens.qcinv', 'plancklens.wigners', 'tests'],
     data_files=[('plancklens/data/cls', ['plancklens/data/cls/FFP10_wdipole_lensedCls.dat',
                                 'plancklens/data/cls/FFP10_wdipole_lenspotentialCls.dat',
                                 'plancklens/data/cls/FFP10_wdipole_params.ini'])],
@@ -25,8 +25,8 @@ setup(
     author='Julien Carron',
     author_email='to.jcarron@gmail.com',
     description='Planck lensing python pipeline',
-    install_requires=['numpy', 'healpy', 'six', 'mpi4py'],
-    requires=['numpy', 'healpy', 'six', 'mpi4py', 'scipy'],
+    install_requires=['numpy', 'healpy', 'six'], #removed mpi4py for travis tests
+    requires=['numpy', 'healpy', 'six', 'scipy'],
     long_description=long_description,
     configuration=configuration)
 
