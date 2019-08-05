@@ -15,6 +15,9 @@ Welcome to plancklens documentation!
 
    filt
    qest
+   qecl
+   bandpowers
+
    qresp
    n1
 

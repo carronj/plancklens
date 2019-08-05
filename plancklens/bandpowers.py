@@ -1,6 +1,6 @@
 """Band-powers construction module.
 
-    This module is used to combine reconstruction band-powers from a parameter file.
+    This is used to construct anistropy band-powers from a parameter file.
 
 """
 import os
@@ -35,32 +35,32 @@ class ffp10_binner:
         the Planck 2018 lensing analysis.
 
         This uses the various QE and QE spectra libraries defined in a parameter file, in particular:
-         - qcls_dd  (for data band-powers, to build covariance matrix, Monte-Carlo and point-source correction)
-         - qcls_ds  (for RDN0 and point-source correction)
-         - qcls_ss  (for MCN0, RDN0, Monte-Carlo and point-source correction)
-         - qresp_dd (for the estimator normalization)
-         - n1_dd (for the N1 bias substraction)
-         - nhl_dd (to build the covariance matrix)
-         - ivfs (for the N1 bias and point-source correction)
+         - *qcls_dd*  (for data band-powers, to build covariance matrix, Monte-Carlo and point-source correction)
+         - *qcls_ds*  (for RDN0 and point-source correction)
+         - *qcls_ss*  (for MCN0, RDN0, Monte-Carlo and point-source correction)
+         - *qresp_dd* (for the estimator normalization)
+         - *n1_dd* (for the N1 bias subtraction)
+         - *nhl_dd* (to build the semi-analytical covariance matrix)
+         - *ivfs* (for the N1 bias and point-source correction)
 
          In each of the methods defined here (e.g. MCN0, RDN0...),  if the relevant QE, QE spectra, etc cannot be found
          precomputed, this will be performed on the fly. Hence in a realistic configuration it is always advisable
          to build them all previously.
 
-    """
-    def __init__(self, k1, k2, parfile, btype, ksource='p'):
-        """Band-power construction library using the FFP10 fiducial cosmology.
 
-            This library can be used to build the cross power spectra of two anisotropy estimators, calculates biases,
-            obtain MC and point-source corrections and the covariance matrix.
+        This library can be used to build the cross power spectra of two anisotropy estimators, calculates biases,
+        obtain MC and point-source corrections and the covariance matrix.
 
-            k1 (string): First quadratic estimator key. See the qest.py module for the key definitions.
-            k2 (string): Second quadratic estimator key. See the qest.py module for the key definitions.
-            parfile (string): parameter file where the relevant QE libraries are defined
-            btype (string): bin type descriptor ('consext8' or 'arg2' were the Planck 2018 lensing analysis defaults)
+        Args:
+            k1: First quadratic estimator key. See the qest.py module for the key definitions.
+            k2: Second quadratic estimator key. See the qest.py module for the key definitions.
+            parfile: parameter file where the relevant QE libraries are defined
+            btype: bin type descriptor ('consext8' or 'arg2' were the Planck 2018 lensing analysis defaults)
             ksource: anisotropy source (defaults to 'p', lensing)
 
-        """
+    """
+    def __init__(self, k1, k2, parfile, btype, ksource='p'):
+
         lmaxphi = 2048
         cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens.__file__)), 'data', 'cls')
 
@@ -127,20 +127,20 @@ class ffp10_binner:
         return ret
 
     def get_fid_bandpowers(self):
-        """Expected band-powers in the FFP10 fiducial cosmology.
+        """Returns Expected band-powers in the FFP10 fiducial cosmology.
 
         """
         return np.copy(self.fid_bandpowers)
 
     def get_dat_bandpowers(self):
-        """Data raw band-powers, prior to any biases subtraction or correction.
+        """Returns data raw band-powers, prior to any biases subtraction or correction.
 
         """
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
         return self._get_binnedcl(utils.cli(qc_resp) * self.parfile.qcls_dd.get_sim_qcl(self.k1, -1, k2=self.k2))
 
     def get_mcn0(self):
-        """Monte-Carlo N0 lensing bias.
+        """Returns Monte-Carlo N0 lensing bias.
 
         """
         ss = self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
@@ -148,7 +148,7 @@ class ffp10_binner:
         return self._get_binnedcl(utils.cli(qc_resp) * (2. * ss))
 
     def get_rdn0(self):
-        """Realization-dependent N0 lensing bias RDN0.
+        """Returns realization-dependent N0 lensing bias RDN0.
 
         """
         ds = self.parfile.qcls_ds.get_sim_stats_qcl(self.k1, self.parfile.mc_sims_var, k2=self.k2).mean()
@@ -157,16 +157,16 @@ class ffp10_binner:
         return self._get_binnedcl(utils.cli(qc_resp) * (4 * ds - 2. * ss))
 
     def get_dat_nhl(self):
-        """N0 lensing bias, semi-analytical version.
+        """Returns N0 lensing bias, semi-analytical version.
 
-            This is not highly accurate on the cut-sky.
+            This is not highly accurate on the cut-sky
 
         """
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
         return self._get_binnedcl(utils.cli(qc_resp) * self.parfile.nhl_dd.get_sim_nhl(-1, self.k1, self.k2))
 
     def get_n1(self, k1=None, k2=None, unnormed=False):
-        """Analytical N1 lensing bias.
+        """Returns analytical N1 lensing bias.
 
             This uses the analyical approximation to the QE pair filtering as input.
 
@@ -198,9 +198,6 @@ class ffp10_binner:
         return self._get_binnedcl(utils.cli(qc_resp) * n1pp) if not unnormed else n1pp
 
     def get_ps_data(self,lmin_ss_s4=100,lmax_ss_s4=2048,mc_sims_ss=None,mc_sims_ds=None):
-        """Point source correction.
-
-        """
         ks4 = 'stt'
         twolpo = 2 * np.arange(lmax_ss_s4 + 1) + 1.
         filt = np.ones(lmax_ss_s4 + 1, dtype=float)
@@ -260,14 +257,19 @@ class ffp10_binner:
         return s4_band_dat, s4_band_check, s4_band_syst, s4_band_sim_stats, Cs2s2, pp_cl_ps
 
     def get_ps_corr(self, lmin_ss_s4=100, lmax_ss_s4=2048):
+        """Returns point-source correction
+
+        """
         return self._get_binnedcl(self.get_ps_data(lmin_ss_s4=lmin_ss_s4, lmax_ss_s4=lmax_ss_s4)[-1])
 
     def get_bamc(self):
         """Binned additive MC correction, with crude error bars.
 
             This compares the reconstruction on the simulations to the FFP10 input lensing spectrum.
-            NB: the approximate error corrections to the additive MC correction variance follows Appendix C of
-            https://arxiv.org/abs/1807.06210, check this for more details on its validity.
+
+            Note:
+                the approximate error corrections to the additive MC correction variance follows Appendix C of
+                https://arxiv.org/abs/1807.06210, check this for more details on its validity.
 
         """
         assert self.k1[0] == 'p' and self.k2[0] == 'p' and self.ksource == 'p', (self.k1, self.k2, self.ksource)
