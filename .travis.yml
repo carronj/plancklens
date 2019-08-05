@@ -5,6 +5,5 @@ language: python
 python:
   - "2.7"
   - "3.6"
-  - "3.7"
 
-script: python ./tests/test_w.py
+script: pytest
