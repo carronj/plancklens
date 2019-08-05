@@ -1,4 +1,4 @@
-"""Module with spin-weight related utilities.
+r"""Module with spin-weight related utilities.
 
     Conventions are $_{\pm |s|} X_{lm} = - (\pm)^{|s|} (G_{lm} \pm i  C_{lm})$.
 
@@ -48,6 +48,7 @@ def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
         Uses Gauss-Legendre quadrature to solve this exactly.
 
     """
+    assert HASWIGNER
     lmax1 = len(cl1) - 1
     lmax2 = len(cl2) - 1
     lmax_out = lmax1 + lmax2 if lmax_out is None else lmax_out
@@ -57,7 +58,7 @@ def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
     if np.any(cl1) and np.any(cl2):
         N = (lmaxtot + 2 - lmaxtot % 2) // 2
         if not 'xg wg %s' % N in GL_cache.keys():
-            GL_cache['xg wg %s' % N] = wigners.get_xgwg(-1., 1., N) if HASWIGNER else gauleg.get_xgwg(N)
+            GL_cache['xg wg %s' % N] = wigners.get_xgwg(-1., 1., N)
         xg, wg = GL_cache['xg wg %s' % N]
         if HASWIGNER:
             if np.iscomplexobj(cl1):
@@ -76,17 +77,15 @@ def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
             else:
                 return wigners.wignercoeff(xi1xi2w, xg, spo, so, lmax_out)
         else:
-            xi1 = gaujac.get_rspace(cl1, xg, sp1, s1)
-            xi2 = gaujac.get_rspace(cl2, xg, sp2, s2)
-            return 2. * np.pi * np.dot(gaujac.get_wignerd(lmax_out, xg, spo, so), wg * xi1 * xi2)
+            assert 0
     else:
         return np.zeros(lmax_out + 1, dtype=float)
 
 
 def get_spin_raise(s, lmax):
-    """Response coefficient of spin-s spherical harmonic to spin raising operator.
+    r"""Response coefficient of spin-s spherical harmonic to spin raising operator.
 
-        $+\sqrt{ (l - s) (l + s + 1) }$ for abs(s) <= l <= lmax
+        :math:`\sqrt{ (l - s) (l + s + 1) }` for abs(s) <= l <= lmax
 
     """
     ret = np.zeros(lmax + 1, dtype=float)
@@ -94,9 +93,9 @@ def get_spin_raise(s, lmax):
     return ret
 
 def get_spin_lower(s, lmax):
-    """Response coefficient of spin-s spherical harmonic to spin lowering operator.
+    r"""Response coefficient of spin-s spherical harmonic to spin lowering operator.
 
-        $-\sqrt{ (l + s) (l - s + 1) }$ for abs(s) <= l <= lmax
+        :math:`\sqrt{ (l + s) (l - s + 1) }` for abs(s) <= l <= lmax
 
     """
     ret = np.zeros(lmax + 1, dtype=float)
@@ -104,7 +103,7 @@ def get_spin_lower(s, lmax):
     return ret
 
 def spin_cls(s1, s2, cls):
-    """Spin-weighted power spectrum $<_{s1}X_{lm} _{s2}X^{*}_{lm}>$
+    r"""Spin-weighted power spectrum :math:`_{s1}X_{lm} _{s2}X^{*}_{lm}`
 
         The output is real unless necessary.
 
@@ -130,7 +129,7 @@ def spin_cls(s1, s2, cls):
             assert 0
 
 def get_spin_matrix(sout, sin, cls):
-    """Spin-space matrix R^{-1} cls[T, E, B] R where R is the mapping from _{0, \pm 2}X to T, E, B.
+    r"""Spin-space matrix R^{-1} cls[T, E, B] R where R is the mapping from _{0, \pm 2}X to T, E, B.
 
         cls is dictionary with keys 'tt', 'te', 'ee', 'bb'.
         If a key is not present the corresponding spectrum is assumed to be zero.
