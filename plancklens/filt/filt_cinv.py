@@ -123,18 +123,20 @@ class cinv(object):
 
 
 class cinv_t(cinv):
+    r"""Temperature-only inverse-variance (or Wiener-)filtering instance.
+
+        Args:
+            lib_dir: mask and other things will be cached there
+            lmax: filtered alm's are reconstructed up to lmax
+            nside: healpy resolution of maps to filter
+            cl: fiducial CMB spectra used to filter the data (dict with 'tt' key)
+            transf: CMB maps transfer function (array)
+            ninv: inverse pixel variance map. Must be a list of paths or of healpy maps with consistent nside.
+
+    """
     def __init__(self, lib_dir, lmax, nside, cl, transf, ninv,
                  marge_monopole=True, marge_dipole=True, marge_maps=(), pcf='default', chain_descr=None):
-        r"""Temperature-only inverse-variance (or Wiener-)filtering instance.
 
-            Args:
-                lib_dir: mask and other things will be cached there
-                lmax: filtered alm's are reconstructed up to lmax
-                nside: healpy resolution of maps to filter
-                cl: fiducial CMB spectra used to filter the data (dict with 'tt' key)
-                transf: CMB maps transfer function (array)
-                ninv: inverse pixel variance map. Must be a list of paths or of healpy maps with consistent nside.
-        """
         assert lib_dir is not None and lmax >= 1024 and nside >= 512, (lib_dir, lmax, nside)
         assert isinstance(ninv, list)
         super(cinv_t, self).__init__(lib_dir, lmax)
@@ -232,10 +234,19 @@ class cinv_t(cinv):
 
 
 class cinv_p(cinv):
-    """
+    r"""Polarization-only inverse-variance (or Wiener-)filtering instance.
 
-    Note:
-        This implementation does not support template projection.
+        Args:
+            lib_dir: mask and other things will be cached there
+            lmax: filtered alm's are reconstructed up to lmax
+            nside: healpy resolution of maps to filter
+            cl: fiducial CMB spectra used to filter the data (dict with 'tt' key)
+            transf: CMB maps transfer function (array)
+            ninv: inverse pixel variance maps. Must be a list of either 3 (QQ, QU, UU) or 1 (QQ = UU noise) elements.
+                  These element are themselves list of paths or of healpy maps with consistent nside.
+
+        Note:
+            this implementation does not support template projection
 
     """
     def __init__(self, lib_dir, lmax, nside, cl, transf, ninv, pcf='default', chain_descr=None):
