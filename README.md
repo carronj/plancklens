@@ -1,6 +1,6 @@
 # plancklens
 
-![alt text](https://readthedocs.org/projects/plancklens/badge/?version=latest)
+![docs badge](https://readthedocs.org/projects/plancklens/badge/?version=latest)
 
 plancklens is is a python code for cosmology containing most of Planck 2018 CMB lensing pipeline, by Julien Carron ([see the publication here.](https://arxiv.org/abs/1807.06210))
 Some numerical parts are written in Fortran. Portions of it (structure and code) have been directly adapted from pre-existing work by Duncan Hanson.
@@ -24,7 +24,7 @@ To reproduce the 2018 lensing spectrum band-powers, use the [smicadx12_planck201
 
 The basics on how to use them can be found in [this jupyter notebook](examples/lensingrec_quickstart.ipynb).
 Some details on the numerical computations are collected [in this document](supplement.pdf).
-You might also want to check out the [plancklens documentation](https://plancklens.readthedocs.io/en/latest).
+You might also want to check out the [plancklens documentation](https://plancklens.readthedocs.io/en/latest) (under construction).
 
 
-![alt text](https://erc.europa.eu/sites/default/files/content/erc_banner-vertical.jpg)
+![ERC logo](https://erc.europa.eu/sites/default/files/content/erc_banner-vertical.jpg)
