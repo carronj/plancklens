@@ -1,8 +1,10 @@
 r"""Planck 2018 release simulation libraries.
 
     Note:
-        These simulations are located on NERSC systems
-        Units of the maps on NERSC :math:`K` but this module returns maps in :math:`\mu K`
+        These simulations are located on NERSC systems.
+
+    Note:
+        Units of the maps stored at NERSC are :math:`K` but this module returns maps in :math:`\mu K`
 
 """
 import healpy as hp
