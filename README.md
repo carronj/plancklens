@@ -19,12 +19,12 @@ To use the examples lensing reconstruction parameter files, you will need furthe
     
 Details on the structure of a parameter file are given in this one: [idealized_example.py](params/idealized_example.py)
 
-To reproduce the 2018 lensing maps and spectrum band-powers, use the [smicadx12_planck2018.py](params/smicadx12_planck2018.py) parameter file.
+In order to reproduce the 2018 lensing maps and spectrum band-powers, one may use the provided [smicadx12_planck2018.py](params/smicadx12_planck2018.py) parameter file.
 
 
-The basics on how to use them can be found in [this jupyter notebook](examples/lensingrec_quickstart.ipynb).
+The basics on how to use parameter files can be found in [this jupyter notebook](examples/lensingrec_quickstart.ipynb).
 Some details on the numerical computations are collected [in this document](supplement.pdf).
-You might also want to check out the [plancklens documentation](https://plancklens.readthedocs.io/en/latest) (under construction).
+You might also need to check out the [plancklens documentation](https://plancklens.readthedocs.io/en/latest) (with some bits in progress).
 
 
 ![ERC logo](https://erc.europa.eu/sites/default/files/content/erc_banner-vertical.jpg)
