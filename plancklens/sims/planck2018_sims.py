@@ -62,8 +62,8 @@ class ffp10cmb_widnoise:
 
         Args:
             transf: transfer function (beam and pixel window)
-            nlevt: temperature noise levels in :math:`\mu K`-arcmin.
-            nlevp: polarization noise levels in :math:`\mu K`-arcmin.
+            nlevt: temperature noise level in :math:`\mu K`-arcmin.
+            nlevp: polarization noise level in :math:`\mu K`-arcmin.
             pix_libphas: random phases simulation library (see plancklens.sims.phas.py) of the noise maps.
 
     """

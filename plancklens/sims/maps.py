@@ -94,8 +94,8 @@ class cmb_maps_nlev(cmb_maps):
         Args:
             sims_cmb_len: lensed CMB library (e.g. *plancklens.sims.planck2018_sims.cmb_len_ffp10*)
             cl_transf: CMB transfer function, identical in temperature and polarization
-            nlev_t: temperature noise levels in :math:`\mu K`-arcmin
-            nlev_p: polarization noise levels in :math:`\mu K`-arcmin
+            nlev_t: temperature noise level in :math:`\mu K`-arcmin
+            nlev_p: polarization noise level in :math:`\mu K`-arcmin
             nside: healpy resolution of the maps
             lib_dir(optional): noise maps random phases will be cached there. Only relevant if *pix_lib_phas is not set*
             pix_lib_phas(optional): random phases library for the noise maps (from *plancklens.sims.phas.py*).
