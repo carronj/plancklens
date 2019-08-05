@@ -13,6 +13,12 @@ After cloning the repository, build an editable installation with
 
 The –-user is required only if you don’t have write permission to your main python installation. A fortran compiler is required for a successful installation.
 
+### Contents
+
+This code contains most of the Planck 2018 lensing pipeline. In particular it possible to reproduce the published map and band-powers basically exactly. 
+
+Some parts of the pipeline have been left out or are not yet translated to python 3. This is the case notably of the band-powers likelihood code, or the code used to produce lensed CMB skies. 
+
 ### Example parameter files
 
 To use the examples lensing reconstruction parameter files, you will need further to define the environment variable $PLENS to some place safe to write.
