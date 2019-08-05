@@ -6,6 +6,9 @@
 Welcome to plancklens documentation!
 ====================================
 
+.. image:: schema.jpg
+   :width: 600
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
