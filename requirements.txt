@@ -2,3 +2,4 @@ numpy
 healpy
 six
 scipy
+mpi4py
