@@ -161,15 +161,7 @@ class library:
         if k in ['p_tp', 'x_tp', 'f_tp', 's_tp']:
             return self.get_sim_qlm('%stt' % k[0], idx, lmax=lmax) + self.get_sim_qlm('%s_p' % k[0], idx, lmax=lmax)
         if k in ['p_te', 'p_tb', 'p_eb', 'x_te', 'x_tb', 'x_eb']:
-            #FIXME: remove factor of 1/2 here
-            return 0.5 * (self.get_sim_qlm(k[0]+k[2]+k[3], idx, lmax=lmax) + self.get_sim_qlm(k[0]+k[3]+k[2], idx, lmax=lmax))
-        if 'tt_bh_'in k: # Bias-hardening
-            #FIXME: need response library here.
-            _k,f = k.split('_bh_')
-            assert self.get_lmax_qlm(_k) == self.get_lmax_qlm(f + 'tt'),'fix this (easy)'
-            lmax = self.get_lmax_qlm(_k)
-            wL = self.resplib.get_response(_k,f + 'tt') * ut.cli(self.resplib.get_response(f + 'tt',f + 'tt'))
-            return self.get_sim_qlm(_k, idx, lmax=lmax) - hp.almxfl(self.get_sim_qlm(f + 'tt', idx, lmax=lmax), wL)
+            return self.get_sim_qlm(k[0]+k[2]+k[3], idx, lmax=lmax) + self.get_sim_qlm(k[0]+k[3]+k[2], idx, lmax=lmax)
 
         assert k in self.keys_fund, (k, self.keys_fund)
         fname = os.path.join(self.lib_dir, 'sim_%s_%04d.fits'%(k, idx) if idx != -1 else 'dat_%s.fits'%k)
@@ -210,16 +202,9 @@ class library:
             return (self.get_sim_qlm_mf('%stt' % k[0], mc_sims, lmax=lmax)
                     + self.get_sim_qlm_mf('%s_p' % k[0], mc_sims, lmax=lmax))
         if k in ['p_te', 'p_tb', 'p_eb', 'x_te', 'x_tb', 'x_eb']:
-            #FIXME: remove factor of 1/2 here
-            return 0.5 * (self.get_sim_qlm_mf(k[0] + k[2] + k[3], mc_sims, lmax=lmax) \
-                        + self.get_sim_qlm_mf(k[0] + k[3] + k[2], mc_sims, lmax=lmax))
-        elif 'tt_bh_' in k:
-            #FIXME: response library
-            _k,f = k.split('_bh_')
-            assert self.get_lmax_qlm(_k) == self.get_lmax_qlm(f + 'tt'),'fix this (easy)'
-            lmax = self.get_lmax_qlm(_k)
-            wL = self.resplib.get_response(_k,f + 'tt') * ut.cli(self.resplib.get_response(f + 'tt',f + 'tt'))
-            return self.get_sim_qlm_mf(_k, mc_sims, lmax=lmax) - hp.almxfl(self.get_sim_qlm_mf(f + 'tt',mc_sims, lmax=lmax),wL)
+            return  self.get_sim_qlm_mf(k[0] + k[2] + k[3], mc_sims, lmax=lmax)  \
+                    + self.get_sim_qlm_mf(k[0] + k[3] + k[2], mc_sims, lmax=lmax)
+
         assert k in self.keys_fund, (k, self.keys_fund)
         fname = os.path.join(self.lib_dir, 'simMF_k1%s_%s.fits' % (k, ut.mchash(mc_sims)))
         if not os.path.exists(fname):
@@ -391,14 +376,12 @@ class library:
         sLM = self._get_sim_stt(idx)
         if not self.f2map1.ivfs == self.f2map2.ivfs:
             pass  # No need to swap, this thing is symmetric anyways
-            # sLM = 0.5 * (sLM + self._get_sim_stt(idx, swapped=True))
         hp.write_alm(os.path.join(self.lib_dir, 'sim_stt_%04d.fits'%idx if idx != -1 else 'dat_stt.fits'), sLM)
 
     def _build_sim_ntt(self, idx):
         sLM = self._get_sim_ntt(idx)
         if not self.f2map1.ivfs == self.f2map2.ivfs:
             pass  # No need to swap, this thing is symmetric anyways
-            # nLM = 0.5 * (nLM + self._get_sim_ntt(idx, swapped=True))
         hp.write_alm(os.path.join(self.lib_dir, 'sim_ntt_%04d.fits'%idx if idx != -1 else 'dat_ntt.fits'), sLM)
 
     def _build_sim_ftt(self, idx):
@@ -424,10 +407,6 @@ class library:
             fLM = 0.5 * (fLM + _fLM)
             del _fLM
         hp.write_alm(os.path.join(self.lib_dir, 'sim_a_p_%04d.fits'%idx if idx != -1 else 'dat_a_p.fits'), fLM)
-
-    def get_response(self, k1, k2, recache=False):
-        #FIXME:
-        return self.resplib.get_response(k1, k2, recache=recache)
 
 
 class lib_filt2map(object):
