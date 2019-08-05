@@ -22,6 +22,15 @@ class smica_dx12:
         return {'cmbs':self.cmbs, 'noise':self.noise, 'data':self.data}
 
     def get_sim_tmap(self, idx):
+        r"""Returns dx12 SMICA temperature map for a simulation
+
+            Args:
+                idx: simulation index
+
+            Returns:
+                SMICA simulation *idx*, including noise. Returns dx12 SMICA data map for *idx* =-1
+
+        """
         if idx == -1:
             return self.get_dat_tmap()
         return 1e6 * (hp.read_map(self.cmbs % idx, field=0) + hp.read_map(self.noise % idx, field=0))
@@ -30,6 +39,15 @@ class smica_dx12:
         return 1e6 * hp.read_map(self.data, field=0)
 
     def get_sim_pmap(self, idx):
+        r"""Returns dx12 SMICA polarization map for a simulation
+
+            Args:
+                idx: simulation index
+
+            Returns:
+                SMICA Q and U simulation *idx*, including noise. Returns dx12 SMICA data maps for *idx* =-1
+
+        """
         if idx == -1:
             return self.get_dat_pmap()
         Q = 1e6 * (hp.read_map(self.cmbs % idx, field=1) + hp.read_map(self.noise % idx, field=1))
@@ -80,7 +98,7 @@ class ffp10cmb_widnoise:
 class cmb_len_ffp10:
     """ FFP10 input sim libraries, lensed alms.
 
-        The lensing deflections contain the L=1 aberration term (constant across all maps )
+        The lensing deflections contain the L=1 aberration term (constant across all maps)
         due to our motion w.r.t. the CMB frame.
 
     """
@@ -92,14 +110,38 @@ class cmb_len_ffp10:
 
     @staticmethod
     def get_sim_tlm(idx):
+        """
+            Args:
+                idx: simulation index
+
+            Returns:
+                lensed temperature simulation healpy alm array
+
+        """
         return 1e6 * hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx, hdu=1)
 
     @staticmethod
     def get_sim_elm(idx):
+        """
+            Args:
+                idx: simulation index
+
+            Returns:
+                lensed E-polarization simulation healpy alm array
+
+        """
         return 1e6 * hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx, hdu=2)
 
     @staticmethod
     def get_sim_blm(idx):
+        """
+            Args:
+                idx: simulation index
+
+            Returns:
+                lensed B-polarization simulation healpy alm array
+
+        """
         return 1e6 * hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx, hdu=3)
 
 
@@ -115,18 +157,50 @@ class cmb_unl_ffp10:
 
     @staticmethod
     def get_sim_tlm(idx):
+        """
+            Args:
+                idx: simulation index
+
+            Returns:
+                unlensed temperature simulation healpy alm array
+
+        """
         return 1e6 * hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=1)
 
     @staticmethod
     def get_sim_elm(idx):
+        """
+            Args:
+                idx: simulation index
+
+            Returns:
+                unlensed E-polarization simulation healpy alm array
+
+        """
         return 1e6 * hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=2)
 
     @staticmethod
     def get_sim_blm(idx):
+        """
+            Args:
+                idx: simulation index
+
+            Returns:
+                unlensed B-polarization simulation healpy alm array
+
+        """
         return 1e6 * hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=3)
 
     @staticmethod
     def get_sim_plm(idx):
+        r"""
+            Args:
+                idx: simulation index
+
+            Returns:
+               lensing potential :math:`\phi_{LM}` simulation healpy alm array
+
+        """
         return hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=4)
 
 
