@@ -173,10 +173,19 @@ class resp_lib_simple:
         """
             Args:
                 k: QE anisotropy key
-                ksource: CMB anisotropy source
+                ksource: CMB anisotropy source key
+
             Returns:
                 Response array
+
         """
+        if '_bh_' in k: # bias-hardened estimator
+            kQE, bhksource = k.split('_bh_')
+            assert len(ksource) == 1, (kQE, ksource)
+            wL = self.get_response(kQE, bhksource, recache=recache)
+            wL *= ut.cli(self.get_response(bhksource + kQE[1:], bhksource, recache=recache))
+            ret = self.get_response(kQE, ksource, recache=recache)
+            ret -=- wL * self.get_response(bhksource + kQE[1:], ksource, recache=recache)
         s, GorC, sins, ksp = qe_spin_data(k)
         assert s >= 0, s
         if s == 0: assert GorC == 'G', (s, GorC)
@@ -186,7 +195,7 @@ class resp_lib_simple:
                                 lmax_qlm=self.lmax_qlm)
             if np.any(CG) or np.any(GC):
                 print("Warning: C-G or G-C responses non-zero but not returned")
-                # This may happen only if EB and/or TB are relevant.
+                # This may happen only if EB and/or TB are relevant and/or strange estimator mix.
 
             if recache and self.npdb.get(fn) is not None:
                 self.npdb.remove('qe_' + ksp + k[1:] + '_source_%s' % ksource + '_GG')
