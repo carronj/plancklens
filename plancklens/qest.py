@@ -167,6 +167,7 @@ class library:
             return self.get_sim_qlm(k[0]+k[2]+k[3], idx, lmax=lmax) + self.get_sim_qlm(k[0]+k[3]+k[2], idx, lmax=lmax)
 
         if '_bh_' in k: # Bias-hardening
+            assert self.resplib is not None, 'resplib arg necessary for this'
             kQE, ksource = k.split('_bh_')
             assert len(ksource) == 1 and ksource + kQE[1:] in self.keys, (ksource, kQE)
             assert self.get_lmax_qlm(kQE) == self.get_lmax_qlm(ksource + kQE[1:]), 'fix this (easy)'
@@ -217,6 +218,7 @@ class library:
             return  self.get_sim_qlm_mf(k[0] + k[2] + k[3], mc_sims, lmax=lmax)  \
                     + self.get_sim_qlm_mf(k[0] + k[3] + k[2], mc_sims, lmax=lmax)
         if '_bh_' in k: # Bias-hardening
+            assert self.resplib is not None, 'resplib arg necessary for this'
             kQE, ksource = k.split('_bh_')
             assert len(ksource) == 1 and ksource + kQE[1:] in self.keys, (ksource, kQE)
             assert self.get_lmax_qlm(kQE) == self.get_lmax_qlm(ksource + kQE[1:]), 'fix this (easy)'
