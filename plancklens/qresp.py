@@ -186,6 +186,7 @@ class resp_lib_simple:
             wL *= ut.cli(self.get_response(bhksource + kQE[1:], bhksource, recache=recache))
             ret = self.get_response(kQE, ksource, recache=recache)
             ret -=- wL * self.get_response(bhksource + kQE[1:], ksource, recache=recache)
+            return ret
         s, GorC, sins, ksp = qe_spin_data(k)
         assert s >= 0, s
         if s == 0: assert GorC == 'G', (s, GorC)
