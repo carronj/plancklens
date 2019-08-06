@@ -104,10 +104,10 @@ class nhl_lib_simple:
             ivfs: inverse-variance filtering library
             cls_weight(dict): fiducial spectra entering the QE weights (numerator in Eq. 2 of https://arxiv.org/abs/1807.06210)
             lmax_qlm: noise (co-)variances are calculated up to multipole lmax_qlm
-
+            resplib: only relevant for bias hardened estimators
 
     """
-    def __init__(self, lib_dir, ivfs, cls_weight, lmax_qlm):
+    def __init__(self, lib_dir, ivfs, cls_weight, lmax_qlm, resplib=None):
         self.lmax_qlm = lmax_qlm
         self.cls_weight = cls_weight
         self.ivfs = ivfs
@@ -123,12 +123,22 @@ class nhl_lib_simple:
         self.lib_dir = lib_dir
         self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
         self.fsky = np.mean(self.ivfs.get_fmask())
+        self.resplib = resplib
 
     def hashdict(self):
         ret = {k: utils.clhash(self.cls_weight[k]) for k in self.cls_weight.keys()}
         ret['ivfs']  = self.ivfs.hashdict()
         ret['lmax_qlm'] = self.lmax_qlm
         return ret
+
+    def _get_qe_derived(self, k):
+        if '_bh_' in k:
+            kQE, ksource = k.split('_bh_')
+            assert len(ksource) == 1.
+            wL = self.resplib.get_response(kQE, ksource) * utils.cli(self.resplib.get_response(ksource + kQE[1:], ksource))
+            return [(kQE, 1.), (ksource + kQE[1:], -wL)]
+        else:
+            return [(k, 1.)]
 
     def get_sim_nhl(self, idx, k1, k2, recache=False):
         """
@@ -138,21 +148,27 @@ class nhl_lib_simple:
                 k2: QE key 2
         """
         assert idx == -1 or idx >= 0, idx
-        s1, GC1, s1ins, ksp1 = qresp.qe_spin_data(k1)
-        s2, GC2, s2ins, ksp2 = qresp.qe_spin_data(k2)
-        fn = 'anhl_qe_' + ksp1 + k1[1:] + '_qe_' + ksp2 +  k2[1:] + GC1 + GC2
-        suf =  ('sim%04d'%idx) * (int(idx) >= 0) +  'dat' * (idx == -1)
-        if self.npdb.get(fn + suf) is None or recache:
-            assert s1 >= 0 and s2 >= 0, (s1, s2)
-            cls_ivfs, lmax_ivf = self._get_cls(idx, np.unique(np.concatenate([s1ins, s2ins])))
-            GG, CC, GC, CG = get_nhl(k1, k2, self.cls_weight, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=self.lmax_qlm)
-            fns = [('G', 'G', GG) ] + [('C', 'G', CG)] * (s1 > 0) + [('G', 'C', GC)] * (s2 > 0) + [('C', 'C', CC)] * (s1 > 0) * (s2 > 0)
-            if recache and self.npdb.get(fn + suf) is not None:
-                for GC1, GC2, N0 in fns:
-                    self.npdb.remove('anhl_qe_' + ksp1 +  k1[1:] + '_qe_'+ ksp2 + k2[1:] + GC1 + GC2 + suf)
-            for GC1, GC2, N0 in fns:
-                self.npdb.add('anhl_qe_' + ksp1 + k1[1:] + '_qe_' + ksp2 + k2[1:] + GC1 + GC2 + suf, N0)
-        return self.npdb.get(fn + suf)
+        k1sw = self._get_qe_derived(k1)
+        k2sw = self._get_qe_derived(k2)
+        ret = np.zeros(self.lmax_qlm + 1)
+        for k1, w1 in k1sw:
+            for k2, w2 in k2sw:
+                s1, GC1, s1ins, ksp1 = qresp.qe_spin_data(k1)
+                s2, GC2, s2ins, ksp2 = qresp.qe_spin_data(k2)
+                fn = 'anhl_qe_' + ksp1 + k1[1:] + '_qe_' + ksp2 +  k2[1:] + GC1 + GC2
+                suf =  ('sim%04d'%idx) * (int(idx) >= 0) +  'dat' * (idx == -1)
+                if self.npdb.get(fn + suf) is None or recache:
+                    assert s1 >= 0 and s2 >= 0, (s1, s2)
+                    cls_ivfs, lmax_ivf = self._get_cls(idx, np.unique(np.concatenate([s1ins, s2ins])))
+                    GG, CC, GC, CG = get_nhl(k1, k2, self.cls_weight, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=self.lmax_qlm)
+                    fns = [('G', 'G', GG) ] + [('C', 'G', CG)] * (s1 > 0) + [('G', 'C', GC)] * (s2 > 0) + [('C', 'C', CC)] * (s1 > 0) * (s2 > 0)
+                    if recache and self.npdb.get(fn + suf) is not None:
+                        for GC1, GC2, N0 in fns:
+                            self.npdb.remove('anhl_qe_' + ksp1 +  k1[1:] + '_qe_'+ ksp2 + k2[1:] + GC1 + GC2 + suf)
+                    for GC1, GC2, N0 in fns:
+                        self.npdb.add('anhl_qe_' + ksp1 + k1[1:] + '_qe_' + ksp2 + k2[1:] + GC1 + GC2 + suf, N0)
+                ret += w1 * w2 * self.npdb.get(fn + suf)
+        return ret
 
     def _get_cls(self, idx, spins):
         assert np.all(spins >= 0), spins

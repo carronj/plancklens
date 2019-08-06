@@ -37,12 +37,12 @@ def eval_qe(qe_key, lmax_ivf, cls_weight, get_alm, nside, lmax_qlm, verbose=True
     return uqe.qe_eval(qe_list, nside, get_alm, lmax_qlm, verbose=verbose)
 
 
-def library_jtTP(lib_dir, ivfs1, ivfs2, nside, lmax_qlm=None):
-    return library(lib_dir, ivfs1, ivfs2, nside, lmax_qlm=lmax_qlm)
+def library_jtTP(lib_dir, ivfs1, ivfs2, nside, lmax_qlm=None, resplib=None):
+    return library(lib_dir, ivfs1, ivfs2, nside, lmax_qlm=lmax_qlm, resplib=resplib)
 
 
-def library_sepTP(lib_dir, ivfs1, ivfs2, clte, nside, lmax_qlm=None):
-    return library(lib_dir, ivfs1, ivfs2, nside, clte=clte, lmax_qlm=lmax_qlm)
+def library_sepTP(lib_dir, ivfs1, ivfs2, clte, nside, lmax_qlm=None, resplib=None):
+    return library(lib_dir, ivfs1, ivfs2, nside, clte=clte, lmax_qlm=lmax_qlm, resplib=resplib)
 
 
 class library:
@@ -56,9 +56,10 @@ class library:
             clte(optional): TE CMB spectrum weight. If set this is used to build :math:`X^{\rm WF}` from :math:`\bar X`.
                             Defaults to None, which is adequate for the MV estimator if T and P maps are jointly filtered.
             lmax_qlm(optional): QE estimates are computed up to multipole lmax_qlm (defaults to 3 * nside -1).
+            resplib(optional): response library with *get_response* methods. Only used for bias_hardened estimators.
 
     """
-    def __init__(self, lib_dir, ivfs1, ivfs2, nside, clte=None, lmax_qlm=None):
+    def __init__(self, lib_dir, ivfs1, ivfs2, nside, clte=None, lmax_qlm=None, resplib=None):
         if lmax_qlm is None:
             lmax_qlm = 3 * nside -1
         self.lib_dir = lib_dir
@@ -100,6 +101,8 @@ class library:
         self.fsky11 = fskies[11]
         self.fsky12 = fskies[12]
         self.fsky22 = fskies[22]
+
+        self.resplib = resplib
 
         self.keys_fund = ['ptt', 'xtt', 'p_p', 'x_p', 'p', 'x', 'stt', 'ftt','f_p', 'f','dtt', 'ntt', 'a_p',
                           'pte', 'pet', 'ptb', 'pbt', 'pee', 'peb', 'pbe', 'pbb',
@@ -163,6 +166,16 @@ class library:
         if k in ['p_te', 'p_tb', 'p_eb', 'x_te', 'x_tb', 'x_eb']:
             return self.get_sim_qlm(k[0]+k[2]+k[3], idx, lmax=lmax) + self.get_sim_qlm(k[0]+k[3]+k[2], idx, lmax=lmax)
 
+        if '_bh_' in k: # Bias-hardening
+            assert self.resplib is not None, 'resplib arg necessary for this'
+            kQE, ksource = k.split('_bh_')
+            assert len(ksource) == 1 and ksource + kQE[1:] in self.keys, (ksource, kQE)
+            assert self.get_lmax_qlm(kQE) == self.get_lmax_qlm(ksource + kQE[1:]), 'fix this (easy)'
+            lmax = self.get_lmax_qlm(kQE)
+            wL = self.resplib.get_response(kQE, ksource) * ut.cli(self.resplib.get_response(ksource + kQE[1:], ksource))
+            ret = self.get_sim_qlm(kQE, idx, lmax=lmax)
+            return ret- hp.almxfl(self.get_sim_qlm(ksource + kQE[1:], idx, lmax=lmax), wL)
+
         assert k in self.keys_fund, (k, self.keys_fund)
         fname = os.path.join(self.lib_dir, 'sim_%s_%04d.fits'%(k, idx) if idx != -1 else 'dat_%s.fits'%k)
         if not os.path.exists(fname):
@@ -204,6 +217,15 @@ class library:
         if k in ['p_te', 'p_tb', 'p_eb', 'x_te', 'x_tb', 'x_eb']:
             return  self.get_sim_qlm_mf(k[0] + k[2] + k[3], mc_sims, lmax=lmax)  \
                     + self.get_sim_qlm_mf(k[0] + k[3] + k[2], mc_sims, lmax=lmax)
+        if '_bh_' in k: # Bias-hardening
+            assert self.resplib is not None, 'resplib arg necessary for this'
+            kQE, ksource = k.split('_bh_')
+            assert len(ksource) == 1 and ksource + kQE[1:] in self.keys, (ksource, kQE)
+            assert self.get_lmax_qlm(kQE) == self.get_lmax_qlm(ksource + kQE[1:]), 'fix this (easy)'
+            lmax = self.get_lmax_qlm(kQE)
+            wL = self.resplib.get_response(kQE, ksource) * ut.cli(self.resplib.get_response(ksource + kQE[1:], ksource))
+            ret = self.get_sim_qlm_mf(kQE, mc_sims, lmax=lmax)
+            return ret- hp.almxfl(self.get_sim_qlm_mf(ksource + kQE[1:], mc_sims, lmax=lmax), wL)
 
         assert k in self.keys_fund, (k, self.keys_fund)
         fname = os.path.join(self.lib_dir, 'simMF_k1%s_%s.fits' % (k, ut.mchash(mc_sims)))
