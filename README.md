@@ -17,7 +17,7 @@ The –-user is required only if you don’t have write permission to your main 
 
 This code contains most of the Planck 2018 lensing pipeline. In particular it possible to reproduce the published map and band-powers basically exactly. 
 
-Some parts of the pipeline have been left out or are not yet translated to python 3. This is the case notably of the band-powers likelihood code, or the code used to produce lensed CMB skies. 
+Some parts of the pipeline have been left out or are not yet translated to python 3. This is the case notably of the band-powers likelihood code, or the code used to produce lensed CMB skies (the latter code is the stand-alone package available [lenspyx](https://github.com/carronj/lenspyx))
 
 ### Example parameter files
 
