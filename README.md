@@ -29,7 +29,7 @@ In order to reproduce the 2018 lensing maps and spectrum band-powers, one may us
 
 
 The basics on how to use parameter files can be found in [this jupyter notebook](examples/lensingrec_quickstart.ipynb).
-Some details on the numerical computations are collected [in this document](supplement.pdf).
+Some details on the numerical computations are collected [in this document](https://arxiv.org/abs/1908.02016).
 You might also need to check out the [plancklens documentation](https://plancklens.readthedocs.io/en/latest) (with some bits in progress).
 
 
