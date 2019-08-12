@@ -185,3 +185,90 @@ class nhl_lib_simple:
         lmaxs = [len(cl) for cl in ret.values()]
         assert len(np.unique(lmaxs)) == 1, lmaxs
         return ret, lmaxs[0]
+
+
+def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, itermax, lmax_qlm=None):
+    """Iterative lensing-N0 estimate
+
+        Calculates iteratively partially lensed spectra and lensing noise levels.
+        This uses the python camb package to get the partially lensed spectra.
+
+        This makes no assumption on response =  1 / noise hence is about twice as slow as it could be in standard cases.
+
+        Args:
+            qe_key: QE estimator key
+            nlev_t: temperature noise level (in :math:`\mu `K-arcmin)
+            nlev_p: polarisation noise level (in :math:`\mu `K-arcmin)
+            beam_fwhm: Gaussian beam full width half maximum in arcmin
+            cls_unl(dict): unlensed CMB power spectra
+            lmin_ivf: minimal CMB multipole used in the QE
+            lmax_ivf: maximal CMB multipole used in the QE
+            itermax: number of iterations to perform
+            lmax_qlm(optional): maximum lensing multipole to consider. Defaults to :math:`2 lmax_ivf`
+
+        Returns
+            Array of shape (itermax + 1, lmax_qlm + 1) with all iterated N0s. First entry is standard N0.
+
+    #FIXME: this is requiring the full camb python package for the lensed spectra calc.
+
+     """
+
+    assert qe_key[0] == 'p', qe_key
+    try:
+        from camb.correlations import lensed_cls
+    except ImportError:
+        print("could not import camb.correlations.lensed_cls")
+
+    def cls2dls(cls):
+        """Turns cls dict. into camb cl array format"""
+        keys = ['tt', 'ee', 'bb', 'te']
+        lmax = np.max([len(cl) for cl in cls.values()]) - 1
+        dls = np.zeros((lmax + 1, 4), dtype=float)
+        refac = 2. * np.pi * np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)
+        for i, k in enumerate(keys):
+            cl = cls.get(k, np.zeros(lmax + 1, dtype=float))
+            sli = slice(0, min(len(cl), lmax + 1))
+            dls[sli, i] = cl[sli] * refac[sli]
+        cldd = np.copy(cls.get('pp', None))
+        if cldd is not None:
+            cldd *= np.arange(len(cldd)) ** 2 * np.arange(1, len(cldd) + 1, dtype=float) ** 2 * 0.5 / np.pi
+        return dls, cldd
+
+    def dls2cls(dls):
+        """Inverse operation to cls2dls"""
+        assert dls.shape[1] == 4
+        lmax = dls.shape[0] - 1
+        cls = {}
+        refac = utils.cli(2. * np.pi * np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float))
+
+        for i, k in enumerate(['tt', 'ee', 'bb', 'te']):
+            cls[k] = dls[:, i] * refac
+        return cls
+    if lmax_qlm is None:
+        lmax_qlm = 2 * lmax_ivf
+    lmax_qlm = min(lmax_qlm, 2 * lmax_ivf)
+    lmin_ivf = max(lmin_ivf, 1)
+    transfi2 = utils.cli(hp.gauss_beam(beam_fwhm / 180. / 60. * np.pi, lmax=lmax_ivf)) ** 2
+    llp2 = np.arange(lmax_qlm + 1, dtype=float) ** 2 * np.arange(1, lmax_qlm + 2, dtype=float) ** 2 * 0.5 / np.pi
+    dls, cldd = cls2dls(cls_unl)
+    N0s = []
+    N0 = np.inf
+    for irr, it in utils.enumerate_progress(range(itermax + 1)):
+        clwf = 0. if it == 0 else cldd[:lmax_qlm + 1] * utils.cli(cldd[:lmax_qlm + 1] + llp2 * N0[:lmax_qlm + 1])
+        cldd[:lmax_qlm + 1] *= (1. - clwf)
+        cls_plen = dls2cls(lensed_cls(dls, cldd))
+        cls_ivfs = utils.cl_inverse({
+            'tt': cls_plen['tt'][:lmax_ivf + 1] + (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2,
+            'ee': cls_plen['ee'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2,
+            'bb': cls_plen['bb'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2,
+            'te': cls_plen['te'][:lmax_ivf + 1]})
+        for cl in cls_ivfs.values():
+            cl[:lmin_ivf] *= 0.
+        n_gg = get_nhl(qe_key, qe_key, cls_plen, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)[0]
+        fal = cls_ivfs
+        r_gg = qresp.get_response(qe_key, lmax_ivf, 'p', cls_plen, cls_plen, fal, lmax_qlm=lmax_qlm)[0]
+        N0 = n_gg * utils.cli(r_gg ** 2)
+        N0s.append(N0)
+    return np.array(N0s)
+
+
