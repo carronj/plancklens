@@ -314,9 +314,9 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     elif qe_key == 'p_p':
         assert not np.any(cls_cmb['bb']), 'not implemented w. bb weights'
         cl_cmbtoticmb = {'ee': cls_cmb['ee'][:lmax_qe + 1] ** 2 * cls_ivfs['ee'][:lmax_qe + 1],
-                         'bb': np.zeros(lmax_qe + 1, dtype=float)}
+                         'bb': cls_cmb['bb'][:lmax_qe + 1] ** 2 * cls_ivfs['bb'][:lmax_qe + 1]}
         cl_cmbtoti = {'ee': cls_cmb['ee'][:lmax_qe + 1] * cls_ivfs['ee'][:lmax_qe + 1],
-                      'bb': np.zeros(lmax_qe + 1, dtype=float)}
+                      'bb': cls_cmb['bb'][:lmax_qe + 1] * cls_ivfs['bb'][:lmax_qe + 1]}
     else:
         assert 0, 'not implemented'
     # Build remaining fisher term II:
