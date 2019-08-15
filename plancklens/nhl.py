@@ -224,7 +224,7 @@ def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, 
         keys = ['tt', 'ee', 'bb', 'te']
         lmax = np.max([len(cl) for cl in cls.values()]) - 1
         dls = np.zeros((lmax + 1, 4), dtype=float)
-        refac = 2. * np.pi * np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)
+        refac = np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float) / ((2. * np.pi) ** 2)
         for i, k in enumerate(keys):
             cl = cls.get(k, np.zeros(lmax + 1, dtype=float))
             sli = slice(0, min(len(cl), lmax + 1))
@@ -239,8 +239,7 @@ def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, 
         assert dls.shape[1] == 4
         lmax = dls.shape[0] - 1
         cls = {}
-        refac = utils.cli(2. * np.pi * np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float))
-
+        refac = 2. * np.pi * utils.cli( np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float))
         for i, k in enumerate(['tt', 'ee', 'bb', 'te']):
             cls[k] = dls[:, i] * refac
         return cls
