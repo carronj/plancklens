@@ -291,8 +291,6 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     """
     # This version looks stable enough
     assert qe_key in ['p_p', 'ptt'], qe_key
-    assert not np.any(cls_cmb.get('tb', 0.)) and not np.any(cls_cmb.get('eb', 0.)), 'version with CMB EB or TB not implemented'
-    assert not np.any(cls_ivfs.get('tb', 0.)) and not np.any(cls_ivfs.get('eb', 0.)), 'version with filt EB or TB not implemented'
 
     GL = np.zeros(lmax_out + 1, dtype=float)
     CL = np.zeros(lmax_out + 1, dtype=float)
