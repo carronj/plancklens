@@ -217,7 +217,7 @@ def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, 
     try:
         from camb.correlations import lensed_cls
     except ImportError:
-        print("could not import camb.correlations.lensed_cls")
+        assert 0, "could not import camb.correlations.lensed_cls"
 
     def cls2dls(cls):
         """Turns cls dict. into camb cl array format"""
@@ -257,18 +257,18 @@ def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, 
         cldd[:lmax_qlm + 1] *= (1. - clwf)
         cls_plen = dls2cls(lensed_cls(dls_unl, cldd))
         cls_ivfs = {}
-        if qe_key in ['ptt', 'p_p']:
+        if qe_key in ['ptt', 'p_p', 'p']:
             cls_ivfs['tt'] = cls_plen['tt'][:lmax_ivf + 1] + (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
         if qe_key in ['p_p', 'p']:
             cls_ivfs['ee'] = cls_plen['ee'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
             cls_ivfs['bb'] = cls_plen['bb'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
         if qe_key in ['p']:
-            cls_ivfs['te'] = cls_plen['te'][:lmax_ivf + 1]
+            cls_ivfs['te'] = np.copy(cls_plen['te'][:lmax_ivf + 1])
         cls_ivfs = utils.cl_inverse(cls_ivfs)
         for cl in cls_ivfs.values():
             cl[:lmin_ivf] *= 0.
-        n_gg = get_nhl(qe_key, qe_key, cls_plen, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)[0]
         fal = cls_ivfs
+        n_gg = get_nhl(qe_key, qe_key, cls_plen, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)[0]
         r_gg = qresp.get_response(qe_key, lmax_ivf, 'p', cls_plen, cls_plen, fal, lmax_qlm=lmax_qlm)[0]
         N0 = n_gg * utils.cli(r_gg ** 2)
         N0s.append(N0)
