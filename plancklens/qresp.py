@@ -324,7 +324,7 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
         for s2 in spins:
             cl1 = uspin.spin_cls(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
             # These 1/2 factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to T E B.
-            cl2 = uspin.spin_cls(s2, s1, cls_cmb)[:lmax_cmb + 1]
+            cl2 = np.copy(uspin.spin_cls(s2, s1, cls_cmb)[:lmax_cmb + 1])
             cl2[:lmax_qe + 1] -= uspin.spin_cls(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
             if np.any(cl1) and np.any(cl2):
                 for a in [-1, 1]:
