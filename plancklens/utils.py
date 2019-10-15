@@ -85,8 +85,8 @@ def projectmap(hpmap, lcell_amin, Npts, lon_lat= (0., -45. )):
     lon, lat = lon_lat
     assert 0. <= lon <= 360. and -90. <= lat <= 90., (lon,lat)
     _lon = lon if lon <= 180 else lon - 360
-    lonra = (-lcell_amin * Npts / 60. / 2., lcell_amin / 60 * Npts / 2.)
-    latra = (-lcell_amin * Npts / 60  / 2., lcell_amin / 60 * Npts / 2.)
+    lonra = [-lcell_amin * Npts / 60. / 2., lcell_amin / 60 * Npts / 2.]
+    latra = [-lcell_amin * Npts / 60  / 2., lcell_amin / 60 * Npts / 2.]
     P = CartesianProj(rot = [_lon,lat,0.],lonra=lonra, latra=latra, xsize=Npts, ysize=Npts)
     P.set_flip('astro')
     return P.projmap(hpmap, lambda x, y, z: hp.vec2pix(hp.npix2nside(len(hpmap)), x, y, z)), P
