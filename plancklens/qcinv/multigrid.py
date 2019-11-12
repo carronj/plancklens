@@ -74,7 +74,7 @@ class multigrid_chain:
         if stage.depth > self.plogdepth:
             return
 
-        log_str = '   ' * stage.depth + '(%4d, %04d) [%s] (%d, %f)' % (
+        log_str = '   ' * stage.depth + '(%4d, %04d) [%s] (%d, %.8f)' % (
         stage.nside, stage.lmax, str(elapsed), iter, eps) + '\n'
         sys.stdout.write(log_str)
 
