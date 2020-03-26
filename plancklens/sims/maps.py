@@ -19,7 +19,7 @@ class cmb_maps(object):
             lib_dir(optional): hash checks will be cached, as well as possibly other things for subclasses.
 
     """
-    def __init__(self, sims_cmb_len, cl_transf,nside=2048,lib_dir=None):
+    def __init__(self, sims_cmb_len, cl_transf, nside=2048, lib_dir=None):
         self.sims_cmb_len = sims_cmb_len
         self.cl_transf = cl_transf
         self.nside = nside
