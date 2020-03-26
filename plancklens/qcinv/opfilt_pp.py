@@ -133,13 +133,20 @@ class alm_filter_sinv:
 
 
 class alm_filter_ninv(object):
-    """Missing doc.
+    def __init__(self, n_inv, b_transf, nlev_febl=None):
+        """Inverse-variance filtering instance for polarization only
 
-    Note:
-        This implementation does not support template projection.
+            Args:
+                n_inv: inverse pixel variance maps or masks
+                b_transf: filter fiducial transfer function
+                nlev_febl(optional): isotropic approximation to the noise level across the entire map
+                                     this is used e.g. in the diag. preconditioner of cg inversion.
 
-     """
-    def __init__(self, n_inv, b_transf):
+            Note:
+                This implementation does not support template projection.
+
+
+        """
         self.n_inv = []
         for i, tn in enumerate(n_inv):
             if isinstance(tn, list):
@@ -172,18 +179,19 @@ class alm_filter_ninv(object):
 
         self.npix = npix
         self.nside = nside
+        if nlev_febl is None:
+            if len(self.n_inv) == 1:
+                nlev_febl =  10800. / np.sqrt(np.sum(self.n_inv[0]) / (4.0 * np.pi)) / np.pi
+            elif len(self.n_inv) == 3:
+                nlev_febl = 10800. / np.sqrt(np.sum(0.5 * (self.n_inv[0] + self.n_inv[2])) / (4.0 * np.pi))  / np.pi
+            else:
+                assert 0
+        self.nlev_febl = nlev_febl
+        print("ninv_febl: using %.2f uK-amin noise Cl"%self.nlev_febl)
 
     def get_febl(self):
-        if len(self.n_inv) == 1:
-            n_inv_cl_p = np.sum(self.n_inv[0]) / (4.0 * np.pi) * self.b_transf ** 2
-
-            return n_inv_cl_p, n_inv_cl_p
-        elif len(self.n_inv) == 3:
-            n_inv_cl_p = np.sum(0.5 * (self.n_inv[0] + self.n_inv[2])) / (4.0 * np.pi) * self.b_transf ** 2
-
-            return n_inv_cl_p, n_inv_cl_p
-        else:
-            assert 0
+        n_inv_cl_p = (self.nlev_febl / 180. / 60. * np.pi) ** 2 * self.b_transf ** 2
+        return n_inv_cl_p, n_inv_cl_p
 
     def hashdict(self):
         return {'n_inv': [clhash(n) for n in self.n_inv],
