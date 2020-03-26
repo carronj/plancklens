@@ -190,7 +190,7 @@ class alm_filter_ninv(object):
         print("ninv_febl: using %.2f uK-amin noise Cl"%self.nlev_febl)
 
     def get_febl(self):
-        n_inv_cl_p = (self.nlev_febl / 180. / 60. * np.pi) ** 2 * self.b_transf ** 2
+        n_inv_cl_p = self.b_transf ** 2  / (self.nlev_febl / 180. / 60. * np.pi) ** 2
         return n_inv_cl_p, n_inv_cl_p
 
     def hashdict(self):
