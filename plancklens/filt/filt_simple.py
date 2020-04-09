@@ -86,7 +86,7 @@ class library_sepTP(object):
         """
         tfname = os.path.join(self.lib_dir, 'sim_%04d_tlm.fits'%idx if idx >= 0 else 'dat_tlm.fits')
         if not os.path.exists(tfname):
-            tlm = self._apply_ivf_t(self.sim_lib.get_sim_tmap(idx), soltn=None if self.soltn_lib is None else self.soltn_lib.get_sol_tlm(idx))
+            tlm = self._apply_ivf_t(self.sim_lib.get_sim_tmap(idx), soltn=None if self.soltn_lib is None else self.soltn_lib.get_sim_tlm(idx))
             if self.cache: hp.write_alm(tfname, tlm)
             return tlm
         return hp.read_alm(tfname)
@@ -103,7 +103,11 @@ class library_sepTP(object):
         """
         tfname = os.path.join(self.lib_dir, 'sim_%04d_elm.fits'%idx  if idx >= 0 else 'dat_elm.fits')
         if not os.path.exists(tfname):
-            elm, blm = self._apply_ivf_p(self.sim_lib.get_sim_pmap(idx))
+            if self.soltn_lib is None:
+                soltn = None
+            else:
+                soltn = np.array(self.soltn_lib.get_sim_elm(idx), self.soltn_lib.get_sim_blm(idx))
+            elm, blm = self._apply_ivf_p(self.sim_lib.get_sim_pmap(idx), soltn=soltn)
             if self.cache:
                 hp.write_alm(tfname, elm)
                 hp.write_alm(os.path.join(self.lib_dir, 'sim_%04d_blm.fits'%idx if idx >= 0 else 'dat_blm.fits'), blm)
