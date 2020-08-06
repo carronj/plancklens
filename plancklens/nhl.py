@@ -249,10 +249,10 @@ def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, 
     lmin_ivf = max(lmin_ivf, 1)
     transfi2 = utils.cli(hp.gauss_beam(beam_fwhm / 180. / 60. * np.pi, lmax=lmax_ivf)) ** 2
     llp2 = np.arange(lmax_qlm + 1, dtype=float) ** 2 * np.arange(1, lmax_qlm + 2, dtype=float) ** 2 / (2. * np.pi)
-    dls_unl, cldd = cls2dls(cls_unl)
     N0s = []
     N0 = np.inf
     for irr, it in utils.enumerate_progress(range(itermax + 1)):
+        dls_unl, cldd = cls2dls(cls_unl)
         clwf = 0. if it == 0 else cldd[:lmax_qlm + 1] * utils.cli(cldd[:lmax_qlm + 1] + llp2 * N0[:lmax_qlm + 1])
         cldd[:lmax_qlm + 1] *= (1. - clwf)
         cls_plen = dls2cls(lensed_cls(dls_unl, cldd))
