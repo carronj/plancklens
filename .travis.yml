@@ -7,17 +7,6 @@ git:
 
 matrix:
   include:
-    - name: "GCC6"
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - gfortran-6
-      env:
-        - GCC_VERSION="6"
-        - CHANNEL="defaults"
-      python: "2.7"
     - name: "GCC9"
       addons:
         apt:
