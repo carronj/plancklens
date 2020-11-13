@@ -116,7 +116,7 @@ def qe_spin_data(qe_key):
         unordered list of unique spins (>= 0) input to the estimator, and the spin-1 qe key.
 
     """
-    qes = get_qes(qe_key, 3, {k:np.array([1.]) for k in ['tt', 'te', 'ee', 'tb', 'eb', 'bb']})
+    qes = get_qes(qe_key, 3, {k:np.array([1.]) for k in ['tt', 'te', 'ee', 'bb']})
     spins_out = [qe.leg_a.spin_ou + qe.leg_b.spin_ou for qe in qes]
     spins_in = np.unique(np.abs([qe.leg_a.spin_in for qe in qes] + [qe.leg_b.spin_in for qe in qes]))
     assert len(np.unique(spins_out)) == 1, spins_out
