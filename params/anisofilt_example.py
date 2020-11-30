@@ -97,8 +97,6 @@ fel = np.ones(lmax_ivf + 1, dtype=float) * (np.arange(lmax_ivf + 1) >= lmin_ivf)
 fbl = np.ones(lmax_ivf + 1, dtype=float) * (np.arange(lmax_ivf + 1) >= lmin_ivf)
 ivfs   = filt_util.library_ftl(ivfs_raw, lmax_ivf, ftl, fel, fbl)
 
-#: Inverse-variance filtering instance. Here a trivial isotropic inverse variance weighting.
-
 #---- QE libraries instances. For the MCN0, RDN0, MC-correction etc calculation, we need in general three of them,
 # which we called qlms_dd, qlms_ds, qlms_ss.
 # qlms_dd is the QE library which builds a lensing estimate with the same simulation on both legs
