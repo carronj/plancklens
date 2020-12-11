@@ -45,7 +45,7 @@ class library(object):
                 for i in [1, 2, 3, 4]:
                     for j in [1, 2, 3, 4][i - 1:]:
                         fskies[10 * i + j] = np.mean(ms[i] * ms[j])
-                fskies[1234] = np.mean(ms[1] * ms[2] * ms[3] * ms[3])
+                fskies[1234] = np.mean(ms[1] * ms[2] * ms[3] * ms[4])
                 with open(fsname, 'w') as f:
                     for lab, _f in zip(np.sort(list(fskies.keys())), np.array(list(fskies.values()))[np.argsort(list(fskies.keys()))]):
                         f.write('%4s %.5f \n' % (lab, _f))

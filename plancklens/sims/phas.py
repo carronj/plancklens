@@ -175,6 +175,9 @@ class lib_phas:
         for i in range(nfields):
             self.lib_phas[i] = _lib_phas(os.path.join(lib_dir, 'pha_%04d'%i), lmax, **kwargs)
 
+    def __getitem__(self, item):
+        return self.lib_phas[item]
+
     def is_full(self):
         return np.all([lib.is_full() for lib in self.lib_phas.values()])
 

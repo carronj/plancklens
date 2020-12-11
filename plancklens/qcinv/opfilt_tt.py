@@ -98,7 +98,8 @@ def pre_op_dense(lmax, fwd_op, cache_fname=None):
 
 class alm_filter_ninv(object):
     """Missing doc. """
-    def __init__(self, n_inv, b_transf, marge_monopole=False, marge_dipole=False, marge_uptolmin=-1, marge_maps=()):
+    def __init__(self, n_inv, b_transf,
+                 marge_monopole=False, marge_dipole=False, marge_uptolmin=-1, marge_maps=(), nlev_ftl=None):
         if isinstance(n_inv, list):
             n_inv_prod = util.load_map(n_inv[0])
             if len(n_inv) > 1:
@@ -151,6 +152,11 @@ class alm_filter_ninv(object):
         self.templates = templates
         self.templates_hash = templates_hash
 
+        if nlev_ftl is None:
+            nlev_ftl =  10800. / np.sqrt(np.sum(self.n_inv) / (4.0 * np.pi)) / np.pi
+        self.nlev_ftl = nlev_ftl
+        print("ninv_ftl: using %.2f uK-amin noise Cl"%self.nlev_ftl)
+
     def hashdict(self):
         return {'n_inv': clhash(self.n_inv),
                 'b_transf': clhash(self.b_transf),
@@ -160,7 +166,7 @@ class alm_filter_ninv(object):
                 'marge_uptolmin': self.marge_uptolmin}
 
     def get_ftl(self):
-        return np.sum(self.n_inv) / (4.0 * np.pi) * self.b_transf ** 2
+        return  self.b_transf ** 2 / (self.nlev_ftl / 60. /180. *  np.pi) ** 2
 
 
     def degrade(self, nside):

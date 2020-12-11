@@ -119,7 +119,7 @@ def qe_spin_data(qe_key):
         unordered list of unique spins (>= 0) input to the estimator, and the spin-1 qe key.
 
     """
-    qes = get_qes(qe_key, 3, {k:np.array([1.]) for k in ['tt', 'te', 'ee', 'tb', 'eb', 'bb']})
+    qes = get_qes(qe_key, 3, {k:np.array([1.]) for k in ['tt', 'te', 'ee', 'bb']})
     spins_out = [qe.leg_a.spin_ou + qe.leg_b.spin_ou for qe in qes]
     spins_in = np.unique(np.abs([qe.leg_a.spin_in for qe in qes] + [qe.leg_b.spin_in for qe in qes]))
     assert len(np.unique(spins_out)) == 1, spins_out
@@ -294,8 +294,6 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     """
     # This version looks stable enough
     assert qe_key in ['p_p', 'ptt'], qe_key
-    assert not np.any(cls_cmb.get('tb', 0.)) and not np.any(cls_cmb.get('eb', 0.)), 'version with CMB EB or TB not implemented'
-    assert not np.any(cls_ivfs.get('tb', 0.)) and not np.any(cls_ivfs.get('eb', 0.)), 'version with filt EB or TB not implemented'
 
     GL = np.zeros(lmax_out + 1, dtype=float)
     CL = np.zeros(lmax_out + 1, dtype=float)
@@ -315,11 +313,10 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
         cl_cmbtoticmb = {'tt': cls_cmb['tt'][:lmax_qe + 1] ** 2 * cls_ivfs['tt'][:lmax_qe + 1]}
         cl_cmbtoti = {'tt': cls_cmb['tt'][:lmax_qe + 1] * cls_ivfs['tt'][:lmax_qe + 1]}
     elif qe_key == 'p_p':
-        assert not np.any(cls_cmb['bb']), 'not implemented w. bb weights'
         cl_cmbtoticmb = {'ee': cls_cmb['ee'][:lmax_qe + 1] ** 2 * cls_ivfs['ee'][:lmax_qe + 1],
-                         'bb': np.zeros(lmax_qe + 1, dtype=float)}
+                         'bb': cls_cmb['bb'][:lmax_qe + 1] ** 2 * cls_ivfs['bb'][:lmax_qe + 1]}
         cl_cmbtoti = {'ee': cls_cmb['ee'][:lmax_qe + 1] * cls_ivfs['ee'][:lmax_qe + 1],
-                      'bb': np.zeros(lmax_qe + 1, dtype=float)}
+                      'bb': cls_cmb['bb'][:lmax_qe + 1] * cls_ivfs['bb'][:lmax_qe + 1]}
     else:
         assert 0, 'not implemented'
     # Build remaining fisher term II:
@@ -330,7 +327,7 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
         for s2 in spins:
             cl1 = uspin.spin_cls(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
             # These 1/2 factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to T E B.
-            cl2 = uspin.spin_cls(s2, s1, cls_cmb)[:lmax_cmb + 1]
+            cl2 = np.copy(uspin.spin_cls(s2, s1, cls_cmb)[:lmax_cmb + 1])
             cl2[:lmax_qe + 1] -= uspin.spin_cls(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
             if np.any(cl1) and np.any(cl2):
                 for a in [-1, 1]:

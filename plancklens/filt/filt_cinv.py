@@ -299,13 +299,16 @@ class cinv_p(cinv):
 
     def apply_ivf(self, tmap, soltn=None):
         if soltn is not None:
-            print("**** cinv_p::Discarding soltn in cinv_p")
+            assert len(soltn) == 2
+            assert hp.Alm.getlmax(soltn[0].size) == self.lmax, (hp.Alm.getlmax(soltn[0].size), self.lmax)
+            assert hp.Alm.getlmax(soltn[1].size) == self.lmax, (hp.Alm.getlmax(soltn[1].size), self.lmax)
+            talm = util_alm.eblm([soltn[0], soltn[1]])
+        else:
+            telm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
+            tblm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
+            talm = util_alm.eblm([telm, tblm])
+
         assert len(tmap) == 2
-
-        telm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
-        tblm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
-        talm = util_alm.eblm([telm, tblm])
-
         self.chain.solve(talm, [tmap[0], tmap[1]])
 
         return talm.elm, talm.blm

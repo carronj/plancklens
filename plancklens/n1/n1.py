@@ -132,7 +132,7 @@ else:
             if kA in estimator_keys and kB in estimator_keys:
                 if kA < kB:
                     return self.get_n1(kB, k_ind, cl_kind, ftlA, felA, fblA, Lmax, ftlB=ftlB, felB=felB, fblB=fblB, kB=kA,
-                                       clttfid=clttfid, cltefid=cltefid, cleefid=cleefid, n1_flat=n1_flat)
+                                       clttfid=clttfid, cltefid=cltefid, cleefid=cleefid, n1_flat=n1_flat, sglLmode=sglLmode)
 
                 idx = 'splined_kA' + kA + '_kB' + kB + '_ind' + k_ind
                 idx += '_clpp' + clhash(cl_kind)
@@ -174,7 +174,7 @@ else:
                     for (tk2, cl2) in _get_est_derived(kB, Lmax):
                         tret = self.get_n1(tk1, k_ind, cl_kind, ftlA, felA, fblA, Lmax, ftlB=ftlB, felB=felB, fblB=fblB,
                                            clttfid=clttfid, cltefid=cltefid, cleefid=cleefid,
-                                           kB=tk2, n1_flat=n1_flat)
+                                           kB=tk2, n1_flat=n1_flat, sglLmode=sglLmode)
                         tret *= cl1[:Lmax + 1]
                         tret *= cl2[:Lmax + 1]
                         ret += tret
@@ -184,7 +184,7 @@ else:
                 for (tk1, cl1) in _get_est_derived(kA, Lmax):
                     tret = self.get_n1(tk1, k_ind, cl_kind, ftlA, felA, fblA, Lmax, ftlB=ftlB, felB=felB, fblB=fblB, kB=kB,
                                        clttfid=clttfid, cltefid=cltefid, cleefid=cleefid,
-                                       n1_flat=n1_flat)
+                                       n1_flat=n1_flat, sglLmode=sglLmode)
                     tret *= cl1[:Lmax + 1]
                     ret += tret
                 return ret
@@ -193,7 +193,7 @@ else:
                 for (tk2, cl2) in _get_est_derived(kB, Lmax):
                     tret = self.get_n1(kA, k_ind, cl_kind, ftlA, felA, fblA, Lmax, ftlB=ftlB, felB=felB, fblB=fblB, kB=tk2,
                                        clttfid=clttfid, cltefid=cltefid, cleefid=cleefid,
-                                       n1_flat=n1_flat)
+                                       n1_flat=n1_flat, sglLmode=sglLmode)
                     tret *= cl2[:Lmax + 1]
                     ret += tret
                 return ret

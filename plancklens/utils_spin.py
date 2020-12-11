@@ -95,7 +95,7 @@ def get_spin_raise(s, lmax):
 def get_spin_lower(s, lmax):
     r"""Response coefficient of spin-s spherical harmonic to spin lowering operator.
 
-        :math:`\sqrt{ (l + s) (l - s + 1) }` for abs(s) <= l <= lmax
+        :math:`-\sqrt{ (l + s) (l - s + 1) }` for abs(s) <= l <= lmax
 
     """
     ret = np.zeros(lmax + 1, dtype=float)
