@@ -12,13 +12,13 @@ def _read_map(m):
     return m
 
 
-def get_patchy_N0s(qe_key, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_dat, cls_cmb_filt, cls_weight, lmin_ivf, lmax_ivf, lmax_qlm, transf,
+def get_patchy_N0s(qekey_in, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_dat, cls_cmb_filt, cls_weight, lmin_ivf, lmax_ivf, lmax_qlm, transf,
                   rvmap_uKamin_t_data=None, rvmap_uKamin_p_data=None, joint_TP=False,
                   nlevt_fid=None, nlevp_fid=None, cacher=cachers.cacher_mem(), source='p'):
     """Collects the effective reconstruction noise levels for different filtering and spectrum weighting schemes
 
         Args:
-            qe_key: QE anisotroy key
+            qekey_in: QE anisotroy key
             npatches: the variance map will be split into this number of regions of equal sky areas
             pixivmap_t: inverse temperature noise pixel variance map
             pixivmap_p: inverse polarization noise pixel variance map
@@ -46,7 +46,9 @@ def get_patchy_N0s(qe_key, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_da
 
     """
 
-    assert qe_key[0] == 'p', 'fix curl fiducial and MC correction'
+    assert qekey_in[0] in ['p', 'x'], 'fix curl fiducial and MC correction'
+    qe_key = 'p' + qekey_in[1:]
+
     nlevst_ftl, nlevst_data, _nlevt_fid, fskiest, masks = mk_patches(npatches, pixivmap_t, rvmap_uKamin_data=rvmap_uKamin_t_data)
     nlevsp_ftl, nlevsp_data, _nlevp_fid, fskiesp, masks = mk_patches(npatches, pixivmap_p, rvmap_uKamin_data=rvmap_uKamin_p_data)
     if nlevt_fid is None: nlevt_fid = _nlevt_fid
@@ -54,7 +56,11 @@ def get_patchy_N0s(qe_key, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_da
 
     assert np.allclose(fskiest, fskiesp, atol=1e-6), (np.array(fskiest)-np.array(fskiesp), fskiesp)
     fskies = fskiest
+
     cpp = cls_unl['pp'][:lmax_qlm+1]
+    rid = 0 if qekey_in[0] == 'p' else 1
+    if qekey_in[0] == 'x':
+        cpp *= 0.
 
     rfid = get_responses(qe_key, cls_cmb_dat, cls_cmb_filt, cls_weight, lmin_ivf, lmax_ivf, lmax_qlm, transf, [nlevt_fid], [nlevp_fid],
                   joint_TP=joint_TP, cacher=cacher, source=source)[0]
@@ -71,18 +77,18 @@ def get_patchy_N0s(qe_key, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_da
     cMCcorr_vmap = np.zeros(lmax_qlm + 1, dtype=float)
 
     fsky_tot = np.sum(fskies)
-    rfidi = utils.cli(rfid[0])
+    rfidi = utils.cli(rfid[rid])
 
     for i, (fsky, resp, nhl_pd, nhl_fd) in enumerate(zip(fskies, resps, nhls_pds, nhls_fds)):
         fp_f = fsky / fsky_tot
-        Rp_Rf = resp[0] * rfidi
-        N0s['hom-filt, no-rew'] += fp_f * (cpp + nhl_fd[0] * rfidi ** 2) ** 2
+        Rp_Rf = resp[rid] * rfidi
+        N0s['hom-filt, no-rew'] += fp_f * (cpp + nhl_fd[rid] * rfidi ** 2) ** 2
         # : spectrum of homo. filtered map without any spectra reweighting
-        N0s['inhom-filt, no-rew'] += fp_f * (Rp_Rf ** 2 * cpp + nhl_pd[0] * rfidi ** 2) ** 2
+        N0s['inhom-filt, no-rew'] += fp_f * (Rp_Rf ** 2 * cpp + nhl_pd[rid] * rfidi ** 2) ** 2
         # : spectrum of inhomo. filtered map without any spectra reweighting
-        N0s['hom-filt, mv-rew'] += fp_f * utils.cli((cpp + nhl_fd[0] * rfidi ** 2) ** 2)
+        N0s['hom-filt, mv-rew'] += fp_f * utils.cli((cpp + nhl_fd[rid] * rfidi ** 2) ** 2)
         # : inverse variance weighting of homog filtered map
-        N0s['inhom-filt, mv-rew'] += fp_f * utils.cli((cpp + nhl_pd[0] * rfidi ** 2 * utils.cli(Rp_Rf ** 2)) ** 2)
+        N0s['inhom-filt, mv-rew'] += fp_f * utils.cli((cpp + nhl_pd[rid] * rfidi ** 2 * utils.cli(Rp_Rf ** 2)) ** 2)
         # : inverse variance weighting of inhomog filtered map
 
         MCcorr_vmap += fp_f * Rp_Rf ** 2
