@@ -79,7 +79,7 @@ class ffp10_binner:
         clkk_fid = clpp_fid * kswitch
         qc_resp = parfile.qresp_dd.get_response(k1, ksource)[:lmaxphi+1] * parfile.qresp_dd.get_response(k2, ksource)[:lmaxphi+1]
         bin_lmins, bin_lmaxs, bin_centers = get_blbubc(btype)
-        vlpp_inv = qc_resp * (2 * np.arange(lmaxphi + 1) + 1) * (0.5 * parfile.qcls_dd.fsky1234)
+        vlpp_inv = qc_resp * (2 * np.arange(lmaxphi + 1) + 1) * (0.5 * getattr(parfile.qcls_dd, 'fsky1234', 1.)) # value irrelevant here
         vlpp_inv *= utils.cli(kswitch) ** 2
         vlpp_den = [np.sum(clkk_fid[slice(lmin, lmax + 1)] ** 2 * vlpp_inv[slice(lmin, lmax + 1)]) for lmin, lmax in zip(bin_lmins, bin_lmaxs)]
 
