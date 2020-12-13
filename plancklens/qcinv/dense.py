@@ -10,7 +10,7 @@ import numpy  as np
 import pickle as pk
 from healpy import Alm
 
-from .util_alm import eblm
+from .util_alm import eblm, teblm
 from plancklens.utils import enumerate_progress
 
 def alm2rlm(alm):
@@ -158,6 +158,89 @@ class pre_op_dense_pp:
         for t in fwd_op.n_inv_filt.templates_p:
             ntmpl += t.nmodes
         ntmpl += 8  # (1 mono + 3 dip) * (e+b)
+
+        print("computing dense preconditioner:")
+        print("     lmax  =", lmax)
+        print("     ntmpl =", ntmpl)
+
+        for j, i in enumerate_progress(np.arange(0, nrlm), label= 'filling matrix'):
+            trlm[i] = 1.0
+            tmat[:, i] = self.alm2rlm(fwd_op(self.rlm2alm(trlm)))
+            trlm[i] = 0.0
+
+        print("   inverting M...")
+        eigv, eigw = np.linalg.eigh(tmat)
+
+        assert np.all(eigv[ntmpl:] > 0.)
+        eigv_inv = np.zeros_like(eigv)
+        eigv_inv[ntmpl:] = 1.0 / eigv[ntmpl:]
+
+        if ntmpl > 0:
+            # do nothing to the ntmpl eigenmodes
+            # with the lowest eigenvalues.
+            print("     eigv[ntmpl-1] = ", eigv[ntmpl - 1])
+            print("     eigv[ntmpl]   = ", eigv[ntmpl])
+            eigv_inv[0:ntmpl] = 1.0
+
+        self.minv = np.dot(np.dot(eigw, np.diag(eigv_inv)), np.transpose(eigw))
+
+        if cache_fname is not None:
+            pk.dump([lmax, self.hashdict(lmax, fwd_op), self.minv], open(cache_fname, 'wb'))
+
+    @staticmethod
+    def hashdict(lmax, fwd_op):
+        return {'lmax': lmax, 'fwd_op': fwd_op.hashdict()}
+
+    def __call__(self, talm):
+        return self.calc(talm)
+
+    def calc(self, talm):
+        return self.rlm2alm(np.dot(self.minv, self.alm2rlm(talm)))
+
+class pre_op_dense_tp:
+    """Missing doc. """
+    def __init__(self, lmax, fwd_op, cache_fname=None):
+        if (cache_fname is not None) and os.path.exists(cache_fname):
+            [cache_lmax, cache_hashdict, cache_minv] = pk.load(open(cache_fname, 'rb'))
+            self.minv = cache_minv
+
+            if (lmax != cache_lmax) or (self.hashdict(lmax, fwd_op) != cache_hashdict):
+                print("WARNING: PRE_OP_DENSE CACHE: hashcheck failed. recomputing.")
+                os.remove(cache_fname)
+                self.compute_minv(lmax, fwd_op, cache_fname=cache_fname)
+        else:
+            self.compute_minv(lmax, fwd_op, cache_fname=cache_fname)
+
+    @staticmethod
+    def alm2rlm(alm):
+        rlm = np.zeros(3 * (alm.lmax + 1) ** 2, dtype=float)
+        rlm[0 * (alm.lmax + 1) ** 2:1 * (alm.lmax + 1) ** 2] = alm2rlm(alm.tlm)
+        rlm[1 * (alm.lmax + 1) ** 2:2 * (alm.lmax + 1) ** 2] = alm2rlm(alm.elm)
+        rlm[2 * (alm.lmax + 1) ** 2:3 * (alm.lmax + 1) ** 2] = alm2rlm(alm.blm)
+
+        return rlm
+
+    @staticmethod
+    def rlm2alm(rlm):
+        lmax = int(np.sqrt(len(rlm) // 3) - 1)
+        return teblm([rlm2alm(rlm[0 * (lmax + 1) ** 2:1 * (lmax + 1) ** 2]),
+                      rlm2alm(rlm[1 * (lmax + 1) ** 2:2 * (lmax + 1) ** 2]),
+                      rlm2alm(rlm[2 * (lmax + 1) ** 2:3 * (lmax + 1) ** 2])])
+
+    def compute_minv(self, lmax, fwd_op, cache_fname=None):
+        if cache_fname is not None:
+            assert not os.path.exists(cache_fname)
+
+        nrlm = 3 * (lmax + 1) ** 2
+        trlm = np.zeros(nrlm)
+        tmat = np.zeros((nrlm, nrlm))
+
+        ntmpl = 0
+        for t in fwd_op.n_inv_filt.templates_p:
+            ntmpl += t.nmodes # This should include mono and possibly dip
+        for t in fwd_op.n_inv_filt.templates_p:
+            ntmpl += t.nmodes
+        ntmpl += 9  # (1 mono + 3 dip) * (e+b)
 
         print("computing dense preconditioner:")
         print("     lmax  =", lmax)
