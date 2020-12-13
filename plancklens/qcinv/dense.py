@@ -118,6 +118,7 @@ class pre_op_dense_tt:
     def calc(self, talm):
         return rlm2alm(np.dot(self.minv, alm2rlm(talm)))
 
+pre_op_dense_kk = pre_op_dense_tt
 
 class pre_op_dense_pp:
     """Missing doc. """
