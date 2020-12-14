@@ -27,9 +27,12 @@ par = imp.load_source('run_qlms_parfile', args.parfile[0])
 jobs = []
 if args.ivt:
     jobs += [(idx, 't') for idx in range(args.imin, args.imax + 1)]
+    if args.ds and args.imin >= 0: #  Make data to avoid problems with ds librairies
+        jobs += [(-1, 't')]
 if args.ivp:
     jobs += [(idx, 'p') for idx in range(args.imin, args.imax + 1)]
-
+    if args.ds and args.imin >= 0: #  Make data to avoid problems with ds librairies
+        jobs += [(-1, 'p')]
 for i, (idx, lab) in enumerate(jobs[mpi.rank::mpi.size]):
     print('rank %s filtering sim %s %s, job %s in %s' % (mpi.rank, idx, lab, i, len(jobs)))
     if lab == 't':
