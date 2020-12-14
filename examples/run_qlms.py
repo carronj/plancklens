@@ -57,7 +57,7 @@ mpi.barrier()
 if args.mfdd:
     jobs = list(np.unique(np.concatenate([args.kA, args.kB])))
     jobs = [(job, 0) for job in jobs] + [(job, 1) for job in jobs]
-    for i, (k, id0) in jobs[mpi.rank::mpi.size]:
+    for i, (k, id0) in enumerate(jobs[mpi.rank::mpi.size]):
         print("rank %s doing %s QE MF %s"%(mpi.rank, k, id0))
         par.qlms_dd.get_sim_qlm_mf(k, par.qcls_dd.mc_sims_mf[id0::2])
 mpi.barrier()
