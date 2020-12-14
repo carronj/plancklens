@@ -45,7 +45,7 @@ for qlib in qlibs:
 for i, (qlib, idx, k) in enumerate(jobs[mpi.rank::mpi.size]):
     print('rank %s doing QE sim %s %s, qlm_lib %s, job %s in %s' % (mpi.rank, idx, k, qlib.lib_dir, i, len(jobs)))
     qlib.get_sim_qlm(k, idx)
-
+mpi.barrier()
 #--- unnormalized QE power spectra #FIXME: mfs
 qlibs = [par.qcls_dd] * args.dd + [par.qcls_ds] * args.ds +  [par.qcls_ss] * args.ss
 jobs = []
