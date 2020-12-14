@@ -1,4 +1,5 @@
 import argparse
+import numpy as np
 import imp
 from plancklens.helpers import mpi
 
@@ -15,7 +16,9 @@ parser.add_argument('-ivp', dest='ivp', action='store_true', help='do P. filteri
 parser.add_argument('-dd', dest='dd', action='store_true', help='perform dd qlms / qcls library QEs')
 parser.add_argument('-ds', dest='ds', action='store_true', help='perform ds qlms / qcls library QEs')
 parser.add_argument('-ss', dest='ss', action='store_true', help='perform ss qlms / qcls library QEs')
+parser.add_argument('-mfdd', dest='mfdd', action='store_true', help='perform dd qlms mean-fields for qcls keys')
 parser.add_argument('-kN', dest='kN', action='store', default=[], nargs='+', help='keys for QE semi-analytical noise spectra')
+
 
 args = parser.parse_args()
 par = imp.load_source('run_qlms_parfile', args.parfile[0])
@@ -46,7 +49,16 @@ for i, (qlib, idx, k) in enumerate(jobs[mpi.rank::mpi.size]):
     print('rank %s doing QE sim %s %s, qlm_lib %s, job %s in %s' % (mpi.rank, idx, k, qlib.lib_dir, i, len(jobs)))
     qlib.get_sim_qlm(k, idx)
 mpi.barrier()
-#--- unnormalized QE power spectra #FIXME: mfs
+
+#--- mean-fields
+if args.mfdd:
+    jobs = list(np.unique(np.concatenate([args.kA, args.kB])))
+    jobs = [(job, 0) for job in jobs] + [(job, 1) for job in jobs]
+    for i, (k, id0) in jobs[mpi.rank::mpi.size]:
+        print("rank %s doing %s QE MF %s"%(mpi.rank, k, id0))
+        par.qlms_dd.get_sim_qlm_mf(k, par.qcls_dd.mc_sims_mf[id0::2])
+mpi.barrier()
+#--- unnormalized QE power spectra
 qlibs = [par.qcls_dd] * args.dd + [par.qcls_ds] * args.ds +  [par.qcls_ss] * args.ss
 jobs = []
 for qlib in qlibs:
