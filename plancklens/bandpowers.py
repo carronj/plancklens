@@ -262,7 +262,7 @@ class ffp10_binner:
         """
         return self._get_binnedcl(self.get_ps_data(lmin_ss_s4=lmin_ss_s4, lmax_ss_s4=lmax_ss_s4)[-1])
 
-    def get_bamc(self):
+    def get_bamc(self, wn1=True):
         """Binned additive MC correction, with crude error bars.
 
             This compares the reconstruction on the simulations to the FFP10 input lensing spectrum.
@@ -278,7 +278,7 @@ class ffp10_binner:
         qc_norm = utils.cli(self.parfile.qresp_dd.get_response(self.k1, self.ksource)
                               * self.parfile.qresp_dd.get_response(self.k2, self.ksource))
         bp_stats = utils.stats(self.nbins)
-        bp_n1 = self.get_n1()
+        bp_n1 = self.get_n1() if wn1 else np.zeros(self.nbins, dtype=float)
         for i, idx in utils.enumerate_progress(self.parfile.mc_sims_var, label='collecting BP stats'):
             dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
             bp_stats.add(self._get_binnedcl(qc_norm *(dd - ss2) - cl_pred) - bp_n1)
