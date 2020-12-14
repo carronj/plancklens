@@ -42,7 +42,7 @@ for i, (idx, lab) in enumerate(jobs[mpi.rank::mpi.size]):
 mpi.barrier()
 
 # --- unnormalized QE calculation
-qlibs = [par.qlms_dd] * args.dd + [par.qlms_ds] * args.ds +  [par.qlms_ss] * args.ss
+qlibs = [par.qlms_dd] * args.dd +  [par.qlms_ss] * args.ss + [par.qlms_ds] * args.ds
 jobs = []
 for qlib in qlibs:
     for k in args.k:
@@ -62,7 +62,7 @@ if args.mfdd:
         par.qlms_dd.get_sim_qlm_mf(k, par.qcls_dd.mc_sims_mf[id0::2])
 mpi.barrier()
 #--- unnormalized QE power spectra
-qlibs = [par.qcls_dd] * args.dd + [par.qcls_ds] * args.ds +  [par.qcls_ss] * args.ss
+qlibs = [par.qcls_dd] * args.dd +  [par.qcls_ss] * args.ss + [par.qcls_ds] * args.ds
 jobs = []
 for qlib in qlibs:
     for kA in args.kA:
