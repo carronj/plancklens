@@ -26,7 +26,8 @@ from . import dense
 
 
 def calc_prep(maps, s_cls, n_inv_filt):
-    qmap, umap = np.copy(maps[0]), np.copy(maps[1])
+    qmap = np.copy(util.read_map(maps[0]))
+    umap = np.copy(util.read_map(maps[1]))
     assert len(qmap) == len(umap)
     lmax = len(n_inv_filt.b_transf) - 1
     npix = len(qmap)
