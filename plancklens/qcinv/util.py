@@ -3,7 +3,7 @@ from __future__ import print_function
 import time
 import numpy  as np
 import healpy as hp
-
+from plancklens import utils
 
 class dt:
     def __init__(self, _dt):
@@ -77,6 +77,20 @@ def read_map(m):
         return hp.read_map(m)
     m, field = m.split(',')
     return hp.read_map(m, field=int(field))
+
+def mask_hash(m, dtype=bool):
+    if m is None:
+        return "none"
+    if isinstance(m, list):
+        mh = _mask_hash(m[0], dtype=dtype)
+        for m2 in m[1:]:
+            mh += _mask_hash(m2, dtype=dtype)
+        return mh
+    if isinstance(m, str):
+        return m.replace('/','_sl_').replace('.', '_')
+    elif isinstance(m, np.ndarray):
+        return utils.clhash(m, dtype=dtype)
+    assert 0, 'not implemented'
 
 def load_map(f):
     if type(f) is str:
