@@ -156,8 +156,11 @@ class pre_op_dense_pp:
         tmat = np.zeros((nrlm, nrlm))
 
         ntmpl = 0
-        for t in fwd_op.n_inv_filt.templates_p:
-            ntmpl += t.nmodes
+        if getattr(fwd_op.n_inv_filt, 'templates_p', None) is None:
+            print("dense: did not find templates_p attribute")
+        else:
+            for t in fwd_op.n_inv_filt.templates_p:
+                ntmpl += t.nmodes
         ntmpl += 8  # (1 mono + 3 dip) * (e+b)
 
         print("computing dense preconditioner:")

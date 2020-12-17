@@ -82,14 +82,16 @@ def mask_hash(m, dtype=bool):
     if m is None:
         return "none"
     if isinstance(m, list):
-        mh = _mask_hash(m[0], dtype=dtype)
+        mh = mask_hash(m[0], dtype=dtype)
         for m2 in m[1:]:
-            mh += _mask_hash(m2, dtype=dtype)
+            mh += mask_hash(m2, dtype=dtype)
         return mh
     if isinstance(m, str):
         return m.replace('/','_sl_').replace('.', '_')
     elif isinstance(m, np.ndarray):
         return utils.clhash(m, dtype=dtype)
+    elif callable(m):
+        return 'callable'
     assert 0, 'not implemented'
 
 def load_map(f):
