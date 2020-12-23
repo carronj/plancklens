@@ -1,5 +1,6 @@
 import numpy  as np
 import healpy as hp
+from plancklens.qcinv.util import read_map
 
 class template:
     def __init__(self):
@@ -62,20 +63,20 @@ class template_qmap(template):
     def apply(self, pmap, coeffs):
         assert (len(coeffs) == self.nmodes)
         if len(pmap) == 2: # Q and U maps
-            pmap[0] *= self.map * coeffs[0]
+            pmap[0] *= read_map(self.map) * coeffs[0]
             pmap[1] *= 0.
         elif len(pmap) == 1: # Only Q
-            pmap[0] *= self.map * coeffs[0]
+            pmap[0] *= read_map(self.map)  * coeffs[0]
         else:
             assert 0
 
     def accum(self, pmap, coeffs):
         assert len(pmap) == 2, len(pmap)
         assert (len(coeffs) == self.nmodes)
-        pmap[0] += self.map * coeffs[0]
+        pmap[0] += read_map(self.map)  * coeffs[0]
 
     def dot(self, pmap):
-        return [np.sum(self.map * pmap[0])] # either Q, U or Q only
+        return [np.sum(read_map(self.map)  * pmap[0])] # either Q, U or Q only
 
 
 class template_umap(template):
@@ -89,27 +90,27 @@ class template_umap(template):
     def apply(self, pmap, coeffs):
         assert (len(coeffs) == self.nmodes)
         if len(pmap) == 2: # Q and U maps
-            pmap[1] *= self.map * coeffs[0]
+            pmap[1] *= read_map(self.map) * coeffs[0]
             pmap[0] *= 0.
         elif len(pmap) == 1: # Only U
-            pmap[0] *= self.map * coeffs[0]
+            pmap[0] *= read_map(self.map)  * coeffs[0]
         else:
             assert 0
 
     def accum(self, pmap, coeffs):
         assert (len(coeffs) == self.nmodes)
         if len(pmap) == 2: # Q and U maps
-            pmap[1] += self.map * coeffs[0]
+            pmap[1] += read_map(self.map) * coeffs[0]
         elif len(pmap) == 1: # Assumed U-only
-            pmap[0] += self.map * coeffs[0]
+            pmap[0] += read_map(self.map)  * coeffs[0]
         else:
             assert 0
 
     def dot(self, pmap):
         if len(pmap) == 2: # Q and U maps
-            return [np.sum(self.map * pmap[1])]
+            return [np.sum(read_map(self.map)  * pmap[1])]
         elif len(pmap) == 1: # Assumed U-only
-            return [np.sum(self.map * pmap[0])]
+            return [np.sum(read_map(self.map)  * pmap[0])]
         assert 0
 
 class template_monopole(template):
