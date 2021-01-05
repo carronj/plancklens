@@ -9,6 +9,8 @@ parser.add_argument('-imin', dest='imin', default=-1, type=int, help='starting i
 parser.add_argument('-imax', dest='imax', default=-2, type=int, help='last index')
 parser.add_argument('-k', dest='k', action='store', default=[], nargs='+',
                     help='QE keys (NB: both gradient and curl are calculated at the same time)')
+parser.add_argument('-kxi', dest='kxi', action='store', default=[], nargs='+',
+                    help='QE keys to calculate x to input to lensing for')
 parser.add_argument('-kA', dest='kA', action='store', default=[], nargs='+',  help='QE spectra keys (left leg)')
 parser.add_argument('-kB', dest='kB', action='store', default=[], nargs='+', help='QE spectra keys (right leg)')
 parser.add_argument('-ivt', dest='ivt', action='store_true', help='do T. filtering')
@@ -52,6 +54,17 @@ for i, (qlib, idx, k) in enumerate(jobs[mpi.rank::mpi.size]):
     print('rank %s doing QE sim %s %s, qlm_lib %s, job %s in %s' % (mpi.rank, idx, k, qlib.lib_dir, i, len(jobs)))
     qlib.get_sim_qlm(k, idx)
 mpi.barrier()
+
+# --- crosses to input:
+if hasattr(par, 'qlms_x_in'):
+    qlibs = [par.qlms_x_in]
+    jobs = []
+    for qlib in qlibs:
+        for k in args.kxi:
+            jobs += [(qlib, idx, k) for idx in range(args.imin, args.imax + 1)]
+    for i, (qlib, idx, k) in enumerate(jobs[mpi.rank::mpi.size]):
+        print('rank %s doing QE x inpu sim %s %s, job %s in %s' % (mpi.rank, idx, k, i, len(jobs)))
+        qlib.get_sim_qcl(k, idx)
 
 #--- mean-fields
 if args.mfdd:
