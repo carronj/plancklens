@@ -330,3 +330,19 @@ class ffp10_binner:
             mcn0_cov.add(self._get_binnedcl(qc_norm * dd))
         return mcn0_cov.cov()
 
+
+    def get_ampl_x_input(self, mc_sims=None):
+        """Returns cross-correlation of phi-maps to input lensing maps.
+
+            Uses qlms_x_i library of parfile
+
+        """
+        qlmi = self.parfile.qlms_x_i
+        if mc_sims is None: mc_sims = np.unique(np.concatenate([self.parfile.mc_sims_var, self.parfile.mc_sims_bias]))
+        xin = utils.stats(self.nbins)
+        qnorm = utils.cli(self.parfile.qresp_dd.get_response(self.k1, self.ksource))
+        for i, idx in utils.enumerate_progress(mc_sims):
+            qi = qlmi.get_sim_qcl(self.k1, idx)
+            xin.add(self._get_binnedcl(qnorm * qi) / self.fid_bandpowers)
+        return xin
+
