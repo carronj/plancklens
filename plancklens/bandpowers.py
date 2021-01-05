@@ -337,7 +337,7 @@ class ffp10_binner:
             Uses qlms_x_i library of parfile
 
         """
-        qlmi = self.parfile.qlms_x_i
+        qlmi = self.parfile.qlms_x_in
         if mc_sims is None: mc_sims = np.unique(np.concatenate([self.parfile.mc_sims_var, self.parfile.mc_sims_bias]))
         xin = utils.stats(self.nbins)
         qnorm = utils.cli(self.parfile.qresp_dd.get_response(self.k1, self.ksource))
