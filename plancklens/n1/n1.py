@@ -151,7 +151,7 @@ else:
                     Ls = np.unique(np.concatenate([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.arange(1, Lmax + 1)[::10], [Lmax]]))
                     if sglLmode:
                         n1L = np.zeros(len(Ls), dtype=float)
-                        for i, L in enumerate(Ls)[mpi.rank::mpi.size]:
+                        for i, L in enumerate(Ls[mpi.rank::mpi.size]):
                             print("n1: doing L %s kA %s kB %s kind %s" % (L, kA, kB, k_ind))
                             n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid))
                         if mpi.size > 0:
