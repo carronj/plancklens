@@ -154,17 +154,23 @@ else:
                         for i, L in enumerate(Ls)[mpi.rank::mpi.size]:
                             print("n1: doing L %s kA %s kB %s kind %s" % (L, kA, kB, k_ind))
                             n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid))
+                        if mpi.size > 0:
+                            mpi.barrier()
+                            for i, L in enumerate(Ls): # reoading cached n1L's
+                                n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid,
+                                                 cltefid, cleefid))
+
                     else: # entire vector from f90 openmp call
                         lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlA, felA, fblA]])
                         lmin_ftlB = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlB, felB, fblB]])
                         n1L = n1f.n1(Ls, cl_kind, kA, kB, k_ind, self.cltt, self.clte, self.clee,
                                      clttfid, cltefid, cleefid,  ftlA, felA, fblA, ftlB, felB, fblB,
                                       lmin_ftlA, lmin_ftlB,  self.dL, self.lps)
+
                     ret = np.zeros(Lmax + 1)
                     ret[1:] =  spline(Ls, np.array(n1L) * n1_flat(Ls), s=0., ext='raise', k=3)(np.arange(1, Lmax + 1) * 1.)
                     ret[1:] *= cli(n1_flat(np.arange(1, Lmax + 1) * 1.))
                     self.npdb.add(idx, ret)
-                mpi.barrier()
                 return self.npdb.get(idx)
 
             assert  np.all([np.all(ftlA == ftlB), np.all(felA == felB), np.all(fblA == fblB)]), \
