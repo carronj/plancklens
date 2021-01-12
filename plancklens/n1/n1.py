@@ -67,7 +67,7 @@ if not HASN1F:
 else:
     class library_n1:
         def __init__(self, lib_dir, cltt, clte, clee, lmaxphi=2500, dL=10, lps=None):
-            """Library for calculation of the N1 quadratic estimator biases
+            """Flexible library for calculation of the N1 quadratic estimator biases
 
                 Args:
                     lib_dir: results will be stored there
@@ -77,6 +77,10 @@ else:
                     lmaxphi: maximum multipole of the anistropy source (clpp for standard lensing N1) to consider
                     dL: flat-sky numerical integration parameter, see n1.f90
                     lps: flat-sky numerical integration parameter, see n1.f90
+
+                Note:
+                    main method is *get_n1*
+
 
 
             """
