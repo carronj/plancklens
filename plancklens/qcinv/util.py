@@ -3,7 +3,7 @@ from __future__ import print_function
 import time
 import numpy  as np
 import healpy as hp
-
+from plancklens import utils
 
 class dt:
     def __init__(self, _dt):
@@ -60,6 +60,39 @@ class jit:
             self.instantiate()
         setattr(self.__dict__['__jit_obj'], attr, val)
 
+def read_map(m):
+    """Reads a map whether given as (list of) string (with ',f' denoting field f), array or callable
+
+    """
+    if callable(m):
+        return m()
+    if isinstance(m, list):
+        ma = read_map(m[0])
+        for m2 in m[1:]:
+            ma *= read_map(m2)
+        return ma
+    if not isinstance(m, str):
+        return m
+    if ',' not in m:
+        return hp.read_map(m)
+    m, field = m.split(',')
+    return hp.read_map(m, field=int(field))
+
+def mask_hash(m, dtype=bool):
+    if m is None:
+        return "none"
+    if isinstance(m, list):
+        mh = mask_hash(m[0], dtype=dtype)
+        for m2 in m[1:]:
+            mh += mask_hash(m2, dtype=dtype)
+        return mh
+    if isinstance(m, str):
+        return m.replace('/','_sl_').replace('.', '_')
+    elif isinstance(m, np.ndarray):
+        return utils.clhash(m, dtype=dtype)
+    elif callable(m):
+        return 'callable'
+    assert 0, 'not implemented'
 
 def load_map(f):
     if type(f) is str:

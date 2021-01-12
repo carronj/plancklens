@@ -14,6 +14,7 @@ from plancklens import utils as ut, utils_qe as uqe
 from plancklens.helpers import mpi
 from plancklens import qresp
 
+_write_alm = lambda fn, alm : hp.write_alm(fn, alm, overwrite=True)
 
 def eval_qe(qe_key, lmax_ivf, cls_weight, get_alm, nside, lmax_qlm, verbose=True):
     """Evaluates a quadratic estimator gradient and curl terms.
@@ -235,7 +236,7 @@ class library:
             for i, idx in ut.enumerate_progress(mc_sims, label='calculating %s MF' % k):
                 MF += self.get_sim_qlm(k, idx, lmax=lmax)
             MF /= len(mc_sims)
-            hp.write_alm(fname, MF)
+            _write_alm(fname, MF)
             print("Cached ", fname)
         return ut.alm_copy(hp.read_alm(fname), lmax=lmax)
 
@@ -318,8 +319,8 @@ class library:
             del _G
             C = 0.5 * (C + _C)
             del _C
-        hp.write_alm(os.path.join(self.lib_dir, 'sim_ptt_%04d.fits'%idx if idx != -1 else 'dat_ptt.fits'), G)
-        hp.write_alm(os.path.join(self.lib_dir, 'sim_xtt_%04d.fits'%idx if idx != -1 else 'dat_xtt.fits'), C)
+        _write_alm(os.path.join(self.lib_dir, 'sim_ptt_%04d.fits'%idx if idx != -1 else 'dat_ptt.fits'), G)
+        _write_alm(os.path.join(self.lib_dir, 'sim_xtt_%04d.fits'%idx if idx != -1 else 'dat_xtt.fits'), C)
 
 
     def _build_sim_Pgclm(self, idx):
@@ -331,8 +332,8 @@ class library:
             del _G
             C = 0.5 * (C + _C)
             del _C
-        hp.write_alm(os.path.join(self.lib_dir, 'sim_p_p_%04d.fits'%idx if idx != -1 else 'dat_p_p.fits'), G)
-        hp.write_alm(os.path.join(self.lib_dir, 'sim_x_p_%04d.fits'%idx if idx != -1 else 'dat_x_p.fits'), C)
+        _write_alm(os.path.join(self.lib_dir, 'sim_p_p_%04d.fits'%idx if idx != -1 else 'dat_p_p.fits'), G)
+        _write_alm(os.path.join(self.lib_dir, 'sim_x_p_%04d.fits'%idx if idx != -1 else 'dat_x_p.fits'), C)
 
 
     def _build_sim_MVgclm(self, idx):
@@ -351,8 +352,8 @@ class library:
             del _G
             CT = 0.5 * (CT + _C)
             del _C
-        hp.write_alm(os.path.join(self.lib_dir, 'sim_p_%04d.fits'%idx if idx != -1 else 'dat_p.fits'), G + GT)
-        hp.write_alm(os.path.join(self.lib_dir, 'sim_x_%04d.fits'%idx if idx != -1 else 'dat_x.fits'), C + CT)
+        _write_alm(os.path.join(self.lib_dir, 'sim_p_%04d.fits'%idx if idx != -1 else 'dat_p.fits'), G + GT)
+        _write_alm(os.path.join(self.lib_dir, 'sim_x_%04d.fits'%idx if idx != -1 else 'dat_x.fits'), C + CT)
 
     def _build_sim_f(self, idx):
         """ MV. modulation estimators. """
@@ -362,7 +363,7 @@ class library:
         GT  = self._get_sim_ftt(idx, joint=True)
         if not self.f2map1.ivfs == self.f2map2.ivfs:
             GT = 0.5 * (GT + self._get_sim_ftt(idx, joint=True, swapped=True))
-        hp.write_alm(os.path.join(self.lib_dir, 'sim_f_%04d.fits'%idx if idx != -1 else 'dat_f.fits'), G + GT)
+        _write_alm(os.path.join(self.lib_dir, 'sim_f_%04d.fits'%idx if idx != -1 else 'dat_f.fits'), G + GT)
 
     def _build_sim_xfiltMVgclm(self, idx, k):
         """
@@ -391,20 +392,20 @@ class library:
             del _C
         fnameG = os.path.join(self.lib_dir, 'sim_p%s_%04d.fits' % (k[1:], idx) if idx != -1 else 'dat_p%s.fits'%k[1:])
         fnameC = os.path.join(self.lib_dir, 'sim_x%s_%04d.fits' % (k[1:], idx) if idx != -1 else 'dat_x%s.fits'%k[1:])
-        hp.write_alm(fnameG, G + GT)
-        hp.write_alm(fnameC, C + CT)
+        _write_alm(fnameG, G + GT)
+        _write_alm(fnameC, C + CT)
 
     def _build_sim_stt(self, idx):
         sLM = self._get_sim_stt(idx)
         if not self.f2map1.ivfs == self.f2map2.ivfs:
             pass  # No need to swap, this thing is symmetric anyways
-        hp.write_alm(os.path.join(self.lib_dir, 'sim_stt_%04d.fits'%idx if idx != -1 else 'dat_stt.fits'), sLM)
+        _write_alm(os.path.join(self.lib_dir, 'sim_stt_%04d.fits'%idx if idx != -1 else 'dat_stt.fits'), sLM)
 
     def _build_sim_ntt(self, idx):
         sLM = self._get_sim_ntt(idx)
         if not self.f2map1.ivfs == self.f2map2.ivfs:
             pass  # No need to swap, this thing is symmetric anyways
-        hp.write_alm(os.path.join(self.lib_dir, 'sim_ntt_%04d.fits'%idx if idx != -1 else 'dat_ntt.fits'), sLM)
+        _write_alm(os.path.join(self.lib_dir, 'sim_ntt_%04d.fits'%idx if idx != -1 else 'dat_ntt.fits'), sLM)
 
     def _build_sim_ftt(self, idx):
         fLM = self._get_sim_ftt(idx)
@@ -412,7 +413,7 @@ class library:
             _fLM = self._get_sim_ftt(idx,swapped=True)
             fLM = 0.5 * (fLM + _fLM)
             del _fLM
-        hp.write_alm(os.path.join(self.lib_dir, 'sim_ftt_%04d.fits'%idx if idx != -1 else 'dat_ftt.fits'), fLM)
+        _write_alm(os.path.join(self.lib_dir, 'sim_ftt_%04d.fits'%idx if idx != -1 else 'dat_ftt.fits'), fLM)
 
     def _build_sim_f_p(self, idx):
         fLM = self._get_sim_f_p(idx)
@@ -420,7 +421,7 @@ class library:
             _fLM = self._get_sim_f_p(idx,swapped=True)
             fLM = 0.5 * (fLM + _fLM)
             del _fLM
-        hp.write_alm(os.path.join(self.lib_dir, 'sim_f_p_%04d.fits'%idx if idx != -1 else 'dat_f_p.fits'), fLM)
+        _write_alm(os.path.join(self.lib_dir, 'sim_f_p_%04d.fits'%idx if idx != -1 else 'dat_f_p.fits'), fLM)
 
     def _build_sim_a_p(self, idx):
         fLM = self._get_sim_a_p(idx)
@@ -428,7 +429,7 @@ class library:
             _fLM = self._get_sim_f_p(idx,swapped=True)
             fLM = 0.5 * (fLM + _fLM)
             del _fLM
-        hp.write_alm(os.path.join(self.lib_dir, 'sim_a_p_%04d.fits'%idx if idx != -1 else 'dat_a_p.fits'), fLM)
+        _write_alm(os.path.join(self.lib_dir, 'sim_a_p_%04d.fits'%idx if idx != -1 else 'dat_a_p.fits'), fLM)
 
 
 class lib_filt2map(object):

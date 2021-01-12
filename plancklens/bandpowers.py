@@ -79,7 +79,7 @@ class ffp10_binner:
         clkk_fid = clpp_fid * kswitch
         qc_resp = parfile.qresp_dd.get_response(k1, ksource)[:lmaxphi+1] * parfile.qresp_dd.get_response(k2, ksource)[:lmaxphi+1]
         bin_lmins, bin_lmaxs, bin_centers = get_blbubc(btype)
-        vlpp_inv = qc_resp * (2 * np.arange(lmaxphi + 1) + 1) * (0.5 * parfile.qcls_dd.fsky1234)
+        vlpp_inv = qc_resp * (2 * np.arange(lmaxphi + 1) + 1) * (0.5 * getattr(parfile.qcls_dd, 'fsky1234', 1.)) # value irrelevant here
         vlpp_inv *= utils.cli(kswitch) ** 2
         vlpp_den = [np.sum(clkk_fid[slice(lmin, lmax + 1)] ** 2 * vlpp_inv[slice(lmin, lmax + 1)]) for lmin, lmax in zip(bin_lmins, bin_lmaxs)]
 
@@ -262,7 +262,7 @@ class ffp10_binner:
         """
         return self._get_binnedcl(self.get_ps_data(lmin_ss_s4=lmin_ss_s4, lmax_ss_s4=lmax_ss_s4)[-1])
 
-    def get_bamc(self):
+    def get_bamc(self, wn1=True):
         """Binned additive MC correction, with crude error bars.
 
             This compares the reconstruction on the simulations to the FFP10 input lensing spectrum.
@@ -278,13 +278,15 @@ class ffp10_binner:
         qc_norm = utils.cli(self.parfile.qresp_dd.get_response(self.k1, self.ksource)
                               * self.parfile.qresp_dd.get_response(self.k2, self.ksource))
         bp_stats = utils.stats(self.nbins)
-        bp_n1 = self.get_n1()
+        bp_n1 = self.get_n1() if wn1 else np.zeros(self.nbins, dtype=float)
         for i, idx in utils.enumerate_progress(self.parfile.mc_sims_var, label='collecting BP stats'):
             dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
             bp_stats.add(self._get_binnedcl(qc_norm *(dd - ss2) - cl_pred) - bp_n1)
         NMF = len(self.parfile.qcls_dd.mc_sims_mf)
+        if NMF == 0: NMF = np.inf
         NB = len(self.parfile.mc_sims_var)
         return bp_stats.mean(), bp_stats.sigmas_on_mean() * np.sqrt((1. + 1. + 2. / NMF + 2 * NB / (float(NMF * NMF))))
+        # + 1 from MCN0 error, 2nd term MF linear error term, 3rd term from MF quadratic term (cancelled in data rec.)
 
     def get_bmmc(self, mc_sims_dd=None, mc_sims_ss=None):
         """Binned multiplicative MC correction.
@@ -327,4 +329,20 @@ class ffp10_binner:
             dd = self.parfile.qcls_dd.get_sim_qcl(self.k1, idx, k2=self.k2)
             mcn0_cov.add(self._get_binnedcl(qc_norm * dd))
         return mcn0_cov.cov()
+
+
+    def get_ampl_x_input(self, mc_sims=None):
+        """Returns cross-correlation of phi-maps to input lensing maps.
+
+            Uses qlms_x_i library of parfile
+
+        """
+        qlmi = self.parfile.qlms_x_in
+        if mc_sims is None: mc_sims = np.unique(np.concatenate([self.parfile.mc_sims_var, self.parfile.mc_sims_bias]))
+        xin = utils.stats(self.nbins)
+        qnorm = utils.cli(self.parfile.qresp_dd.get_response(self.k1, self.ksource))
+        for i, idx in utils.enumerate_progress(mc_sims):
+            qi = qlmi.get_sim_qcl(self.k1, idx)
+            xin.add(self._get_binnedcl(qnorm * qi) / self.fid_bandpowers)
+        return xin
 

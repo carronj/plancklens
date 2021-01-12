@@ -13,7 +13,7 @@ import pickle as pk
 from scipy.interpolate import UnivariateSpline as spline
 
 from plancklens.utils import hash_check, clhash, cli
-from plancklens.helpers import sql
+from plancklens.helpers import sql, mpi
 
 try:
     from . import n1f
@@ -66,11 +66,18 @@ if not HASN1F:
     print("*** Now falling back on python2 weave implementation")
 else:
     class library_n1:
-        """
-
-        """
         def __init__(self, lib_dir, cltt, clte, clee, lmaxphi=2500, dL=10, lps=None):
-            """
+            """Library for calculation of the N1 quadratic estimator biases
+
+                Args:
+                    lib_dir: results will be stored there
+                    cltt: CMB TT spectrum (used for map CMB spectrum and QE weights)
+                    clte: CMB TE spectrum (used for map CMB spectrum and QE weights)
+                    clee: CMB EE spectrum (used for map CMB spectrum and QE weights)
+                    lmaxphi: maximum multipole of the anistropy source (clpp for standard lensing N1) to consider
+                    dL: flat-sky numerical integration parameter, see n1.f90
+                    lps: flat-sky numerical integration parameter, see n1.f90
+
 
             """
             if lps is None:
@@ -113,7 +120,33 @@ else:
 
         def get_n1(self, kA, k_ind, cl_kind, ftlA, felA, fblA, Lmax, kB=None, ftlB=None, felB=None, fblB=None,
                    clttfid=None, cltefid=None, cleefid=None, n1_flat=lambda ell: np.ones(len(ell), dtype=float), sglLmode=True):
-            """
+            """Calls a N1 bias
+
+                Args:
+                    kA: qe_key of QE spectrum first leg
+                    k_ind: anisotropy source key ('p', for standard lensing N1)
+                    cl_kind: spectrum of anisotropy source ('p', for standard lensing N1)
+                    ftlA: first leg T-filtering isotropic approximation
+                          (typically :math:` \frac{1}{C_\ell^{TT} + N_\ell^{TT}}`)
+                    felA: first leg E-filtering isotropic approximation
+                          (typically :math:` \frac{1}{C_\ell^{EE} + N_\ell^{EE}`)
+                    fblA: first leg B-filtering isotropic approximation
+                         (typically :math:` \frac{1}{C_\ell^{BB} + N_\ell^{TT}`)
+                    Lmax: maximum multipole of output N1
+                    kB(optional): qe_key of QE spectrum second leg (if different from the first)
+                    ftlB(optional): second leg T-filtering isotropic approximation (if different from the first)
+                    felB(optional): second leg T-filtering isotropic approximation (if different from the first)
+                    fblB(optional): second leg T-filtering isotropic approximation (if different from the first)
+                    clttfid(optional): CMB TT spectrum used in QE weights (if different from instance cltt for map-level CMB spectrum)
+                    cltefid(optional): CMB TE spectrum used in QE weights (if different from instance clte for map-level CMB spectrum)
+                    cleefid(optional): CMB EE spectrum used in QE weights (if different from instance clee for map-level CMB spectrum)
+                    n1_flat(optional): function used to flatten the discretized output before returning splined entire array
+
+                Returns:
+                    N1 bias in the form of a numpy array of size Lmax + 1
+
+                Note:
+                    This can called with MPI using a number of processes; in this case the calculations for each multipole will be distributed among these.
 
             """
             if kB is None: kB = kA
@@ -151,15 +184,22 @@ else:
                     Ls = np.unique(np.concatenate([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.arange(1, Lmax + 1)[::10], [Lmax]]))
                     if sglLmode:
                         n1L = np.zeros(len(Ls), dtype=float)
-                        for i, L in enumerate(Ls):
+                        for i, L in enumerate(Ls[mpi.rank::mpi.size]):
                             print("n1: doing L %s kA %s kB %s kind %s" % (L, kA, kB, k_ind))
                             n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid))
+                        if mpi.size > 0:
+                            mpi.barrier()
+                            for i, L in enumerate(Ls): # reoading cached n1L's
+                                n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid,
+                                                 cltefid, cleefid))
+
                     else: # entire vector from f90 openmp call
                         lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlA, felA, fblA]])
                         lmin_ftlB = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlB, felB, fblB]])
                         n1L = n1f.n1(Ls, cl_kind, kA, kB, k_ind, self.cltt, self.clte, self.clee,
                                      clttfid, cltefid, cleefid,  ftlA, felA, fblA, ftlB, felB, fblB,
                                       lmin_ftlA, lmin_ftlB,  self.dL, self.lps)
+
                     ret = np.zeros(Lmax + 1)
                     ret[1:] =  spline(Ls, np.array(n1L) * n1_flat(Ls), s=0., ext='raise', k=3)(np.arange(1, Lmax + 1) * 1.)
                     ret[1:] *= cli(n1_flat(np.arange(1, Lmax + 1) * 1.))

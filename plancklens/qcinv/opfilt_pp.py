@@ -18,7 +18,7 @@ import healpy as hp
 from healpy import alm2map_spin, map2alm_spin
 #: Exporting these two methods so that they can be easily customized / optimized.
 
-from plancklens.utils import clhash, cli
+from plancklens.utils import clhash
 
 from . import util
 from .util_alm import eblm
@@ -26,7 +26,8 @@ from . import dense
 
 
 def calc_prep(maps, s_cls, n_inv_filt):
-    qmap, umap = np.copy(maps[0]), np.copy(maps[1])
+    qmap = np.copy(util.read_map(maps[0]))
+    umap = np.copy(util.read_map(maps[1]))
     assert len(qmap) == len(umap)
     lmax = len(n_inv_filt.b_transf) - 1
     npix = len(qmap)
@@ -86,9 +87,7 @@ class pre_op_diag:
         flmat = s_inv_filt.slinv
         flmat[:, 0, 0] += ninv_fel[:lmax + 1]
         flmat[:, 1, 1] += ninv_fbl[:lmax + 1]
-
-        for l in range(lmax + 1):
-            flmat[l, :, :] = np.linalg.pinv(flmat[l, :, :].reshape((2, 2)))
+        flmat = np.linalg.pinv(flmat)
 
         self.flmat = flmat
 

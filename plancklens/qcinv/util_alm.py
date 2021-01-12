@@ -84,3 +84,59 @@ class eblm:
 
     def __mul__(self, other):
         return eblm([self.elm * other, self.blm * other])
+
+class teblm:
+    def __init__(self, alm):
+        [tlm, elm, blm] = alm
+
+        self.lmaxt = Alm.getlmax(len(tlm))
+        self.lmaxe = Alm.getlmax(len(elm))
+        self.lmaxb = Alm.getlmax(len(blm))
+        self.lmax = max(self.lmaxt, self.lmaxe, self.lmaxb)
+
+        self.elm = elm
+        self.blm = blm
+        self.tlm = tlm
+
+    def alm_copy(self, lmax=None):
+        return eblm([alm_copy(self.tlm, lmax=lmax),
+                     alm_copy(self.elm, lmax=lmax),
+                     alm_copy(self.blm, lmax=lmax)])
+
+    def alm_splice(self, alm_hi, lsplit):
+        return eblm([alm_splice(self.tlm, alm_hi.tlm, lsplit),
+                     alm_splice(self.elm, alm_hi.elm, lsplit),
+                     alm_splice(self.blm, alm_hi.blm, lsplit)])
+
+    def __add__(self, other):
+        assert self.lmaxt == other.lmaxt
+        assert self.lmaxe == other.lmaxe
+        assert self.lmaxb == other.lmaxb
+        return teblm([self.tlm + other.tlm, self.elm + other.elm, self.blm + other.blm])
+
+    def __sub__(self, other):
+        assert self.lmaxt == other.lmaxt
+        assert self.lmaxe == other.lmaxe
+        assert self.lmaxb == other.lmaxb
+        return teblm([self.tlm - other.tlm, self.elm - other.elm, self.blm - other.blm])
+
+    def __iadd__(self, other):
+        assert self.lmaxt == other.lmaxt
+        assert self.lmaxe == other.lmaxe
+        assert self.lmaxb == other.lmaxb
+        self.tlm += other.telm
+        self.elm += other.elm
+        self.blm += other.blm
+        return self
+
+    def __isub__(self, other):
+        assert self.lmaxt == other.lmaxt
+        assert self.lmaxe == other.lmaxe
+        assert self.lmaxb == other.lmaxb
+        self.tlm -= other.tlm
+        self.elm -= other.elm
+        self.blm -= other.blm
+        return self
+
+    def __mul__(self, other):
+        return teblm([self.tlm * other, self.elm * other, self.blm * other])
