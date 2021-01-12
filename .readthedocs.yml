@@ -2,6 +2,5 @@ version: 2
 
 python:
   version: 3.6
-  use_system_site_packages: true
 
 formats: all
