@@ -2,5 +2,7 @@ version: 2
 
 python:
   version: 3.6
-
+  system_packages: true
+  install:
+    - requirements: requirements.txt
 formats: all
