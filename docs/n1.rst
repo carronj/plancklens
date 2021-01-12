@@ -2,5 +2,5 @@
 plancklens.n1
 =============
 
-.. automodule:: plancklens.n1
-   :members: library_n1
+.. automodule:: plancklens.n1.n1
+    :members:

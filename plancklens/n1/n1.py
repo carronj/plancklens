@@ -1,8 +1,12 @@
-"""$N^{(1)}_L$ quadratic estimator bias calculation module.
+r""":math:`N^{(1)}_L` quadratic estimator bias calculation module.
 
-    This modules contains the $N^{(1)}_L$ bias calculation scripts (for lensing and other quadratic estimators)
+    This module contains the :math:`N^{(1)}_L` bias calculation scripts (for lensing and other quadratic estimators)
 
-All calculations are performed using the flat-sky approximation.
+    Note:
+        All calculations are performed using the flat-sky approximation from Fortran code
+
+        For composed estimators all will be stored on the fly
+
 
 """
 from __future__ import print_function
@@ -30,7 +34,7 @@ estimator_keys_derived = ['p', 'p_p', 'p_tp'
 
 
 def _get_est_derived(k, lmax):
-    """ Estimator combinations with some weighting.
+    r""" Estimator combinations with some weighting.
 
     Args:
         k (str): Quadratic esimator key.
@@ -66,24 +70,21 @@ if not HASN1F:
     print("*** Now falling back on python2 weave implementation")
 else:
     class library_n1:
+        r"""Flexible library for calculation of the N1 quadratic estimator biases
+
+            Args:
+                lib_dir: results will be stored there
+                cltt: CMB TT spectrum (used for map CMB spectrum and QE weights)
+                clte: CMB TE spectrum (used for map CMB spectrum and QE weights)
+                clee: CMB EE spectrum (used for map CMB spectrum and QE weights)
+                lmaxphi: maximum multipole of the anistropy source (clpp for standard lensing N1) to consider
+                dL: flat-sky numerical integration parameter, see n1.f90
+                lps: flat-sky numerical integration parameter, see n1.f90
+
+
+        """
         def __init__(self, lib_dir, cltt, clte, clee, lmaxphi=2500, dL=10, lps=None):
-            """Flexible library for calculation of the N1 quadratic estimator biases
 
-                Args:
-                    lib_dir: results will be stored there
-                    cltt: CMB TT spectrum (used for map CMB spectrum and QE weights)
-                    clte: CMB TE spectrum (used for map CMB spectrum and QE weights)
-                    clee: CMB EE spectrum (used for map CMB spectrum and QE weights)
-                    lmaxphi: maximum multipole of the anistropy source (clpp for standard lensing N1) to consider
-                    dL: flat-sky numerical integration parameter, see n1.f90
-                    lps: flat-sky numerical integration parameter, see n1.f90
-
-                Note:
-                    main method is *get_n1*
-
-
-
-            """
             if lps is None:
                 lps = [1]
                 for l in range(2, 111, 10):
@@ -124,23 +125,23 @@ else:
 
         def get_n1(self, kA, k_ind, cl_kind, ftlA, felA, fblA, Lmax, kB=None, ftlB=None, felB=None, fblB=None,
                    clttfid=None, cltefid=None, cleefid=None, n1_flat=lambda ell: np.ones(len(ell), dtype=float), sglLmode=True):
-            """Calls a N1 bias
+            r"""Calls a N1 bias
 
                 Args:
                     kA: qe_key of QE spectrum first leg
                     k_ind: anisotropy source key ('p', for standard lensing N1)
                     cl_kind: spectrum of anisotropy source ('p', for standard lensing N1)
                     ftlA: first leg T-filtering isotropic approximation
-                          (typically :math:` \frac{1}{C_\ell^{TT} + N_\ell^{TT}}`)
+                          (typically :math:`\frac{1}{C_\ell^{TT} + N_\ell^{TT}}`)
                     felA: first leg E-filtering isotropic approximation
-                          (typically :math:` \frac{1}{C_\ell^{EE} + N_\ell^{EE}`)
+                          (typically :math:`\frac{1}{C_\ell^{EE} + N_\ell^{EE}}`)
                     fblA: first leg B-filtering isotropic approximation
-                         (typically :math:` \frac{1}{C_\ell^{BB} + N_\ell^{TT}`)
+                         (typically :math:`\frac{1}{C_\ell^{BB} + N_\ell^{BB}}`)
                     Lmax: maximum multipole of output N1
                     kB(optional): qe_key of QE spectrum second leg (if different from the first)
                     ftlB(optional): second leg T-filtering isotropic approximation (if different from the first)
-                    felB(optional): second leg T-filtering isotropic approximation (if different from the first)
-                    fblB(optional): second leg T-filtering isotropic approximation (if different from the first)
+                    felB(optional): second leg E-filtering isotropic approximation (if different from the first)
+                    fblB(optional): second leg B-filtering isotropic approximation (if different from the first)
                     clttfid(optional): CMB TT spectrum used in QE weights (if different from instance cltt for map-level CMB spectrum)
                     cltefid(optional): CMB TE spectrum used in QE weights (if different from instance clte for map-level CMB spectrum)
                     cleefid(optional): CMB EE spectrum used in QE weights (if different from instance clee for map-level CMB spectrum)
@@ -150,7 +151,7 @@ else:
                     N1 bias in the form of a numpy array of size Lmax + 1
 
                 Note:
-                    This can called with MPI using a number of processes; in this case the calculations for each multipole will be distributed among these.
+                    This can be called with MPI using a number of processes; in this case the calculations for each multipole will be distributed among these.
 
             """
             if kB is None: kB = kA
