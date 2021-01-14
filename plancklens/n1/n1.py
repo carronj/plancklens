@@ -28,9 +28,9 @@ except:
 estimator_keys = ['ptt', 'pte', 'pet', 'pee', 'peb', 'pbe', 'ptb', 'pbt',
                   'xtt', 'xte', 'xet', 'xee', 'xeb', 'xbe', 'xtb', 'xbt',
                   'stt', 'ftt']
-estimator_keys_derived = ['p', 'p_p', 'p_tp' 
-                          'f', 'f_p', 'f_tp' 
-                          'x', 'x_p', 'x_tp']
+estimator_keys_derived = ['p', 'p_p', 'p_tp', 'p_eb', 'p_te',
+                          'f', 'f_p', 'f_tp', 'f_eb', 'f_te'
+                          'x', 'x_p', 'x_tp', 'x_eb', 'x_te']
 
 
 def _get_est_derived(k, lmax):
@@ -58,7 +58,7 @@ def _get_est_derived(k, lmax):
         ret = [('%see' % g, clo),
                ('%seb' % g, 2. * clo)]
     elif k in ['p_te', 'x_te', 'p_tb', 'x_tb', 'p_eb', 'x_eb']:
-        ret = [(k[0] + k[2] + k[3], 0.5 * clo), (k[0] + k[3] + k[2], 0.5 * clo)]
+        ret = [(k.replace('_', ''),  2. * clo)]
     else:
         assert 0, k
     return ret
