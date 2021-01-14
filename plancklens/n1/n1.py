@@ -28,9 +28,9 @@ except:
 estimator_keys = ['ptt', 'pte', 'pet', 'pee', 'peb', 'pbe', 'ptb', 'pbt',
                   'xtt', 'xte', 'xet', 'xee', 'xeb', 'xbe', 'xtb', 'xbt',
                   'stt', 'ftt']
-estimator_keys_derived = ['p', 'p_p', 'p_tp', 'p_eb', 'p_te',
-                          'f', 'f_p', 'f_tp', 'f_eb', 'f_te'
-                          'x', 'x_p', 'x_tp', 'x_eb', 'x_te']
+estimator_keys_derived = ['p', 'p_p', 'p_tp', 'p_eb', 'p_te', 'p_tb',
+                          'f', 'f_p', 'f_tp', 'f_eb', 'f_te', 'f_tb',
+                          'x', 'x_p', 'x_tp', 'x_eb', 'x_te', 'x_tb']
 
 
 def _get_est_derived(k, lmax):
