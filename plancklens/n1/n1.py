@@ -20,7 +20,7 @@ from plancklens.utils import hash_check, clhash, cli
 from plancklens.helpers import sql, mpi
 
 try:
-    from . import n1f
+    from . import n1f as n1f
     HASN1F = True
 except:
     HASN1F = False
@@ -67,7 +67,7 @@ def _get_est_derived(k, lmax):
 if not HASN1F:
     print("*** n1f.so fortran shared object did not load properly")
     print('*** try f2py -c -m n1f ./n1f.f90 --f90flags="-fopenmp" -lgomp from the command line in n1 directory ?')
-    
+
 class library_n1:
     r"""Flexible library for calculation of the N1 quadratic estimator biases
 
@@ -168,7 +168,7 @@ class library_n1:
 
         if kA in estimator_keys and kB in estimator_keys:
             if kA < kB:
-                return self.get_n1(kB, k_ind, cl_kind, ftlA, felA, fblA, Lmax, ftlB=ftlB, felB=felB, fblB=fblB, kB=kA,
+                return self.get_n1(kB, k_ind, cl_kind, ftlB, felB, fblB, Lmax, ftlB=ftlA, felB=felA, fblB=fblA, kB=kA,
                                    clttfid=clttfid, cltefid=cltefid, cleefid=cleefid, n1_flat=n1_flat, sglLmode=sglLmode)
 
             idx = 'splined_kA' + kA + '_kB' + kB + '_ind' + k_ind
@@ -185,13 +185,13 @@ class library_n1:
             idx += '_Lmax%s' % Lmax
 
             if self.npdb.get(idx) is None:
-                Ls = np.unique(np.concatenate([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.arange(1, Lmax + 1)[::10], [Lmax]]))
+                Ls = np.unique(np.concatenate([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.arange(1, Lmax + 1)[::20], [Lmax]]))
                 if sglLmode:
                     n1L = np.zeros(len(Ls), dtype=float)
                     for i, L in enumerate(Ls[mpi.rank::mpi.size]):
                         print("n1: rank %s doing L %s kA %s kB %s kind %s" % (mpi.rank, L, kA, kB, k_ind))
                         n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid))
-                    if mpi.size > 0:
+                    if mpi.size > 1:
                         mpi.barrier()
                         for i, L in enumerate(Ls): # reoading cached n1L's
                             n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid,
@@ -210,8 +210,6 @@ class library_n1:
                 self.npdb.add(idx, ret)
             return self.npdb.get(idx)
 
-        assert  np.all([np.all(ftlA == ftlB), np.all(felA == felB), np.all(fblA == fblB)]), \
-                'check the est. breakdown is OK for non-identical legs'
         if (kA in estimator_keys_derived) and (kB in estimator_keys_derived):
             ret = 0.
             for (tk1, cl1) in _get_est_derived(kA, Lmax):
@@ -249,7 +247,7 @@ class library_n1:
         assert len(cl_kind) > self.lmaxphi
         if kA in estimator_keys and kB in estimator_keys:
             if kA < kB:
-                return self._get_n1_L(L, kB, kA, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid)
+                return self._get_n1_L(L, kB, kA, k_ind, cl_kind, ftlB, felB, fblB, ftlA, felA, fblA, clttfid, cltefid, cleefid)
             else:
                 lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlA, felA, fblA]])
                 lmin_ftlB = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlB, felB, fblB]])

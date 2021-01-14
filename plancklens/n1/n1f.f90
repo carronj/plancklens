@@ -251,7 +251,7 @@ double precision function n1L(L, cl_kI, kA, kB, kI, cltt, clte, clee, clttfid, c
                                                  lmaxtt, lmaxte, lmaxee)&
                                          * wf(k23, L2x, L4x, L2y, L4y, L2i, L4i, cltt, clte, clee, &
                                                  lmaxtt, lmaxte, lmaxee)&
-                                         * fal1(L1i) * fal2(L2i) * fal3(L3i) * fal4(L4i)
+                                         * fal1(L1i) * fal2(L2i) * fal3(L4i) * fal4(L3i)
                                  n1L = n1L  + (term1 + term2) * fac * cl_kI(PhiLi)
                             end if
                         end if
