@@ -32,5 +32,6 @@ The basics on how to use parameter files can be found in [this jupyter notebook]
 Some details on the numerical computations are collected [in this document](https://arxiv.org/abs/1908.02016).
 You might also need to check out the [plancklens documentation](https://plancklens.readthedocs.io/en/latest) (with some bits in progress).
 
+* Jan 14 2021: important bug fix in fortran N1 file affecting EB TB and TE. The n1 module must be rebuilt.
 
 ![ERC logo](https://erc.europa.eu/sites/default/files/content/erc_banner-vertical.jpg)
