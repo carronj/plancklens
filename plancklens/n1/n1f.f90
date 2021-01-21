@@ -263,7 +263,7 @@ double precision function n1L(L, cl_kI, kA, kB, kI, cltt, clte, clee, clttfid, c
 end
 
 
-double precision function n1L_jtp(L, cl_kI, kA, kB, XpIp, YpJp, kI, cltt, clte, clee, clttfid, cltefid, cleefid, &
+double precision function n1L_jtp(L, cl_kI, kA, kB, Xp, Yp, Ip, Jp, kI, cltt, clte, clee, clttfid, cltefid, cleefid, &
                     fXXp, fYYp, fIIp, fJJp, lminA, lmaxA, lminB, lmaxB, lmaxI, &
                     lmaxtt, lmaxte, lmaxee, lmaxttfid, lmaxtefid, lmaxeefid, dL, lps, nlps)
     implicit None
@@ -274,8 +274,7 @@ double precision function n1L_jtp(L, cl_kI, kA, kB, XpIp, YpJp, kI, cltt, clte, 
     ! Planck 2018 used lps=(/1,2,12,22,32,42,52,62,72,82,92,102,132,162,192,222,252,282,312,342,372, &
     !    !                   402,432,462,492,522,552,652,752,852,952,1052,1152,1452,1752,2052,2352,2500/)
     character(len=3), intent(in) :: kA, kB ! QE keys (XY IJ), e.g. 'ptt' for lensing gradient TT estimator
-    character(len=2), intent(in) :: XpIp, YpJp ! response keys (X' Y' and Y' J')
-    character(len=1), intent(in) :: kI     ! anisotropy source key (typically 'p' for lensing gradient, 'x' for curl)
+    character(len=1), intent(in) :: kI, Xp, Yp, Ip, Jp     ! anisotropy source key (typically 'p' for lensing gradient, 'x' for curl) and response fields
     double precision, intent(in) :: cltt(lmaxtt), clee(lmaxee), clte(lmaxte), cl_kI(lmaxI)
     double precision, intent(in) :: clttfid(lmaxttfid), cleefid(lmaxeefid), cltefid(lmaxtefid)
     double precision, intent(in) :: fXXp(lmaxA), fYYp(lmaxA), fIIp(lmaxB), fJJp(lmaxB)
@@ -295,10 +294,10 @@ double precision function n1L_jtp(L, cl_kI, kA, kB, XpIp, YpJp, kI, cltt, clte, 
     Ly = 0d0
     Lx = float(L)
 
-    k13 = kI // XpIp(1:1) // XpIp(2:2)
-    k24 = kI // XpIp(1:1) // XpIp(2:2)
-    k14 = kI // XpIp(1:1) // YpJp(2:2)
-    k23 = kI // XpIp(2:2) // YpJp(1:1)
+    k13 = kI // Xp // Ip
+    k24 = kI // Yp // Jp
+    k14 = kI // Xp // Jp
+    k23 = kI // Yp // Ip
 
     dlps(0) = float(lps(1) - lps(0))
     do i = 1, nlps - 2

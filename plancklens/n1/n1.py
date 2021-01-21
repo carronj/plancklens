@@ -316,7 +316,7 @@ class library_n1:
                                     for Jp in ['t', 'e', 'b']:
                                         FJJp = fBlmat.get(J + Jp, fBlmat.get(Jp + J, [0.]))
                                         if np.any(FJJp):
-                                            idx = 'splined_' + X + Xp + Y + Yp + I + Ip
+                                            idx = 'splined_' + X + Xp + Y + Yp + I + Ip + J + Jp
                                             idx += '_clpp' + clhash(cl_kind)
                                             idx += '_fXXp' + clhash(FXXp)
                                             idx += '_fYYp' + clhash(FYYp)
@@ -331,8 +331,8 @@ class library_n1:
                                                 Ls = np.unique(np.concatenate([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.arange(1, Lmax + 1)[::20], [Lmax]]))
                                                 n1L = np.zeros(len(Ls), dtype=float)
                                                 for i, L in enumerate(Ls):
-                                                    print("n1: doing L %s kA %s kB %s kind %s" % (L, kA, kB, k_ind))
-                                                    n1L[i] = (self._get_n1_L_jtp(L, kA, kB, k_ind, cl_kind, Xp, Ip, Yp, Jp, fAlmat, fBlmat, clttfid, cltefid, cleefid))
+                                                    print("n1: doing L %s kA %s kB %s kind %s " % (L, kA, kB, k_ind)  + Xp + Yp + Ip + Jp)
+                                                    n1L[i] = (self._get_n1_L_jtp(L, kA, kB, k_ind, cl_kind, Xp, Yp, Ip, Jp, fAlmat, fBlmat, clttfid, cltefid, cleefid))
                                                 ret = np.zeros(Lmax + 1)
                                                 ret[1:] =  spline(Ls, np.array(n1L) * n1_flat(Ls), s=0., ext='raise', k=3)(np.arange(1, Lmax + 1) * 1.)
                                                 ret[1:] *= cli(n1_flat(np.arange(1, Lmax + 1) * 1.))
@@ -378,7 +378,7 @@ class library_n1:
                     assert (FXXp.size == FYYp.size) and (FIIp.size == FJJp.size)
                     assert len(cl_kind) > self.lmaxphi
 
-                    idx = str(L) + Xp + Yp + Ip + Jp
+                    idx = str(L)  + X + Xp + Y + Yp + I + Ip + J + Jp
                     idx += '_clpp' + clhash(cl_kind)
                     idx += '_fXXp' + clhash(FXXp)
                     idx += '_fYYp' + clhash(FYYp)
@@ -392,9 +392,9 @@ class library_n1:
                     # fXXp, fYYp, fIIp, fJJp, lminA, lmaxA, lminB, lmaxB, lmaxI, &
                     # lmaxtt, lmaxte, lmaxee, lmaxttfid, lmaxtefid, lmaxeefid, dL, lps, nlps)
                     if self.fldb.get(idx) is None:
-                        n1_L = n1f.n1l_jtp(L, cl_kind, kA, kB, Xp + Ip, Yp + Jp, k_ind,
+                        n1_L = n1f.n1l_jtp(L, cl_kind, kA, kB, Xp, Yp, Ip, Jp, k_ind,
                                        self.cltt, self.clte, self.clee, clttfid, cltefid, cleefid,
-                                       FXXp, FYYp, FIIp, FYYp,
+                                       FXXp, FYYp, FIIp, FJJp,
                                        lmin_ftlA, lmin_ftlB, self.dL, self.lps)
                         self.fldb.add(idx, n1_L)
                         return n1_L
