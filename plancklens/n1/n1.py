@@ -59,6 +59,8 @@ def _get_est_derived(k, lmax):
                ('%seb' % g, 2. * clo)]
     elif k in ['p_te', 'x_te', 'p_tb', 'x_tb', 'p_eb', 'x_eb']:
         ret = [(k.replace('_', ''),  2. * clo)]
+    elif k in estimator_keys:
+        ret = [k, clo]
     else:
         assert 0, k
     return ret
@@ -277,3 +279,124 @@ class library_n1:
                     return n1_L
                 return self.fldb.get(idx)
         assert 0
+
+    def get_n1_jtp(self, kA, k_ind, cl_kind, fAlmat, Lmax, kB=None, fBlmat=None,
+            clttfid=None, cltefid=None, cleefid=None, n1_flat=lambda ell: np.ones(len(ell), dtype=float)):
+
+        if kB is None: kB = kA
+        # FIXME:
+        if kA[0] == 's' or kB[0] == 's':
+            assert kA[0] == kB[0], 'point source implented following DH gradient convention, you wd probably need to pick a sign there'
+        if fBlmat is None: fBlmat = fAlmat
+
+        clttfid = self.cltt if clttfid is None else clttfid
+        cltefid = self.clte if cltefid is None else cltefid
+        cleefid = self.clee if cleefid is None else cleefid
+
+
+        if kA in estimator_keys and kB in estimator_keys:
+            if kA < kB:
+                return self.get_n1_jtp(kB, k_ind, cl_kind, fBlmat, Lmax, fBlmat=fAlmat, kB=kA,
+                                   clttfid=clttfid, cltefid=cltefid, cleefid=cleefid, n1_flat=n1_flat)
+
+
+            X, Y = kA[1:]
+            I, J = kB[1:]
+            assert np.all(i in ['t', 'e', 'b'] for i in [X, Y, I, J]),  [X, Y, I, J]
+            ret = 0.
+            for Xp in ['t', 'e', 'b']:
+                FXXp = fAlmat.get(X + Xp, fAlmat.get(Xp + X, [0.]))
+                if np.any(FXXp):
+                    for Yp in ['t', 'e', 'b']:
+                        FYYp = fAlmat.get(Y + Yp, fAlmat.get(Yp + Y, [0.]))
+                        if np.any(FYYp):
+                            for Ip in ['t', 'e', 'b']:
+                                FIIp = fBlmat.get(I + Ip, fBlmat.get(Ip + I, [0.]))
+                                if np.any(FIIp):
+                                    for Jp in ['t', 'e', 'b']:
+                                        FJJp = fBlmat.get(J + Jp, fBlmat.get(Jp + J, [0.]))
+                                        if np.any(FJJp):
+                                            idx = 'splined_' + X + Xp + Y + Yp + I + Ip
+                                            idx += '_clpp' + clhash(cl_kind)
+                                            idx += '_fXXp' + clhash(FXXp)
+                                            idx += '_fYYp' + clhash(FYYp)
+                                            idx += '_fIIp' + clhash(FIIp)
+                                            idx += '_fJJp' + clhash(FJJp)
+                                            idx += '_clttfid' + clhash(clttfid)
+                                            idx += '_cltefid' + clhash(cltefid)
+                                            idx += '_cleefid' + clhash(cleefid)
+                                            idx += '_Lmax%s' % Lmax
+
+                                            if self.npdb.get(idx) is None:
+                                                Ls = np.unique(np.concatenate([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.arange(1, Lmax + 1)[::20], [Lmax]]))
+                                                n1L = np.zeros(len(Ls), dtype=float)
+                                                for i, L in enumerate(Ls):
+                                                    print("n1: doing L %s kA %s kB %s kind %s" % (L, kA, kB, k_ind))
+                                                    n1L[i] = (self._get_n1_L_jtp(L, kA, kB, k_ind, cl_kind, Xp, Ip, Yp, Jp, fAlmat, fBlmat, clttfid, cltefid, cleefid))
+                                                ret = np.zeros(Lmax + 1)
+                                                ret[1:] =  spline(Ls, np.array(n1L) * n1_flat(Ls), s=0., ext='raise', k=3)(np.arange(1, Lmax + 1) * 1.)
+                                                ret[1:] *= cli(n1_flat(np.arange(1, Lmax + 1) * 1.))
+                                                self.npdb.add(idx, ret)
+                                            ret = ret +  self.npdb.get(idx)
+            return ret
+        if (kA in estimator_keys_derived) or (kB in estimator_keys_derived):
+            ret = 0.
+            for (tk1, cl1) in _get_est_derived(kA, Lmax):
+                for (tk2, cl2) in _get_est_derived(kB, Lmax):
+                    tret = self.get_n1_jtp(tk1, k_ind, cl_kind, fAlmat, Lmax, kB=tk2, fBlmat=fBlmat,
+                                    clttfid=clttfid, cltefid=cltefid, cleefid=cleefid, n1_flat=n1_flat)
+                    ret = ret + tret * cl1[:Lmax + 1] * cl2[:Lmax + 1]
+            return ret
+        assert 0
+
+    def _get_n1_L_jtp(self, L, kA, kB, k_ind, cl_kind, Xp, Yp, Ip, Jp, fAlmat, fBlmat, clttfid, cltefid, cleefid):
+            if kB is None: kB = kA
+            if kA in estimator_keys and kB in estimator_keys:
+                if kA < kB:
+                    assert 0, 'fix this'
+                else:
+                    X, Y = kA[1:]
+                    I, J = kB[1:]
+                    FXXp = fAlmat.get(X + Xp, fAlmat.get(Xp + X, None))
+                    if FXXp is None: return 0.
+
+                    FYYp = fAlmat.get(Y + Yp, fAlmat.get(Yp + Y, None))
+                    if FYYp is None: return 0.
+
+                    FIIp = fBlmat.get(I + Ip, fBlmat.get(Ip + I, None))
+                    if FIIp is None: return 0.
+
+                    FJJp = fBlmat.get(J + Jp, fBlmat.get(Jp + J, None))
+                    if FJJp is None: return 0.
+
+                    lmax_ftl = np.max([FXXp.size, FYYp.size, FIIp.size, FJJp.size]) - 1
+                    lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [FXXp, FYYp]])
+                    lmin_ftlB = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [FIIp, FJJp]])
+                    assert len(clttfid) > lmax_ftl and len(self.cltt) > lmax_ftl
+                    assert len(cltefid) > lmax_ftl and len(self.clte) > lmax_ftl
+                    assert len(cleefid) > lmax_ftl and len(self.clee) > lmax_ftl
+                    assert (FXXp.size == FYYp.size) and (FIIp.size == FJJp.size)
+                    assert len(cl_kind) > self.lmaxphi
+
+                    idx = str(L) + Xp + Yp + Ip + Jp
+                    idx += '_clpp' + clhash(cl_kind)
+                    idx += '_fXXp' + clhash(FXXp)
+                    idx += '_fYYp' + clhash(FYYp)
+                    idx += '_fIIp' + clhash(FIIp)
+                    idx += '_fJJp' + clhash(FJJp)
+                    idx += '_clttfid' + clhash(clttfid)
+                    idx += '_cltefid' + clhash(cltefid)
+                    idx += '_cleefid' + clhash(cleefid)
+                    # n1L_jtp(L, cl_kI, kA, kB, XpIp, YpJp, kI, cltt, clte, clee, clttfid, cltefid,
+                    #        cleefid, &
+                    # fXXp, fYYp, fIIp, fJJp, lminA, lmaxA, lminB, lmaxB, lmaxI, &
+                    # lmaxtt, lmaxte, lmaxee, lmaxttfid, lmaxtefid, lmaxeefid, dL, lps, nlps)
+                    if self.fldb.get(idx) is None:
+                        n1_L = n1f.n1l_jtp(L, cl_kind, kA, kB, Xp + Ip, Yp + Jp, k_ind,
+                                       self.cltt, self.clte, self.clee, clttfid, cltefid, cleefid,
+                                       FXXp, FYYp, FIIp, FYYp,
+                                       lmin_ftlA, lmin_ftlB, self.dL, self.lps)
+                        self.fldb.add(idx, n1_L)
+                        return n1_L
+                    return self.fldb.get(idx)
+            assert 0
