@@ -4,36 +4,44 @@ double precision function wf(k, l1x, l2x, l1y, l2y, l1abs, l2abs, cltt, clte, cl
     character(len=3), intent(in) :: k
     double precision, intent(in) :: l1x, l2x, l1y, l2y
     double precision, intent(in) :: cltt(lmaxtt), clte(lmaxte), clee(lmaxee)
+    double precision cos2p, sin2p
 
     if (k == 'ptt') then
         wf =  (cltt(l1abs) * ((l1x + l2x) * l1x + (l1y + l2y) * l1y)  &
                 + cltt(l2abs) * ((l1x + l2x) * l2x + (l1y + l2y) * l2y))
 
     else if (k == 'pte') then
-        wf = (clte(l1abs) * cos(2d0 * (atan2(l2y, l2x) - atan2(l1y, l1x))) * ((l1x + l2x) * l1x + (l1y + l2y) * l1y)&
+        cos2p = 2d0 * (l1x * l2x + l1y * l2y) ** 2 / ( (l1x ** 2 + l1y ** 2) * (l2x ** 2 + l2y ** 2) ) - 1.
+        wf = (clte(l1abs) * cos2p * ((l1x + l2x) * l1x + (l1y + l2y) * l1y)&
                 +clte(l2abs) * ( (l1x + l2x) * l2x + (l1y + l2y) * l2y))
 
     else if (k == 'pet') then
-        wf = (clte(l2abs) * cos(2. * (atan2(l1y, l1x) - atan2(l2y, l2x))) * ((l2x + l1x) * l2x + (l2y + l1y) * l2y)&
+        cos2p = 2d0 * (l2x * l1x + l2y * l1y) ** 2 / ( (l2x ** 2 + l2y ** 2) * (l1x ** 2 + l1y ** 2) ) - 1.
+        wf = (clte(l2abs) * cos2p * ((l2x + l1x) * l2x + (l2y + l1y) * l2y)&
                 + clte(l1abs) * ((l2x + l1x) * l1x + (l2y + l1y) * l1y))
 
     else if (k == 'ptb') then
-        wf = ((clte(l1abs) * ((l1x + l2x) * l1x + (l1y + l2y) * l1y)) * sin(2d0 * (atan2(l2y, l2x) - atan2(l1y, l1x))))
+        sin2p = 2d0 * (l1x * l2x + l1y * l2y) * (-l1y * l2x + l1x * l2y)/ ((l1x ** 2 + l1y ** 2) * (l2x ** 2 + l2y **2))
+        wf = ((clte(l1abs) * ((l1x + l2x) * l1x + (l1y + l2y) * l1y)) * sin2p)
 
     else if (k == 'pbt') then
-        wf = (clte(l2abs) * ((l2x + l1x) * l2x + (l2y + l1y) * l2y)) * sin( 2d0 * (atan2(l1y, l1x) - atan2(l2y, l2x)))
+        sin2p = 2d0 * (l2x * l1x + l2y * l1y) * (-l2y * l1x + l2x * l1y)/ ((l2x ** 2 + l2y ** 2) * (l1x ** 2 + l1y **2))
+        wf = ((clte(l2abs) * ((l2x + l1x) * l2x + (l2y + l1y) * l2y)) * sin2p)
 
     else if (k == 'pee') then
+        cos2p = 2d0 * (l1x * l2x + l1y * l2y) ** 2 / ( (l1x ** 2 + l1y ** 2) * (l2x ** 2 + l2y ** 2) ) - 1.
         wf = (clee(l1abs) * ((l1x + l2x) * l1x + (l1y + l2y) * l1y) + &
-                clee(l2abs) * ((l1x + l2x) * l2x + (l1y + l2y) * l2y)) * cos(2d0 * (atan2(l2y, l2x) - atan2(l1y, l1x)))
+                clee(l2abs) * ((l1x + l2x) * l2x + (l1y + l2y) * l2y)) * cos2p
 
     else if (k == 'peb') then
         !Note clBB absent here. If adding it, note Hu astro-ph/0111606 paper has the wrong sign in front of ClBB.
-        wf = (clee(l1abs) * ((l1x + l2x) * l1x + (l1y + l2y) * l1y)) * sin(2d0 * (atan2(l2y, l2x) - atan2(l1y, l1x)))
+        sin2p = 2d0 * (l1x * l2x + l1y * l2y) * (-l1y * l2x + l1x * l2y)/ ((l1x ** 2 + l1y ** 2) * (l2x ** 2 + l2y **2))
+        wf = (clee(l1abs) * ((l1x + l2x) * l1x + (l1y + l2y) * l1y)) * sin2p
 
     else if (k == 'pbe') then
         !Note clBB absent here. If adding it, note Hu astro-ph/0111606 paper has the wrong sign in front of ClBB.
-        wf = (clee(l2abs) * ((l2x + l1x) * l2x + (l2y + l1y) * l2y)) * sin(2d0 * (atan2(l1y, l1x) - atan2(l2y, l2x)))
+        sin2p = 2d0 * (l2x * l1x + l2y * l1y) * (-l2y * l1x + l2x * l1y)/ ((l2x ** 2 + l2y ** 2) * (l1x ** 2 + l1y **2))
+        wf = (clee(l2abs) * ((l2x + l1x) * l2x + (l2y + l1y) * l2y)) * sin2p
 
     else if ((k == 'pbb') .or. k =='xbb') then
         wf = 0d0
@@ -43,30 +51,37 @@ double precision function wf(k, l1x, l2x, l1y, l2y, l1abs, l2abs, cltt, clte, cl
                 + cltt(l2abs) * (-(l1y + l2y) * l2x + (l1x + l2x) * l2y))
 
     else if (k == 'xte') then
-        wf = (clte(l1abs) * cos(2d0 * (atan2(l2y, l2x) - atan2(l1y, l1x))) * ( -(l1y + l2y) * l1x + (l1x + l2x) * l1y)&
+        cos2p = 2d0 * (l1x * l2x + l1y * l2y) ** 2 / ( (l1x ** 2 + l1y ** 2) * (l2x ** 2 + l2y ** 2) ) - 1.
+        wf = (clte(l1abs) * cos2p * ( -(l1y + l2y) * l1x + (l1x + l2x) * l1y)&
                 + clte(l2abs) * (-(l1y + l2y) * l2x + (l1x + l2x) * l2y))
 
     else if (k == 'xet') then
-        wf = (clte(l2abs) * cos(2d0 * (atan2(l1y, l1x) - atan2(l2y, l2x))) * (-(l2y + l1y) * l2x + (l2x + l1x) * l2y) &
+        cos2p = 2d0 * (l2x * l1x + l2y * l1y) ** 2 / ( (l2x ** 2 + l2y ** 2) * (l1x ** 2 + l1y ** 2) ) - 1.
+        wf = (clte(l2abs) * cos2p * (-(l2y + l1y) * l2x + (l2x + l1x) * l2y) &
                 + clte(l1abs) * (-(l2y + l1y) * l1x + (l2x + l1x) * l1y))
 
     else if (k == 'xtb') then
-        wf = (clte(l1abs) * (-(l1y + l2y) * l1x + (l1x + l2x) * l1y)) * sin(2d0 * (atan2(l2y, l2x) - atan2(l1y, l1x)))
+        sin2p = 2d0 * (l1x * l2x + l1y * l2y) * (-l1y * l2x + l1x * l2y)/ ((l1x ** 2 + l1y ** 2) * (l2x ** 2 + l2y **2))
+        wf = (clte(l1abs) * (-(l1y + l2y) * l1x + (l1x + l2x) * l1y)) * sin2p
 
     else if (k == 'xbt') then
-        wf = (clte(l2abs) * (-(l2y + l1y) * l2x + (l2x + l1x) * l2y)) * sin(2d0 * (atan2(l1y, l1x) - atan2(l2y, l2x)))
+        sin2p = 2d0 * (l2x * l1x + l2y * l1y) * (-l2y * l1x + l2x * l1y)/ ((l2x ** 2 + l2y ** 2) * (l1x ** 2 + l1y **2))
+        wf = (clte(l2abs) * (-(l2y + l1y) * l2x + (l2x + l1x) * l2y)) * sin2p
 
     else if (k == 'xee') then
+        cos2p = 2d0 * (l1x * l2x + l1y * l2y) ** 2 / ( (l1x ** 2 + l1y ** 2) * (l2x ** 2 + l2y ** 2) ) - 1.
         wf = (clee(l1abs) * (-(l1y + l2y) * l1x + (l1x + l2x) * l1y) + clee(l2abs) * &
-                (-(l1y + l2y) * l2x + (l1x + l2x) * l2y)) * cos(2. * (atan2(l2y, l2x) - atan2(l1y, l1x)))
+                (-(l1y + l2y) * l2x + (l1x + l2x) * l2y)) * cos2p
 
     else if (k == 'xeb') then
         !Note clBB absent here. If adding it, note Hu astro-ph/0111606 paper has the wrong sign in front of ClBB.
-        wf = (clee(l1abs) * (-(l1y + l2y) * l1x + (l1x + l2x) * l1y)) * sin(2d0 * (atan2(l2y, l2x) - atan2(l1y, l1x)))
+        sin2p = 2d0 * (l1x * l2x + l1y * l2y) * (-l1y * l2x + l1x * l2y)/ ((l1x ** 2 + l1y ** 2) * (l2x ** 2 + l2y **2))
+        wf = (clee(l1abs) * (-(l1y + l2y) * l1x + (l1x + l2x) * l1y)) * sin2p
 
     else if (k == 'xbe') then
         !Note clBB absent here. If adding it, note Hu astro-ph/0111606 paper has the wrong sign in front of ClBB.
-        wf = (clee(l2abs) * (-(l2y + l1y) * l2x + (l2x + l1x) * l2y)) * sin(2d0 * (atan2(l1y, l1x) - atan2(l2y, l2x)))
+        sin2p = 2d0 * (l2x * l1x + l2y * l1y) * (-l2y * l1x + l2x * l1y)/ ((l2x ** 2 + l2y ** 2) * (l1x ** 2 + l1y **2))
+        wf = (clee(l2abs) * (-(l2y + l1y) * l2x + (l2x + l1x) * l2y)) * sin2p
 
     else if (k == 'stt') then
         wf = 1d0
