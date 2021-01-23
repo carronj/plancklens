@@ -2,10 +2,17 @@ r""":math:`N^{(1)}_L` quadratic estimator bias calculation module.
 
     This module contains the :math:`N^{(1)}_L` bias calculation scripts (for lensing and other quadratic estimators)
 
-    Note:
-        All calculations are performed using the flat-sky approximation from Fortran code
+    All calculations are performed using the flat-sky approximation from Fortran code.
+    The Fortran code implements Eq. A.3. of the 2018 Planck lensing paper https://arxiv.org/abs/1807.06210,
+    with integration on :math:`\bf{\ell_1}` and the anisotropy source wavevector.
 
-        For composed estimators all will be stored on the fly
+    Note:
+
+        For composed estimators, the N1 for all pairs will be calculated and stored in the process
+
+    Note:
+
+        The input spectra are those used in QE weights and the CMB responses (e.g. :math:`\tilde C^{T\nabla T}_\ell`)
 
 
 """
@@ -32,6 +39,14 @@ estimator_keys_derived = ['p', 'p_p', 'p_tp', 'p_eb', 'p_te', 'p_tb',
                           'f', 'f_p', 'f_tp', 'f_eb', 'f_te', 'f_tb',
                           'x', 'x_p', 'x_tp', 'x_eb', 'x_te', 'x_tb']
 
+
+def _calc_n1L_sTP(L, cl_kind, kA, kB, k_ind, cltt, clte, clee, clttw, cltew, cleew,
+                  ftlA, felA, fblA, ftlB, felB, fblB, lminA, lminB, dL, lps):
+    """Direct call to f90 code for independent T-P fitlering
+
+    """
+    return n1f.n1l(L, cl_kind, kA, kB, k_ind,  cltt, clte, clee, clttw, cltew, cleew,
+                   ftlA, felA, fblA, ftlB, felB, fblB, lminA, lminB, dL, lps)
 
 def _get_est_derived(k, lmax):
     r""" Estimator combinations with some weighting.
