@@ -220,6 +220,8 @@ double precision function n1L(L, cl_kI, kA, kB, kI, cltt, clte, clee, clttfid, c
                     if (phiIx /= 0) then
                         fac = fac * 2d0
                     end if
+                    fac = fac * wf(kA, L1x, L2x, L1y, L2y, L1i, L2i, clttfid, cltefid, cleefid, lmaxttfid, lmaxtefid, lmaxeefid)
+                    fac = fac * fal1(L1i) * fal2(L2i)
                     do PhiL_nphi_ix = -(PhiL_nphi-1)/2, (PhiL_nphi-1)/2
                         PhiL_phi = PhiL_phi_dphi * PhiL_nphi_ix
                         PhiLx = PhiLi * cos(PhiL_phi)
@@ -234,24 +236,21 @@ double precision function n1L(L, cl_kI, kA, kB, kI, cltt, clte, clee, clttfid, c
                             L4 = sqrt(L4x * L4x + L4y * L4y)
                              if ((L4 >= lminB) .AND. (L4 <= lmaxB)) then
                                  L4i = nint(L4)
-                                 term1 = wf(kA, L1x, L2x, L1y, L2y, L1i, L2i, clttfid, cltefid, cleefid, &
-                                         lmaxttfid, lmaxtefid, lmaxeefid )&
-                                         * wf(kB, L3x, L4x, L3y, L4y, L3i, L4i, clttfid, cltefid, cleefid, &
+                                 ! wf(kA) and first two filters already absorded into 'fac'
+                                 term1 = wf(kB, L3x, L4x, L3y, L4y, L3i, L4i, clttfid, cltefid, cleefid, &
                                                  lmaxttfid, lmaxtefid, lmaxeefid)&
                                          * wf(k13, L1x, L3x, L1y, L3y, L1i, L3i, cltt, clte, clee, &
                                                  lmaxtt, lmaxte, lmaxee)&
                                          * wf(k24, L2x, L4x, L2y, L4y, L2i, L4i, cltt, clte, clee, &
                                                  lmaxtt, lmaxte, lmaxee)&
-                                         * fal1(L1i) * fal2(L2i) * fal3(L3i) * fal4(L4i)
-                                 term2 = wf(kA, L1x, L2x, L1y, L2y, L1i, L2i, clttfid, cltefid, cleefid, &
-                                           lmaxttfid, lmaxtefid, lmaxeefid)&
-                                         * wf(kB, L4x, L3x, L4y, L3y, L4i, L3i, clttfid, cltefid, cleefid, &
+                                         * fal3(L3i) * fal4(L4i)
+                                 term2 = wf(kB, L4x, L3x, L4y, L3y, L4i, L3i, clttfid, cltefid, cleefid, &
                                            lmaxttfid, lmaxtefid, lmaxeefid)&
                                          * wf(k14, L1x, L3x, L1y, L3y, L1i, L3i, cltt, clte, clee, &
                                                  lmaxtt, lmaxte, lmaxee)&
                                          * wf(k23, L2x, L4x, L2y, L4y, L2i, L4i, cltt, clte, clee, &
                                                  lmaxtt, lmaxte, lmaxee)&
-                                         * fal1(L1i) * fal2(L2i) * fal3(L4i) * fal4(L3i)
+                                         * fal3(L4i) * fal4(L3i)
                                  n1L = n1L  + (term1 + term2) * fac * cl_kI(PhiLi)
                             end if
                         end if
