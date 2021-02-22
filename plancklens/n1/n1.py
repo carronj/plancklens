@@ -196,6 +196,7 @@ class library_n1:
                         for i, L in enumerate(Ls): # reoading cached n1L's
                             n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid,
                                              cltefid, cleefid))
+                        mpi.barrier()
 
                 else: # entire vector from f90 openmp call
                     lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlA, felA, fblA]])
