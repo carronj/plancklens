@@ -412,7 +412,7 @@ class cinv_tp:
                 os.makedirs(lib_dir)
 
             if not os.path.exists(os.path.join(lib_dir,  "filt_hash.pk")):
-                pk.dump(self.hashdict(), open(os.path.join(lib_dir,  "filt_hash.pk"), 'w'))
+                pk.dump(self.hashdict(), open(os.path.join(lib_dir,  "filt_hash.pk"), 'wb'), protocol=2)
 
             # if (not os.path.exists(self.lib_dir + "/fbl.dat")):
             #    fel, fbl = self.calc_febl()
@@ -428,7 +428,7 @@ class cinv_tp:
                 hp.write_map(os.path.join(self.lib_dir,  "fmask.fits.gz"), fmask)
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir,  "filt_hash.pk"), 'r')), self.hashdict())
+        utils.hash_check(pk.load(open(os.path.join(lib_dir,  "filt_hash.pk"), 'rb')), self.hashdict())
 
     def hashdict(self):
         return {'lmax': self.lmax,
