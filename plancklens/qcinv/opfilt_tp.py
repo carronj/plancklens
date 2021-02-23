@@ -201,8 +201,8 @@ class alm_filter_ninv:
 
         self.n_inv = n_inv
         self.b_transf_t = b_transf
-        self.b_transf_e = b_transf_e if b_transf_e else b_transf
-        self.b_transf_b = b_transf_b if b_transf_b else b_transf
+        self.b_transf_e = b_transf_e if b_transf_e is not None else b_transf
+        self.b_transf_b = b_transf_b if b_transf_b is not None else b_transf
         assert len(self.b_transf_t) == len(self.b_transf_e) and len(self.b_transf_t) == len(self.b_transf_e)
         self.b_transf = (self.b_transf_t + self.b_transf_e + self.b_transf_t) / 3.
 
