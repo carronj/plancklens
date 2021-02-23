@@ -258,7 +258,7 @@ class pre_op_dense_tp:
         print("   inverting M...")
         eigv, eigw = np.linalg.eigh(tmat)
 
-        assert np.all(eigv[ntmpl:] > 0.)
+        #assert np.all(eigv[ntmpl:] > 0.)
         eigv_inv = np.zeros_like(eigv)
         eigv_inv[ntmpl:] = 1.0 / eigv[ntmpl:]
 
