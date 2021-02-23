@@ -4,10 +4,9 @@
 
 import numpy  as np
 import healpy as hp
-import util
 import template_removal
 from plancklens.utils import clhash
-
+from plancklens.qcinv.util import read_map
 from .util_alm import teblm
 from . import dense
 
@@ -26,14 +25,15 @@ def calc_prep(maps, s_cls, n_inv_filt):
     elm *= npix / (4. * np.pi)
     blm *= npix / (4. * np.pi)
 
-    hp.almxfl(tlm, n_inv_filt.b_transf, inplace=True)
-    hp.almxfl(elm, n_inv_filt.b_transf, inplace=True)
-    hp.almxfl(blm, n_inv_filt.b_transf, inplace=True)
+    hp.almxfl(tlm, n_inv_filt.b_transf_t, inplace=True)
+    hp.almxfl(elm, n_inv_filt.b_transf_e, inplace=True)
+    hp.almxfl(blm, n_inv_filt.b_transf_b, inplace=True)
     return teblm([tlm, elm, blm])
 
 
 def apply_fini(alm, s_cls, n_inv_filt):
-    sfilt = alm_filter_sinv(s_cls)
+    lmax = len(n_inv_filt.b_transf) - 1
+    sfilt = alm_filter_sinv(s_cls, lmax)
     ret = sfilt.calc(alm)
     alm.tlm[:] = ret.tlm[:]
     alm.elm[:] = ret.elm[:]
@@ -61,7 +61,8 @@ class dot_op:
 
 class fwd_op:
     def __init__(self, s_cls, n_inv_filt):
-        self.s_inv_filt = alm_filter_sinv(s_cls)
+        lmax = len(n_inv_filt.b_transf) - 1
+        self.s_inv_filt = alm_filter_sinv(s_cls, lmax)
         self.n_inv_filt = n_inv_filt
 
     def hashdict(self):
@@ -84,7 +85,8 @@ class fwd_op:
 
 class pre_op_diag:
     def __init__(self, s_cls, n_inv_filt):
-        s_inv_filt = alm_filter_sinv(s_cls)
+        lmax = len(n_inv_filt.b_transf) - 1
+        s_inv_filt = alm_filter_sinv(s_cls, lmax)
         assert ((s_inv_filt.lmax + 1) >= len(n_inv_filt.b_transf))
 
         ninv_ftl, ninv_fel, ninv_fbl = n_inv_filt.get_ftebl()
@@ -147,20 +149,21 @@ class alm_filter_sinv:
 
 
 class alm_filter_ninv:
-    def __init__(self, n_inv, b_transf, marge_monopole=False, marge_dipole=False, marge_maps_t=[], marge_maps_p=[]):
+    def __init__(self, n_inv, b_transf, b_transf_e=None, b_transf_b=None,
+                 marge_monopole=False, marge_dipole=False, marge_maps_t=(), marge_maps_p=()):
         # n_inv = [util.load_map(n[:]) for n in n_inv]
         self.n_inv = []
         for i, tn in enumerate(n_inv):
             if isinstance(tn, list):
-                n_inv_prod = util.load_map(tn[0][:])
+                n_inv_prod = read_map(tn[0][:])
                 if len(tn) > 1:
                     for n in tn[1:]:
-                        n_inv_prod = n_inv_prod * util.load_map(n[:])
+                        n_inv_prod = n_inv_prod * read_map(n[:])
                 self.n_inv.append(n_inv_prod)
                 # assert (np.std(self.n_inv[i][np.where(self.n_inv[i][:] != 0.0)]) / np.average(
                 #    self.n_inv[i][np.where(self.n_inv[i][:] != 0.0)]) < 1.e-7)
             else:
-                self.n_inv.append(util.load_map(n_inv[i]))
+                self.n_inv.append(read_map(n_inv[i]))
 
         n_inv = self.n_inv
         npix = len(n_inv[0])
@@ -170,7 +173,7 @@ class alm_filter_ninv:
 
         templates_t = []
         templates_t_hash = []
-        for tmap in [util.load_map(m) for m in marge_maps_t]:
+        for tmap in [read_map(m) for m in marge_maps_t]:
             assert (npix == len(tmap))
             templates_t.append(template_removal.template_map(tmap))
             templates_t_hash.append(clhash(tmap))
@@ -197,7 +200,11 @@ class alm_filter_ninv:
             self.Pt_Nn1_P_inv = np.linalg.inv(Pt_Nn1_P)
 
         self.n_inv = n_inv
-        self.b_transf = b_transf[:]
+        self.b_transf_t = b_transf
+        self.b_transf_e = b_transf_e if b_transf_e else b_transf
+        self.b_transf_b = b_transf_b if b_transf_b else b_transf
+        assert len(self.b_transf_t) == len(self.b_transf_e) and len(self.b_transf_t) == len(self.b_transf_e)
+        self.b_transf = (self.b_transf_t + self.b_transf_e + self.b_transf_t) / 3.
 
         self.marge_monopole = marge_monopole
         self.marge_dipole = marge_dipole
@@ -213,15 +220,16 @@ class alm_filter_ninv:
 
     def get_ftebl(self):
         if len(self.n_inv) == 2:  # TT, 1/2(QQ+UU)
-            n_inv_cl_t = np.sum(self.n_inv[0]) / (4.0 * np.pi) * self.b_transf ** 2
-            n_inv_cl_p = np.sum(self.n_inv[1]) / (4.0 * np.pi) * self.b_transf ** 2
-
-            return n_inv_cl_t, n_inv_cl_p, n_inv_cl_p
+            n_inv_cl_t = np.sum(self.n_inv[0]) / (4.0 * np.pi) * self.b_transf_t ** 2
+            n_inv_cl_e = np.sum(self.n_inv[1]) / (4.0 * np.pi) * self.b_transf_e ** 2
+            n_inv_cl_b = np.sum(self.n_inv[1]) / (4.0 * np.pi) * self.b_transf_b ** 2
+            return n_inv_cl_t, n_inv_cl_e, n_inv_cl_b
         elif len(self.n_inv) == 4:  # TT, QQ, QU, UU
-            n_inv_cl_t = np.sum(self.n_inv[0]) / (4.0 * np.pi) * self.b_transf ** 2
-            n_inv_cl_p = np.sum(0.5 * (self.n_inv[1] + self.n_inv[3])) / (4.0 * np.pi) * self.b_transf ** 2
+            n_inv_cl_t = np.sum(self.n_inv[0]) / (4.0 * np.pi) * self.b_transf_t ** 2
+            n_inv_cl_e = np.sum(0.5 * (self.n_inv[1] + self.n_inv[3])) / (4.0 * np.pi) * self.b_transf_e ** 2
+            n_inv_cl_b = np.sum(0.5 * (self.n_inv[1] + self.n_inv[3])) / (4.0 * np.pi) * self.b_transf_b ** 2
 
-            return n_inv_cl_t, n_inv_cl_p, n_inv_cl_p
+            return n_inv_cl_t, n_inv_cl_e, n_inv_cl_b
         else:
             assert 0
 
@@ -237,18 +245,20 @@ class alm_filter_ninv:
             return self
         else:
             print("DEGRADING WITH NO MARGE MAPS")
-            marge_maps_t = []
-            marge_maps_p = []
+            marge_maps_t = ()
+            marge_maps_p = ()
         return alm_filter_ninv([hp.ud_grade(n, nside, power=-2) for n in self.n_inv], self.b_transf,
-                                   self.marge_monopole, self.marge_dipole, marge_maps_t, marge_maps_p)
+                               b_transf_e=self.b_transf_e, b_transf_b=self.b_transf_b,
+                                marge_monopole=self.marge_monopole, marge_dipole=self.marge_dipole,
+                               marge_maps_t=marge_maps_t, marge_maps_p=marge_maps_p)
 
     def apply_alm(self, alm):
         # applies Y^T N^{-1} Y
         lmax = alm.lmax
 
-        hp.almxfl(alm.tlm, self.b_transf, inplace=True)
-        hp.almxfl(alm.elm, self.b_transf, inplace=True)
-        hp.almxfl(alm.blm, self.b_transf, inplace=True)
+        hp.almxfl(alm.tlm, self.b_transf_t, inplace=True)
+        hp.almxfl(alm.elm, self.b_transf_e, inplace=True)
+        hp.almxfl(alm.blm, self.b_transf_b, inplace=True)
 
         tmap, qmap, umap = hp.alm2map((alm.tlm, alm.elm, alm.blm), self.nside, verbose=False, pol=True)
         # qmap, umap = hp.alm2map_spin((alm.elm, alm.blm), self.nside, 2)
@@ -264,9 +274,9 @@ class alm_filter_ninv:
         alm.elm[:] *= (self.npix / (4. * np.pi))
         alm.blm[:] *= (self.npix / (4. * np.pi))
 
-        hp.almxfl(alm.tlm, self.b_transf, inplace=True)
-        hp.almxfl(alm.elm, self.b_transf, inplace=True)
-        hp.almxfl(alm.blm, self.b_transf, inplace=True)
+        hp.almxfl(alm.tlm, self.b_transf_t, inplace=True)
+        hp.almxfl(alm.elm, self.b_transf_e, inplace=True)
+        hp.almxfl(alm.blm, self.b_transf_b, inplace=True)
 
     def apply_map(self, amap):
         [tmap, qmap, umap] = amap

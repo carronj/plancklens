@@ -42,7 +42,7 @@ class multigrid_chain:
                                                              stages=stages, lmax=lmax, nside=nside, chain=self))
         self.bstage = stages[0]  # these are the pre_ops called in cd_solve
 
-    def solve(self, soltn, tpn_map, apply_fini=''):
+    def solve(self, soltn, tpn_map, apply_fini='', dot_op=None):
         assert hasattr(self.opfilt, 'apply_fini%s' % apply_fini)
         finifunc = getattr(self.opfilt, 'apply_fini%s' % apply_fini)
         if apply_fini != '':
@@ -52,18 +52,19 @@ class multigrid_chain:
         self.watch = util.stopwatch()
         self.iter_tot = 0
         self.prev_eps = None
-
+        if dot_op is None:
+            dot_op = self.opfilt.dot_op()
         logger = (lambda iter, eps, stage=self.bstage, **kwargs:
                   self.log(stage, iter, eps, **kwargs))
 
         tpn_alm = self.opfilt.calc_prep(tpn_map, self.s_cls, self.n_inv_filt)
-        monitor = cd_monitors.monitor_basic(self.opfilt.dot_op(), logger=logger, iter_max=self.bstage.iter_max,
-                                            eps_min=self.bstage.eps_min, d0=self.opfilt.dot_op()(tpn_alm, tpn_alm))
+        monitor = cd_monitors.monitor_basic(dot_op, logger=logger, iter_max=self.bstage.iter_max,
+                                        eps_min=self.bstage.eps_min, d0=dot_op(tpn_alm, tpn_alm))
 
         fwd_op = self.opfilt.fwd_op(self.s_cls, self.n_inv_filt)
 
         cd_solve.cd_solve(soltn, tpn_alm,
-                          fwd_op, self.bstage.pre_ops, self.opfilt.dot_op(), monitor,
+                          fwd_op, self.bstage.pre_ops, dot_op, monitor,
                           tr=self.bstage.tr, cache=self.bstage.cache)
         finifunc(soltn, self.s_cls, self.n_inv_filt)
 
@@ -84,13 +85,12 @@ class multigrid_chain:
             log.close()
 
             if stage.depth == 0:
-                f_handle = file(self.debug_log_prefix + 'stage_soltn_' + str(stage.depth) + '.dat', 'a')
-                np.savetxt(f_handle, [[v for v in kwargs['soltn']]])
-                f_handle.close()
+                f_handle = self.debug_log_prefix + 'stage_soltn_' + str(stage.depth) + '_%04d'%iter +'.npy'
+                np.save(f_handle,  kwargs['soltn'])
 
-                f_handle = file(self.debug_log_prefix + 'stage_resid_' + str(stage.depth) + '.dat', 'a')
-                np.savetxt(f_handle, [[v for v in kwargs['resid']]])
-                f_handle.close()
+                #f_handle = self.debug_log_prefix + 'stage_resid_' + str(stage.depth) + '.npy'
+                #np.save(f_handle, kwargs['resid']]])
+                #f_handle.close()
 
             log_str = '%05d %05d %10.6e %05d %s\n' % (self.iter_tot, int(elapsed), eps, iter, str(elapsed))
             log = open(self.debug_log_prefix + 'stage_' + str(stage.depth) + '.dat', 'a')
