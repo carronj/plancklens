@@ -4,7 +4,7 @@
 
 import numpy  as np
 import healpy as hp
-import template_removal
+from plancklens.qcinv import template_removal
 from plancklens.utils import clhash
 from plancklens.qcinv.util import read_map
 from .util_alm import teblm
