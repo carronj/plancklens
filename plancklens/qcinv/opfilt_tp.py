@@ -121,15 +121,15 @@ def pre_op_dense(lmax, fwd_op, cache_fname=None):
 class alm_filter_sinv:
     def __init__(self, s_cls, lmax):
         slmat = np.zeros((lmax + 1, 3, 3))  # matrix of TEB correlations at each l.
-        slmat[:, 0, 0] = getattr(s_cls, 'tt', np.zeros(lmax + 1))[:lmax+1]
-        slmat[:, 0, 1] = getattr(s_cls, 'te', np.zeros(lmax + 1))[:lmax+1]
+        slmat[:, 0, 0] = s_cls.get('tt', np.zeros(lmax + 1))[:lmax+1]
+        slmat[:, 0, 1] = s_cls.get('te', np.zeros(lmax + 1))[:lmax+1]
         slmat[:, 1, 0] = slmat[:, 0, 1]
-        slmat[:, 0, 2] = getattr(s_cls, 'tb', np.zeros(lmax + 1))[:lmax+1]
+        slmat[:, 0, 2] = s_cls.get('tb', np.zeros(lmax + 1))[:lmax+1]
         slmat[:, 2, 0] = slmat[:, 0, 2]
-        slmat[:, 1, 1] = getattr(s_cls, 'ee', np.zeros(lmax + 1))[:lmax+1]
-        slmat[:, 1, 2] = getattr(s_cls, 'eb', np.zeros(lmax + 1))[:lmax+1]
+        slmat[:, 1, 1] = s_cls.get('ee', np.zeros(lmax + 1))[:lmax+1]
+        slmat[:, 1, 2] = s_cls.get('eb', np.zeros(lmax + 1))[:lmax+1]
         slmat[:, 2, 1] = slmat[:, 1, 2]
-        slmat[:, 2, 2] = getattr(s_cls, 'bb', np.zeros(lmax + 1))[:lmax+1]
+        slmat[:, 2, 2] = s_cls.get('bb', np.zeros(lmax + 1))[:lmax+1]
 
         slinv = np.linalg.pinv(slmat)
 
