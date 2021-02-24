@@ -452,6 +452,9 @@ class cinv_tp:
             mask *= (ninv > 0.)
         return mask
 
+    def get_fmask(self):
+        return hp.read_map(os.path.join(self.lib_dir, "fmask.fits.gz"))
+
     def apply_ivf(self, tqumap, apply_fini=''):
         assert (len(tqumap) == 3)
 
