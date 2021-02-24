@@ -124,7 +124,7 @@ class teblm:
         assert self.lmaxt == other.lmaxt
         assert self.lmaxe == other.lmaxe
         assert self.lmaxb == other.lmaxb
-        self.tlm += other.telm
+        self.tlm += other.tlm
         self.elm += other.elm
         self.blm += other.blm
         return self
