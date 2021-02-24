@@ -377,8 +377,10 @@ class cinv_tp:
         assert (nside >= 512)
         assert len(ninv) == 2 or len(ninv) == 4  # TT, (QQ + UU)/2 or TT,QQ,QU,UU
 
-        if rescal_cl in ['default', None]:
+        if rescal_cl == 'default':
             rescal_cl = np.sqrt(np.arange(lmax + 1, dtype=float) * np.arange(1, lmax + 2, dtype=float) / 2. / np.pi)
+        elif rescal_cl is None:
+            rescal_cl = np.ones(lmax  + 1, dtype=float)
         dl = {k: rescal_cl ** 2 * cl[k][:lmax + 1] for k in cl.keys()}  # rescaled cls (Dls by default)
         transf_dl = transf[:lmax + 1] * utils.cli(rescal_cl)
 
