@@ -100,16 +100,21 @@ class pre_op_diag:
         flmat[:, 2, 2] += ninv_fbl
         flmat = np.linalg.pinv(flmat)
         self.flmat = flmat
+        self.te_only = s_inv_filt.te_only
 
     def __call__(self, talm):
         return self.calc(talm)
 
     def calc(self, alm):
         tmat = self.flmat
-
-        rtlm = hp.almxfl(alm.tlm, tmat[:, 0, 0]) + hp.almxfl(alm.elm, tmat[:, 0, 1]) + hp.almxfl(alm.blm, tmat[:, 0, 2])
-        relm = hp.almxfl(alm.tlm, tmat[:, 1, 0]) + hp.almxfl(alm.elm, tmat[:, 1, 1]) + hp.almxfl(alm.blm, tmat[:, 1, 2])
-        rblm = hp.almxfl(alm.tlm, tmat[:, 2, 0]) + hp.almxfl(alm.elm, tmat[:, 2, 1]) + hp.almxfl(alm.blm, tmat[:, 2, 2])
+        if self.te_only:
+            rtlm = hp.almxfl(alm.tlm, tmat[:, 0, 0]) + hp.almxfl(alm.elm, tmat[:, 0, 1])
+            relm = hp.almxfl(alm.tlm, tmat[:, 1, 0]) + hp.almxfl(alm.elm, tmat[:, 1, 1])
+            rblm = hp.almxfl(alm.blm, tmat[:, 2, 2])
+        else:
+            rtlm = hp.almxfl(alm.tlm, tmat[:, 0, 0]) + hp.almxfl(alm.elm, tmat[:, 0, 1]) + hp.almxfl(alm.blm, tmat[:, 0, 2])
+            relm = hp.almxfl(alm.tlm, tmat[:, 1, 0]) + hp.almxfl(alm.elm, tmat[:, 1, 1]) + hp.almxfl(alm.blm, tmat[:, 1, 2])
+            rblm = hp.almxfl(alm.tlm, tmat[:, 2, 0]) + hp.almxfl(alm.elm, tmat[:, 2, 1]) + hp.almxfl(alm.blm, tmat[:, 2, 2])
         return teblm([rtlm, relm, rblm])
 
 def pre_op_dense(lmax, fwd_op, cache_fname=None):
@@ -136,12 +141,20 @@ class alm_filter_sinv:
         self.lmax = lmax
         self.slinv = slinv
 
+        self.te_only = True
+        if np.any(slmat[:, 0, 1]) or np.any(slmat[:, 0, 2]) or np.any(slmat[:, 1, 2]):
+            self.te_only = False
+
     def calc(self, alm):
         tmat = self.slinv
-
-        rtlm = hp.almxfl(alm.tlm, tmat[:, 0, 0]) + hp.almxfl(alm.elm, tmat[:, 0, 1]) + hp.almxfl(alm.blm, tmat[:, 0, 2])
-        relm = hp.almxfl(alm.tlm, tmat[:, 1, 0]) + hp.almxfl(alm.elm, tmat[:, 1, 1]) + hp.almxfl(alm.blm, tmat[:, 1, 2])
-        rblm = hp.almxfl(alm.tlm, tmat[:, 2, 0]) + hp.almxfl(alm.elm, tmat[:, 2, 1]) + hp.almxfl(alm.blm, tmat[:, 2, 2])
+        if self.te_only:
+            rtlm = hp.almxfl(alm.tlm, tmat[:, 0, 0]) + hp.almxfl(alm.elm, tmat[:, 0, 1])
+            relm = hp.almxfl(alm.tlm, tmat[:, 1, 0]) + hp.almxfl(alm.elm, tmat[:, 1, 1])
+            rblm = hp.almxfl(alm.blm, tmat[:, 2, 2])
+        else:
+            rtlm = hp.almxfl(alm.tlm, tmat[:, 0, 0]) + hp.almxfl(alm.elm, tmat[:, 0, 1]) + hp.almxfl(alm.blm, tmat[:, 0, 2])
+            relm = hp.almxfl(alm.tlm, tmat[:, 1, 0]) + hp.almxfl(alm.elm, tmat[:, 1, 1]) + hp.almxfl(alm.blm, tmat[:, 1, 2])
+            rblm = hp.almxfl(alm.tlm, tmat[:, 2, 0]) + hp.almxfl(alm.elm, tmat[:, 2, 1]) + hp.almxfl(alm.blm, tmat[:, 2, 2])
         return teblm([rtlm, relm, rblm])
 
     def hashdict(self):
