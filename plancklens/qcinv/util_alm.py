@@ -99,12 +99,12 @@ class teblm:
         self.tlm = tlm
 
     def alm_copy(self, lmax=None):
-        return eblm([alm_copy(self.tlm, lmax=lmax),
+        return teblm([alm_copy(self.tlm, lmax=lmax),
                      alm_copy(self.elm, lmax=lmax),
                      alm_copy(self.blm, lmax=lmax)])
 
     def alm_splice(self, alm_hi, lsplit):
-        return eblm([alm_splice(self.tlm, alm_hi.tlm, lsplit),
+        return teblm([alm_splice(self.tlm, alm_hi.tlm, lsplit),
                      alm_splice(self.elm, alm_hi.elm, lsplit),
                      alm_splice(self.blm, alm_hi.blm, lsplit)])
 
@@ -124,7 +124,7 @@ class teblm:
         assert self.lmaxt == other.lmaxt
         assert self.lmaxe == other.lmaxe
         assert self.lmaxb == other.lmaxb
-        self.tlm += other.telm
+        self.tlm += other.tlm
         self.elm += other.elm
         self.blm += other.blm
         return self

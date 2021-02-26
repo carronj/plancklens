@@ -240,11 +240,11 @@ class pre_op_dense_tp:
         tmat = np.zeros((nrlm, nrlm))
 
         ntmpl = 0
-        for t in fwd_op.n_inv_filt.templates_p:
+        for t in fwd_op.n_inv_filt.templates_t:
             ntmpl += t.nmodes # This should include mono and possibly dip
         for t in fwd_op.n_inv_filt.templates_p:
             ntmpl += t.nmodes
-        ntmpl += 9  # (1 mono + 3 dip) * (e+b)
+        ntmpl += 8  # (1 mono + 3 dip) * (e+b)
 
         print("computing dense preconditioner:")
         print("     lmax  =", lmax)
