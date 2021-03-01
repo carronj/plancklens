@@ -5,9 +5,10 @@ This module collects some convenience wrapper libraries.
 """
 import healpy as hp
 from plancklens import utils
+import numpy as np
 
 class library_ftl:
-    """ Library of a-posteriori re-scaled filtered CMB maps.
+    """ Library of a-posteriori re-scaled filtered CMB maps, for separate temperature and polarization filtering
 
     Args:
          ivfs : inverse filtering library instance.
@@ -17,6 +18,11 @@ class library_ftl:
          lfilt_b (1d array): filtered B-polarization alms are rescaled by lfilt_b
 
     Wraps the input filtering instance *(ivfs)* methods to keep the same interface.
+
+    Note:
+
+        ftl fel fbl should eventually be taken off to be replaced by fal in all cases
+
     """
     def __init__(self, ivfs, lmax, lfilt_t, lfilt_e, lfilt_b):
         assert len(lfilt_t) > lmax and len(lfilt_e) > lmax and len(lfilt_b) > lmax
