@@ -20,7 +20,7 @@ class library_ftl:
     Wraps the input filtering instance *(ivfs)* methods to keep the same interface.
 
     Note:
-        
+
         ftl fel fbl should eventually be taken off to be replaced by fal in all cases
 
     """

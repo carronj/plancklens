@@ -28,8 +28,8 @@ def get_blbubc(bin_type):
         bins_l = np.array([2,7])
         bins_u = np.array([8,40])
     elif bin_type == '1_10_unb':
-        bins_l = np.arange(1, 9)
-        bins_u = 1 + bins_l
+        bins_l = np.arange(1, 11)
+        bins_u = bins_l
     elif '_' in bin_type:
         edges = np.int_(bin_type.split('_'))
         bins_l = edges[:-1]
