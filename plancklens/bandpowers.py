@@ -18,6 +18,18 @@ def get_blbubc(bin_type):
     elif bin_type == 'agr2':
         bins_l = np.array([8, 21, 40, 66, 101, 145, 199, 264, 339, 426, 526, 638, 763, 902])
         bins_u = np.array([20, 39, 65, 100, 144, 198, 263, 338, 425, 525, 637, 762, 901, 2048])
+    elif bin_type == 'xdip':
+        bins_l = np.array([8, 264, 902])
+        bins_u = np.array([263, 901, 2048])
+    elif bin_type == 'pdip':
+        bins_l = np.array([8, 101, 426])
+        bins_u = np.array([100, 425,  2048])
+    elif bin_type == 'lowl':
+        bins_l = np.array([2,7])
+        bins_u = np.array([8,40])
+    elif bin_type == '1_10_unb':
+        bins_l = np.arange(1, 9)
+        bins_u = 1 + bins_l
     elif '_' in bin_type:
         edges = np.int_(bin_type.split('_'))
         bins_l = edges[:-1]
