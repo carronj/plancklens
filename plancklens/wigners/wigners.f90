@@ -311,7 +311,7 @@ module poly
                 xi = cl(0) * p0
                 return
             end if
-        !$OMP PARALLEL DO DEFAULT(NONE) PRIVATE(ix, txi, plm1, pl, plp1, l) SHARED(xi, x, lmax, an, bn, cn, cl, p0)
+        !$OMP PARALLEL DO DEFAULT(NONE) PRIVATE(ix, txi, plm1, pl, plp1, l) SHARED(xi, x, lmax, an, bn, cn, cl, p0, nx)
             do ix = 1, nx
                 plm1 = 0.
                 pl = p0
