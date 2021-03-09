@@ -390,7 +390,7 @@ module poly
                 xi = p0 * (cl(0) + cl(1) * (an(0) * x(ix) + bn(0)))
                 return
             end if
-        !$OMP PARALLEL DO DEFAULT(NONE) PRIVATE(ix, tx, yl, ylp1, ylp2, l) SHARED(xi, x, p0, lmax, an, bn, cn, cl)
+        !$OMP PARALLEL DO DEFAULT(NONE) PRIVATE(ix, tx, yl, ylp1, ylp2, l) SHARED(xi, x, p0, nx, lmax, an, bn, cn, cl)
             do ix = 1, nx
                 tx = x(ix)
                 ylp2 = cl(lmax)  ! lmax
