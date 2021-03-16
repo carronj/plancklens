@@ -539,7 +539,7 @@ module poly
                     plm1 = pl
                     pl = plp1
                     plp1 = bn(k) * pl - cn(k) * plm1
-                    cl(lmin + k) = cl(lmin + k) + plp1 * xi(ix)
+                    cl(lmin + 1 + k) = cl(lmin + 1 + k) + plp1 * xi(ix)
                 end do
             end if
         end subroutine pos2pol_omp_zsym
