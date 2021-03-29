@@ -444,13 +444,14 @@ class lib_filt2map(object):
     def hashdict(self):
         return {'ivfs': self.ivfs.hashdict(), 'nside': self.nside}
 
-    def get_gtmap(self, idx, k=None):
+    def get_gtmap(self, idx, k=None, xfilt=None):
         """
         \sum_{lm} MAP_talm sqrt(l (l + 1)) _1 Ylm(n).
         Spin 1 transform with zero curl comp.
         Recall healpy sign convention for which Glm = - Tlm.
         Output is list with real and imaginary part of the spin 1 transform.
         """
+        assert xfilt is None, 'not implemented'
         mliktlm = self.ivfs.get_sim_tmliklm(idx)
         lmax = hp.Alm.getlmax(mliktlm.size)
         Glm = hp.almxfl(mliktlm, -np.sqrt(np.arange(lmax + 1, dtype=float) * (np.arange(1, lmax + 2))))
