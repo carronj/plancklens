@@ -300,7 +300,7 @@ class ffp10_binner:
         return bp_stats.mean(), bp_stats.sigmas_on_mean() * np.sqrt((1. + 1. + 2. / NMF + 2 * NB / (float(NMF * NMF))))
         # + 1 from MCN0 error, 2nd term MF linear error term, 3rd term from MF quadratic term (cancelled in data rec.)
 
-    def get_bmmc(self, mc_sims_dd=None, mc_sims_ss=None):
+    def get_bmmc(self, mc_sims_dd=None, mc_sims_ss=None, wN1=True):
         """Binned multiplicative MC correction.
 
             This compares the reconstruction on the simulations to the FFP10 input lensing spectrum.
@@ -313,7 +313,8 @@ class ffp10_binner:
         ss = self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, mc_sims_ss, k2=self.k2).mean()
         cl_pred =  utils.camb_clfile(os.path.join(self.cls_path, 'FFP10_wdipole_lenspotentialCls.dat'))['pp']
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
-        bps = self._get_binnedcl(utils.cli(qc_resp) * (dd - 2 * ss) - cl_pred[:len(dd)]) - self.get_n1()
+        bps = self._get_binnedcl(utils.cli(qc_resp) * (dd - 2 * ss) - cl_pred[:len(dd)])
+        if wN1: bps -= self.get_n1()
         return 1. / (1 + bps / self.fid_bandpowers)
 
     def get_nhl_cov(self, mc_sims_dd=None):
