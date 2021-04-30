@@ -18,6 +18,18 @@ def get_blbubc(bin_type):
     elif bin_type == 'agr2':
         bins_l = np.array([8, 21, 40, 66, 101, 145, 199, 264, 339, 426, 526, 638, 763, 902])
         bins_u = np.array([20, 39, 65, 100, 144, 198, 263, 338, 425, 525, 637, 762, 901, 2048])
+    elif bin_type == 'xdip':
+        bins_l = np.array([8, 264, 902])
+        bins_u = np.array([263, 901, 2048])
+    elif bin_type == 'pdip':
+        bins_l = np.array([8, 101, 426])
+        bins_u = np.array([100, 425,  2048])
+    elif bin_type == 'lowl':
+        bins_l = np.array([2,7])
+        bins_u = np.array([8,40])
+    elif bin_type == '1_10_unb':
+        bins_l = np.arange(1, 11)
+        bins_u = bins_l
     elif '_' in bin_type:
         edges = np.int_(bin_type.split('_'))
         bins_l = edges[:-1]
@@ -288,7 +300,7 @@ class ffp10_binner:
         return bp_stats.mean(), bp_stats.sigmas_on_mean() * np.sqrt((1. + 1. + 2. / NMF + 2 * NB / (float(NMF * NMF))))
         # + 1 from MCN0 error, 2nd term MF linear error term, 3rd term from MF quadratic term (cancelled in data rec.)
 
-    def get_bmmc(self, mc_sims_dd=None, mc_sims_ss=None):
+    def get_bmmc(self, mc_sims_dd=None, mc_sims_ss=None, wN1=True):
         """Binned multiplicative MC correction.
 
             This compares the reconstruction on the simulations to the FFP10 input lensing spectrum.
@@ -301,7 +313,8 @@ class ffp10_binner:
         ss = self.parfile.qcls_ss.get_sim_stats_qcl(self.k1, mc_sims_ss, k2=self.k2).mean()
         cl_pred =  utils.camb_clfile(os.path.join(self.cls_path, 'FFP10_wdipole_lenspotentialCls.dat'))['pp']
         qc_resp = self.parfile.qresp_dd.get_response(self.k1, self.ksource) * self.parfile.qresp_dd.get_response(self.k2, self.ksource)
-        bps = self._get_binnedcl(utils.cli(qc_resp) * (dd - 2 * ss) - cl_pred[:len(dd)]) - self.get_n1()
+        bps = self._get_binnedcl(utils.cli(qc_resp) * (dd - 2 * ss) - cl_pred[:len(dd)])
+        if wN1: bps -= self.get_n1()
         return 1. / (1 + bps / self.fid_bandpowers)
 
     def get_nhl_cov(self, mc_sims_dd=None):
