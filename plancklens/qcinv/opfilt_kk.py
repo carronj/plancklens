@@ -161,7 +161,7 @@ class alm_filter_ninv(object):
         if nlev_fkl is None:
             nlev_fkl =  10800. / np.sqrt(np.sum(self.n_inv) / (4.0 * np.pi)) / np.pi
         self.nlev_fkl = nlev_fkl
-        print("ninv_fkl: using %.2f uK-amin noise Cl"%self.nlev_fkl)
+        print("ninv_fkl: using %.2e uK-amin noise Cl"%self.nlev_fkl)
 
     def hashdict(self):
         return {'n_inv': clhash(self.n_inv),
