@@ -39,7 +39,7 @@ def calc_prep(m, s_cls, n_inv_filt):
 
 def apply_fini(alm, s_cls, n_inv_filt):
     """ This final operation turns the Wiener-filtered klm cg-solution to the inverse-variance filtered klm.  """
-    hp.almxfl(alm, _cli(s_cls['pp'] * _p2k(len(s_cls['pp']) - 1) ** 2), inplace=True)
+    hp.almxfl(alm, _cli(s_cls['pp'] * p2k(len(s_cls['pp']) - 1) ** 2), inplace=True)
 
 class dot_op:
     """ Scalar product definition for cg-inversion """
@@ -55,7 +55,7 @@ class dot_op:
 class fwd_op:
     """Conjugate-gradient inversion forward operation definition. """
     def __init__(self, s_cls, n_inv_filt):
-        self.clkk_inv = _cli(s_cls['pp'] * _p2k(len(s_cls['pp']) - 1) ** 2)
+        self.clkk_inv = _cli(s_cls['pp'] * p2k(len(s_cls['pp']) - 1) ** 2)
         self.n_inv_filt = n_inv_filt
 
     def hashdict(self):
