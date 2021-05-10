@@ -26,7 +26,7 @@ def _cli(cl):
     ret[np.where(cl != 0.)] = 1. / cl[np.where(cl != 0.)]
     return ret
 
-def _p2k(lmax):
+def p2k(lmax):
     return 0.5 * np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)
 
 def calc_prep(m, s_cls, n_inv_filt):
