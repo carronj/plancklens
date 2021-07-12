@@ -93,7 +93,6 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None,
                 terms += [0.5 * R_sutv, 0.5 * (-1) ** (to + so) * R_msmtuv]
     return (GG_N0, CC_N0, GC_N0, CG_N0) if not ret_terms else (GG_N0, CC_N0, GC_N0, CG_N0, terms)
 
-
 class nhl_lib_simple:
     """Semi-analytical unnormalized N0 library.
 
@@ -187,7 +186,7 @@ class nhl_lib_simple:
         return ret, lmaxs[0]
 
 
-def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, itermax, lmax_qlm=None):
+def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, itermax, lmax_qlm=None, ret_delcls=False):
     """Iterative lensing-N0 estimate
 
         Calculates iteratively partially lensed spectra and lensing noise levels.
@@ -250,6 +249,7 @@ def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, 
     transfi2 = utils.cli(hp.gauss_beam(beam_fwhm / 180. / 60. * np.pi, lmax=lmax_ivf)) ** 2
     llp2 = np.arange(lmax_qlm + 1, dtype=float) ** 2 * np.arange(1, lmax_qlm + 2, dtype=float) ** 2 / (2. * np.pi)
     N0s = []
+    delcls = []
     N0 = np.inf
     for irr, it in utils.enumerate_progress(range(itermax + 1)):
         dls_unl, cldd = cls2dls(cls_unl)
@@ -272,6 +272,8 @@ def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, 
         r_gg = qresp.get_response(qe_key, lmax_ivf, 'p', cls_plen, cls_plen, fal, lmax_qlm=lmax_qlm)[0]
         N0 = n_gg * utils.cli(r_gg ** 2)
         N0s.append(N0)
-    return np.array(N0s)
+        cls_plen['pp'] =  cldd *utils.cli(np.arange(len(cldd)) ** 2 * np.arange(1, len(cldd) + 1, dtype=float) ** 2 /  (2. * np.pi))
+        delcls.append(cls_plen)
+    return np.array(N0s) if not ret_delcls else (np.array(N0s), delcls)
 
 
