@@ -157,6 +157,7 @@ class average:
                 pk.dump(self.hashdict(), open(hname, 'wb'), protocol=2)
         mpi.barrier()
         utils.hash_check(pk.load(open(hname, 'rb')), self.hashdict())
+        self.mc_sims_mf = np.sort(np.unique(np.concatenate([qcl.mc_sims_mf for qcl in self.qclibs])))
 
     def hashdict(self):
         return {'qcl_lib %s'%i : qclib.hashdict() for i, qclib in enumerate(self.qclibs)}
