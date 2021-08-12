@@ -186,7 +186,11 @@ class nhl_lib_simple:
         return ret, lmaxs[0]
 
 
-def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, itermax, lmax_qlm=None, ret_delcls=False):
+
+
+
+def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, itermax,
+                lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None):
     """Iterative lensing-N0 estimate
 
         Calculates iteratively partially lensed spectra and lensing noise levels.
@@ -204,6 +208,8 @@ def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, 
             lmax_ivf: maximal CMB multipole used in the QE
             itermax: number of iterations to perform
             lmax_qlm(optional): maximum lensing multipole to consider. Defaults to :math:`2 lmax_ivf`
+            ret_delcls(optional): returns the partially delensed CMB cls as well if set
+            datnoise_cls(optional): feeds in custom noise spectra to the data. The nlevs and beam only apply to the filtering in this case
 
         Returns
             Array of shape (itermax + 1, lmax_qlm + 1) with all iterated N0s. First entry is standard N0.
@@ -248,6 +254,13 @@ def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, 
     lmin_ivf = max(lmin_ivf, 1)
     transfi2 = utils.cli(hp.gauss_beam(beam_fwhm / 180. / 60. * np.pi, lmax=lmax_ivf)) ** 2
     llp2 = np.arange(lmax_qlm + 1, dtype=float) ** 2 * np.arange(1, lmax_qlm + 2, dtype=float) ** 2 / (2. * np.pi)
+    if datnoise_cls is None:
+        datnoise_cls = dict()
+        if qe_key in ['ptt', 'p']:
+            datnoise_cls['tt'] = (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
+        if qe_key in ['p_p', 'p']:
+            datnoise_cls['ee'] = (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
+            datnoise_cls['bb'] = (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
     N0s = []
     delcls = []
     N0 = np.inf
@@ -256,18 +269,30 @@ def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, 
         clwf = 0. if it == 0 else cldd[:lmax_qlm + 1] * utils.cli(cldd[:lmax_qlm + 1] + llp2 * N0[:lmax_qlm + 1])
         cldd[:lmax_qlm + 1] *= (1. - clwf)
         cls_plen = dls2cls(lensed_cls(dls_unl, cldd))
-        cls_ivfs = {}
-        if qe_key in ['ptt', 'p_p', 'p']:
-            cls_ivfs['tt'] = cls_plen['tt'][:lmax_ivf + 1] + (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
+        fal = {}
+        dat_delcls = {}
+        if qe_key in ['ptt', 'p']:
+            fal['tt'] = cls_plen['tt'][:lmax_ivf + 1] + (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
+            dat_delcls['tt'] = cls_plen['tt'][:lmax_ivf + 1] + datnoise_cls['ee']
         if qe_key in ['p_p', 'p']:
-            cls_ivfs['ee'] = cls_plen['ee'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
-            cls_ivfs['bb'] = cls_plen['bb'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
+            fal['ee'] = cls_plen['ee'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
+            fal['bb'] = cls_plen['bb'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
+            dat_delcls['ee'] = cls_plen['ee'][:lmax_ivf + 1] + datnoise_cls['ee']
+            dat_delcls['bb'] = cls_plen['bb'][:lmax_ivf + 1] + datnoise_cls['bb']
         if qe_key in ['p']:
-            cls_ivfs['te'] = np.copy(cls_plen['te'][:lmax_ivf + 1])
-        cls_ivfs = utils.cl_inverse(cls_ivfs)
-        for cl in cls_ivfs.values():
+            fal['te'] = np.copy(cls_plen['te'][:lmax_ivf + 1])
+            dat_delcls['te'] = np.copy(cls_plen['te'][:lmax_ivf + 1])
+        fal = utils.cl_inverse(fal)
+        for cl in fal.values():
             cl[:lmin_ivf] *= 0.
-        fal = cls_ivfs
+        for cl in dat_delcls.values():
+            cl[:lmin_ivf] *= 0.
+        cls_ivfs_arr = utils.cls_dot([fal, dat_delcls, fal])
+        cls_ivfs = dict()
+        for i, a in enumerate(['t', 'e', 'b']):
+            for j, b in enumerate(['t', 'e', 'b'][i:]):
+                if np.any(cls_ivfs_arr[i, j + i]):
+                    cls_ivfs[a + b] = cls_ivfs_arr[i, j + i]
         n_gg = get_nhl(qe_key, qe_key, cls_plen, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)[0]
         r_gg = qresp.get_response(qe_key, lmax_ivf, 'p', cls_plen, cls_plen, fal, lmax_qlm=lmax_qlm)[0]
         N0 = n_gg * utils.cli(r_gg ** 2)

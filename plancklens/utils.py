@@ -353,3 +353,40 @@ def cl_inverse(cls):
             clsi[k] = arr
     return clsi
 
+def extcl(lmax, cl):
+    if len(cl) - 1 < lmax:
+        dl = np.zeros(lmax + 1)
+        dl[:len(cl)] = cl
+    else:
+        dl = cl[:lmax+1]
+    return dl
+
+def _cldict2arr(cls_dict):
+    lmaxp1 = np.max([len(cl) for cl in cls_dict.values()])
+    ret = np.zeros((3, 3, lmaxp1), dtype=float)
+    for i, x in enumerate(['t', 'e', 'b']):
+        for j, y in enumerate(['t', 'e', 'b']):
+            ret[i, j] =  extcl(lmaxp1 - 1, cls_dict.get(x + y, cls_dict.get(y + x, np.array([0.]))))
+    return ret
+
+def cls_dot(cls_list):
+    """T E B spectral matrices product
+
+        Args:
+            list of dict cls spectral matrices to multiply (given as dictionaries or (3, 3, lmax + 1) arrays
+
+        Returns:
+            (3, 3, lmax + 1) array where 0, 1, 2 stands for T E B
+
+
+    """
+    if  len(cls_list) == 1:
+        return _cldict2arr(cls_list[0]) if isinstance(cls_list[0], dict) else cls_list[0]
+    cls = cls_dot(cls_list[1:])
+    cls_0 =  _cldict2arr(cls_list[0]) if isinstance(cls_list[0], dict) else cls_list[0]
+    ret = np.zeros_like(cls_0)
+    for i in range(3):
+        for j in range(3):
+            for k in range(3):
+                ret[i, j] += cls_0[i, k] * cls[k, j]
+    return ret
