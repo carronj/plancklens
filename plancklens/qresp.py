@@ -221,6 +221,9 @@ def get_response(qe_key, lmax_ivf, source, cls_weight, cls_cmb, fal, fal_leg2=No
             lmax_ivf2(optional): max. CMB multipole used in the QE on the second leg (if different to lmax_ivf)
             lmax_qlm(optional): responses are calculated up to this multipole. Defaults to lmax_ivf + lmax_ivf2
 
+        Note:
+            The result is *not* symmetrized with respect to the 'fals', if not the same on the two legs.
+
     """
     if lmax_ivf2 is None: lmax_ivf2 = lmax_ivf
     if lmax_qlm is None : lmax_qlm = lmax_ivf + lmax_ivf2
