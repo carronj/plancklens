@@ -5,6 +5,10 @@
 plancklens is is a python code for cosmology containing most of Planck 2018 CMB lensing pipeline, by Julien Carron on behalf of the *Planck* collaboration ([publication here.](https://arxiv.org/abs/1807.06210))
 Some numerical parts are written in Fortran. Portions of it (structure and code) have been directly adapted from pre-existing work by Duncan Hanson.
 
+This package may be used for:
+* lensing reconstruction on actual *Planck* or other data
+* or simply for calculation of responses, reconstruction noise levels and biases for forecasts or other analytical work
+
 ### Installation
 
 After cloning the repository, build an editable installation with
@@ -15,11 +19,13 @@ The –-user is required only if you don’t have write permission to your main 
 
 ### Contents
 
-This code contains most of the Planck 2018 lensing pipeline. In particular it possible to reproduce the published map and band-powers basically exactly. 
+This code contains most of the Planck 2018 lensing pipeline. In particular it possible to reproduce the published map and band-powers basically exactly. Some more detailed parts of the pipeline have been left out or are not yet translated to python 3. This is the case notably of the band-powers likelihood code.
 
-Some parts of the pipeline have been left out or are not yet translated to python 3. This is the case notably of the band-powers likelihood code, or the code used to produce lensed CMB skies. 
+The code used to produce lensed CMB skies is the stand-alone pip package [lenspyx](https://github.com/carronj/lenspyx) (with big speed improvement expected soon)
 
-### Example parameter files
+### Examples
+
+To obtain analytical reconstruction noise curve and responses, you might want to check [n0s.py](https://github.com/carronj/plancklens/blob/master/plancklens/n0s.py) especially the commented *get_N0* function 
 
 To use the examples lensing reconstruction parameter files, you will need further to define the environment variable $PLENS to some place safe to write.
     

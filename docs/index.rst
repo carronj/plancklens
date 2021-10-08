@@ -18,8 +18,8 @@ Welcome to plancklens documentation!
    qest
    qecl
    bandpowers
+   n0
    n1
-
    qresp
 
 Indices and tables
