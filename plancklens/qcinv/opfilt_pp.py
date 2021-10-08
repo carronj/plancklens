@@ -5,13 +5,9 @@ There are three types of pre-conditioners: dense, diagonal in harmonic space, an
 
  $$ S^{-1} (S^{-1} + Y^t N^{-1} Y)^{-1} Y^t N^{-1}$$
 
-Todo:
-    * Why these calc functions?
 
 """
-#FIXME: hashes, docs
 
-import hashlib
 import numpy  as np
 import healpy as hp
 

@@ -1,6 +1,6 @@
 """lending map Wiener and inverse variance filtering module.
 
-This is literally the very same spin-0 inverse variance filtering codes than for tempatures,
+This is literally the very same spin-0 inverse variance filtering codes than for temperatures,
 with indices 'tt' replaced with 'pp' and potential to k remapping
 
 
@@ -26,8 +26,11 @@ def _cli(cl):
     ret[np.where(cl != 0.)] = 1. / cl[np.where(cl != 0.)]
     return ret
 
-def _p2k(lmax):
+def p2k(lmax):
     return 0.5 * np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float)
+def pp2kk(lmax):
+    return p2k(lmax) ** 2
+
 
 def calc_prep(m, s_cls, n_inv_filt):
     """Missing doc."""
@@ -39,10 +42,12 @@ def calc_prep(m, s_cls, n_inv_filt):
 
 def apply_fini(alm, s_cls, n_inv_filt):
     """ This final operation turns the Wiener-filtered klm cg-solution to the inverse-variance filtered klm.  """
-    hp.almxfl(alm, _cli(s_cls['pp'] * _p2k(len(s_cls['pp']) - 1) ** 2), inplace=True)
+    hp.almxfl(alm, _cli(s_cls['pp'] * pp2kk(len(s_cls['pp']) - 1)), inplace=True)
 
 class dot_op:
-    """ Scalar product definition for cg-inversion """
+    """Scalar product definition for kk cg-inversion
+
+    """
     def __init__(self):
         pass
 
@@ -55,7 +60,7 @@ class dot_op:
 class fwd_op:
     """Conjugate-gradient inversion forward operation definition. """
     def __init__(self, s_cls, n_inv_filt):
-        self.clkk_inv = _cli(s_cls['pp'] * _p2k(len(s_cls['pp']) - 1) ** 2)
+        self.clkk_inv = _cli(s_cls['pp'] * pp2kk(len(s_cls['pp']) - 1))
         self.n_inv_filt = n_inv_filt
 
     def hashdict(self):
@@ -77,13 +82,13 @@ class fwd_op:
 class pre_op_diag:
     def __init__(self, s_cls, n_inv_filt):
         """Harmonic space diagonal pre-conditioner operation. """
-        cltt = s_cls['pp']
-        assert len(cltt) >= len(n_inv_filt.b_transf)
+        clkk = pp2kk(len(s_cls['pp']) - 1) * s_cls['pp']
+        assert len(clkk) >= len(n_inv_filt.b_transf)
         n_inv_cl = np.sum(n_inv_filt.n_inv) / (4.0 * np.pi)
         lmax = len(n_inv_filt.b_transf) - 1
-        assert lmax <= (len(cltt) - 1)
+        assert lmax <= (len(clkk) - 1)
 
-        filt = _cli(cltt[:lmax + 1])
+        filt = _cli(clkk[:lmax + 1])
         filt += n_inv_cl * n_inv_filt.b_transf[:lmax + 1] ** 2
         self.filt = _cli(filt)
 
@@ -156,7 +161,7 @@ class alm_filter_ninv(object):
         if nlev_fkl is None:
             nlev_fkl =  10800. / np.sqrt(np.sum(self.n_inv) / (4.0 * np.pi)) / np.pi
         self.nlev_fkl = nlev_fkl
-        print("ninv_fkl: using %.2f uK-amin noise Cl"%self.nlev_fkl)
+        print("ninv_fkl: using %.2e uK-amin noise Cl"%self.nlev_fkl)
 
     def hashdict(self):
         return {'n_inv': clhash(self.n_inv),

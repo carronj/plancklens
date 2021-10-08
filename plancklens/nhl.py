@@ -93,7 +93,6 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None,
                 terms += [0.5 * R_sutv, 0.5 * (-1) ** (to + so) * R_msmtuv]
     return (GG_N0, CC_N0, GC_N0, CG_N0) if not ret_terms else (GG_N0, CC_N0, GC_N0, CG_N0, terms)
 
-
 class nhl_lib_simple:
     """Semi-analytical unnormalized N0 library.
 
@@ -186,8 +185,34 @@ class nhl_lib_simple:
         assert len(np.unique(lmaxs)) == 1, lmaxs
         return ret, lmaxs[0]
 
+def cls2dls(cls):
+    """Turns cls dict. into camb cl array format"""
+    keys = ['tt', 'ee', 'bb', 'te']
+    lmax = np.max([len(cl) for cl in cls.values()]) - 1
+    dls = np.zeros((lmax + 1, 4), dtype=float)
+    refac = np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float) / (2. * np.pi)
+    for i, k in enumerate(keys):
+        cl = cls.get(k, np.zeros(lmax + 1, dtype=float))
+        sli = slice(0, min(len(cl), lmax + 1))
+        dls[sli, i] = cl[sli] * refac[sli]
+    cldd = np.copy(cls.get('pp', None))
+    if cldd is not None:
+        cldd *= np.arange(len(cldd)) ** 2 * np.arange(1, len(cldd) + 1, dtype=float) ** 2 /  (2. * np.pi)
+    return dls, cldd
 
-def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, itermax, lmax_qlm=None):
+def dls2cls(dls):
+    """Inverse operation to cls2dls"""
+    assert dls.shape[1] == 4
+    lmax = dls.shape[0] - 1
+    cls = {}
+    refac = 2. * np.pi * utils.cli( np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float))
+    for i, k in enumerate(['tt', 'ee', 'bb', 'te']):
+        cls[k] = dls[:, i] * refac
+    return cls
+
+
+def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl_fid:dict, lmin_ivf, lmax_ivf, itermax, cls_unl_dat=None,
+                lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None, unlQE=False, version='1'):
     """Iterative lensing-N0 estimate
 
         Calculates iteratively partially lensed spectra and lensing noise levels.
@@ -200,78 +225,152 @@ def get_N0_iter(qe_key, nlev_t, nlev_p, beam_fwhm, cls_unl, lmin_ivf, lmax_ivf, 
             nlev_t: temperature noise level (in :math:`\mu `K-arcmin)
             nlev_p: polarisation noise level (in :math:`\mu `K-arcmin)
             beam_fwhm: Gaussian beam full width half maximum in arcmin
-            cls_unl(dict): unlensed CMB power spectra
+            cls_unl_fid(dict): unlensed CMB power spectra
             lmin_ivf: minimal CMB multipole used in the QE
             lmax_ivf: maximal CMB multipole used in the QE
             itermax: number of iterations to perform
             lmax_qlm(optional): maximum lensing multipole to consider. Defaults to :math:`2 lmax_ivf`
+            ret_delcls(optional): returns the partially delensed CMB cls as well if set
+            datnoise_cls(optional): feeds in custom noise spectra to the data. The nlevs and beam only apply to the filtering in this case
 
         Returns
             Array of shape (itermax + 1, lmax_qlm + 1) with all iterated N0s. First entry is standard N0.
 
+
+        Note: This assumes the unlensed spectra are known
+
     #FIXME: this is requiring the full camb python package for the lensed spectra calc.
 
      """
-
     assert qe_key in ['p_p', 'p', 'ptt'], qe_key
     try:
         from camb.correlations import lensed_cls
     except ImportError:
         assert 0, "could not import camb.correlations.lensed_cls"
 
-    def cls2dls(cls):
-        """Turns cls dict. into camb cl array format"""
-        keys = ['tt', 'ee', 'bb', 'te']
-        lmax = np.max([len(cl) for cl in cls.values()]) - 1
-        dls = np.zeros((lmax + 1, 4), dtype=float)
-        refac = np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float) / (2. * np.pi)
-        for i, k in enumerate(keys):
-            cl = cls.get(k, np.zeros(lmax + 1, dtype=float))
-            sli = slice(0, min(len(cl), lmax + 1))
-            dls[sli, i] = cl[sli] * refac[sli]
-        cldd = np.copy(cls.get('pp', None))
-        if cldd is not None:
-            cldd *= np.arange(len(cldd)) ** 2 * np.arange(1, len(cldd) + 1, dtype=float) ** 2 /  (2. * np.pi)
-        return dls, cldd
 
-    def dls2cls(dls):
-        """Inverse operation to cls2dls"""
-        assert dls.shape[1] == 4
-        lmax = dls.shape[0] - 1
-        cls = {}
-        refac = 2. * np.pi * utils.cli( np.arange(lmax + 1) * np.arange(1, lmax + 2, dtype=float))
-        for i, k in enumerate(['tt', 'ee', 'bb', 'te']):
-            cls[k] = dls[:, i] * refac
-        return cls
     if lmax_qlm is None:
         lmax_qlm = 2 * lmax_ivf
     lmax_qlm = min(lmax_qlm, 2 * lmax_ivf)
     lmin_ivf = max(lmin_ivf, 1)
     transfi2 = utils.cli(hp.gauss_beam(beam_fwhm / 180. / 60. * np.pi, lmax=lmax_ivf)) ** 2
     llp2 = np.arange(lmax_qlm + 1, dtype=float) ** 2 * np.arange(1, lmax_qlm + 2, dtype=float) ** 2 / (2. * np.pi)
-    N0s = []
-    N0 = np.inf
-    for irr, it in utils.enumerate_progress(range(itermax + 1)):
-        dls_unl, cldd = cls2dls(cls_unl)
-        clwf = 0. if it == 0 else cldd[:lmax_qlm + 1] * utils.cli(cldd[:lmax_qlm + 1] + llp2 * N0[:lmax_qlm + 1])
-        cldd[:lmax_qlm + 1] *= (1. - clwf)
-        cls_plen = dls2cls(lensed_cls(dls_unl, cldd))
-        cls_ivfs = {}
-        if qe_key in ['ptt', 'p_p', 'p']:
-            cls_ivfs['tt'] = cls_plen['tt'][:lmax_ivf + 1] + (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
+    if datnoise_cls is None:
+        datnoise_cls = dict()
+        if qe_key in ['ptt', 'p']:
+            datnoise_cls['tt'] = (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
         if qe_key in ['p_p', 'p']:
-            cls_ivfs['ee'] = cls_plen['ee'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
-            cls_ivfs['bb'] = cls_plen['bb'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
+            datnoise_cls['ee'] = (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
+            datnoise_cls['bb'] = (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
+    N0s_biased = []
+    N0s_unbiased = []
+    N1s_biased = []
+    N1s_unbiased = []
+    delcls_fid = []
+    delcls_true = []
+
+    N0_unbiased = np.inf
+    N1_unbiased = np.inf
+    dls_unl_fid, cldd_fid = cls2dls(cls_unl_fid)
+    cls_len_fid= dls2cls(lensed_cls(dls_unl_fid, cldd_fid))
+    if cls_unl_dat is None:
+        cls_unl_dat = cls_unl_fid
+        cls_len_true= cls_len_fid
+    else:
+        dls_unl_true, cldd_true = cls2dls(cls_unl_dat)
+        cls_len_true= dls2cls(lensed_cls(dls_unl_true, cldd_true))
+    cls_plen_true = cls_len_true
+    for irr, it in utils.enumerate_progress(range(itermax + 1)):
+        dls_unl_true, cldd_true = cls2dls(cls_unl_dat)
+        dls_unl_fid, cldd_fid = cls2dls(cls_unl_fid)
+        if it == 0:
+            rho_sqd_phi = 0.
+        else:
+            # The cross-correlation coefficient is identical for the Rfid-biased QE or the rescaled one
+            rho_sqd_phi = np.zeros(len(cldd_true))
+            rho_sqd_phi[:lmax_qlm +1] =   cldd_true[:lmax_qlm + 1] * utils.cli(cldd_true[:lmax_qlm + 1] + llp2 * (N0_unbiased[:lmax_qlm+1] + N1_unbiased[:lmax_qlm + 1]))
+
+        if 'wE' in version:
+            assert qe_key in ['p_p']
+            if it == 0:
+                print('including imperfect knowledge of E in iterations')
+            slic = slice(lmin_ivf, lmax_ivf + 1)
+            rho_sqd_E = np.zeros(len(dls_unl_true[:, 1]))
+            rho_sqd_E[slic] = cls_unl_dat['ee'][slic] * utils.cli(cls_plen_true['ee'][slic] + datnoise_cls['ee'][slic])
+            dls_unl_fid[:, 1] *= rho_sqd_E
+            dls_unl_true[:, 1] *= rho_sqd_E
+            cldd_fid *= rho_sqd_phi
+            cldd_true *= rho_sqd_phi
+
+            cls_plen_fid_resolved = dls2cls(lensed_cls(dls_unl_fid, cldd_fid))
+            cls_plen_true_resolved = dls2cls(lensed_cls(dls_unl_true, cldd_true))
+            cls_plen_fid =  {ck: cls_len_fid[ck] - (cls_plen_fid_resolved[ck] - cls_unl_fid[ck][:len(cls_len_fid[ck])]) for ck in cls_len_fid.keys()}
+            cls_plen_true = {ck: cls_len_true[ck] -(cls_plen_true_resolved[ck] - cls_unl_dat[ck][:len(cls_len_true[ck])]) for ck in cls_len_true.keys()}
+
+        else:
+            cldd_true *= (1. - rho_sqd_phi)  # The true residual lensing spec.
+            cldd_fid *= (1. - rho_sqd_phi)  # What I think the residual lensing spec is
+            cls_plen_fid  = dls2cls(lensed_cls(dls_unl_fid, cldd_fid))
+            cls_plen_true = dls2cls(lensed_cls(dls_unl_true, cldd_true))
+
+        cls_filt = cls_plen_fid if not unlQE else cls_unl_fid
+        cls_w = cls_plen_fid if not unlQE else cls_unl_fid
+        cls_f = cls_plen_true
+        fal = {}
+        dat_delcls = {}
+        if qe_key in ['ptt', 'p']:
+            fal['tt'] = cls_filt['tt'][:lmax_ivf + 1] + (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
+            dat_delcls['tt'] = cls_plen_true['tt'][:lmax_ivf + 1] + datnoise_cls['ee']
+        if qe_key in ['p_p', 'p']:
+            fal['ee'] = cls_filt['ee'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
+            fal['bb'] = cls_filt['bb'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
+            dat_delcls['ee'] = cls_plen_true['ee'][:lmax_ivf + 1] + datnoise_cls['ee']
+            dat_delcls['bb'] = cls_plen_true['bb'][:lmax_ivf + 1] + datnoise_cls['bb']
         if qe_key in ['p']:
-            cls_ivfs['te'] = np.copy(cls_plen['te'][:lmax_ivf + 1])
-        cls_ivfs = utils.cl_inverse(cls_ivfs)
-        for cl in cls_ivfs.values():
+            fal['te'] = np.copy(cls_filt['te'][:lmax_ivf + 1])
+            dat_delcls['te'] = np.copy(cls_plen_true['te'][:lmax_ivf + 1])
+        fal = utils.cl_inverse(fal)
+        for cl in fal.values():
             cl[:lmin_ivf] *= 0.
-        fal = cls_ivfs
-        n_gg = get_nhl(qe_key, qe_key, cls_plen, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)[0]
-        r_gg = qresp.get_response(qe_key, lmax_ivf, 'p', cls_plen, cls_plen, fal, lmax_qlm=lmax_qlm)[0]
-        N0 = n_gg * utils.cli(r_gg ** 2)
-        N0s.append(N0)
-    return np.array(N0s)
+        for cl in dat_delcls.values():
+            cl[:lmin_ivf] *= 0.
+        cls_ivfs_arr = utils.cls_dot([fal, dat_delcls, fal])
+        cls_ivfs = dict()
+        for i, a in enumerate(['t', 'e', 'b']):
+            for j, b in enumerate(['t', 'e', 'b'][i:]):
+                if np.any(cls_ivfs_arr[i, j + i]):
+                    cls_ivfs[a + b] = cls_ivfs_arr[i, j + i]
+
+        n_gg = get_nhl(qe_key, qe_key, cls_w, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)[0]
+        r_gg_true = qresp.get_response(qe_key, lmax_ivf, 'p', cls_w, cls_f, fal, lmax_qlm=lmax_qlm)[0]
+        r_gg_fid = qresp.get_response(qe_key, lmax_ivf, 'p', cls_w, cls_w, fal, lmax_qlm=lmax_qlm)[0] if cls_f is not cls_w else r_gg_true
+        N0_biased = n_gg * utils.cli(r_gg_fid ** 2) # N0 of possibly biased (by Rtrue / Rfid) QE estimator
+        N0_unbiased = n_gg * utils.cli(r_gg_true ** 2) # N0 of QE estimator after rescaling by Rfid / Rtrue to make it unbiased
+        N0s_biased.append(N0_biased)
+        N0s_unbiased.append(N0_unbiased)
+        cls_plen_true['pp'] =  cldd_true *utils.cli(np.arange(len(cldd_true)) ** 2 * np.arange(1, len(cldd_true) + 1, dtype=float) ** 2 /  (2. * np.pi))
+        cls_plen_fid['pp'] =  cldd_fid *utils.cli(np.arange(len(cldd_fid)) ** 2 * np.arange(1, len(cldd_fid) + 1, dtype=float) ** 2 /  (2. * np.pi))
+
+        if 'wN1' in version:
+            if it == 0: print('Adding n1 in iterations')
+            from lensitbiases import n1_fft
+            from scipy.interpolate import UnivariateSpline as spl
+            lib = n1_fft.n1_fft(fal, cls_w, cls_f, np.copy(cls_plen_true['pp']), lminbox=50, lmaxbox=5000, k2l=None)
+            n1_Ls = np.arange(50, lmax_qlm+1, 50)
+            if lmax_qlm not in n1_Ls:  n1_Ls = np.append(n1_Ls, lmax_qlm)
+            n1 = np.array([lib.get_n1(qe_key, L, do_n1mat=False) for L in n1_Ls])
+            N1_biased  = spl(n1_Ls, n1_Ls ** 2 * (n1_Ls * 1. + 1) ** 2 * n1 / r_gg_fid[n1_Ls] ** 2, k=2, s=0, ext='zeros')(np.arange(len(N0_unbiased)))
+            N1_biased *= utils.cli(np.arange(lmax_qlm + 1) ** 2 * np.arange(1, lmax_qlm + 2, dtype=float) ** 2)
+            N1_unbiased = N1_biased * (r_gg_fid * utils.cli(r_gg_true)) ** 2
+        else:
+            N1_biased = np.zeros(lmax_qlm + 1, dtype=float)
+            N1_unbiased = np.zeros(lmax_qlm + 1, dtype=float)
 
 
+        delcls_fid.append(cls_plen_fid)
+        delcls_true.append(cls_plen_true)
+
+        N1s_biased.append(N1_biased)
+        N1s_unbiased.append(N1_unbiased)
+
+    return (np.array(N0s_biased), np.array(N0s_unbiased)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), delcls_fid, delcls_true))

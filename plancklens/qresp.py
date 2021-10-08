@@ -1,5 +1,33 @@
 """Module for QE response calculations.
 
+    In plancklens a QE is often described by a short string.
+     
+    For example 'ptt' stands for lensing (or lensing gradient mode) from temperature x temperature.
+    
+    Anisotropy source keys are a one-letter string including
+        'p' (lensing gradient) 
+        'x' (lensing curl) 
+        's' (point sources) 
+        'f' (modulation field) 
+        'a' (polarization rotation)
+        
+    Typical keys include then:
+        'ptt', 'xtt', 'stt', 'ftt' for the corresponding QEs from temperature only
+        'p_p', 'x_p', 'f_p', 'a_p' for the corresponding QEs from polarization only (combining EE EB and BB if relevant)
+        'p', 'x', 'f', 'a', 'f' ... for the MV (or GMV) combination
+        'p_eb', ... for the EB estimator (this is the symmetrized version  ('peb' + 'pbe') / 2  so that E and B appear each once on the gradient and inverse-variance filtered leg)
+        etc
+
+    
+    Bias-hardening can be included by inserting '_bh_'. 
+        E.g. 'ptt_bh_s' is the lensing TT QE bias-hardened against point source contamination using the 'stt' estimator
+
+
+    Responses method takes as input the QE weights (typically the lensed CMB spectra) and the filtering cls ('fals')
+    which describes the filtering applied to the maps (the :math:`(C + N)^{-1}` operation)
+    See *examples/get_N0s.py* to see how these are typically calculated for independent or joint temperature and polarization filtering
+
+
 """
 
 from __future__ import absolute_import
@@ -215,6 +243,7 @@ def get_response(qe_key, lmax_ivf, source, cls_weight, cls_cmb, fal, fal_leg2=No
     r"""QE response calculation
 
         Args:
+            qe_key: Quadratic estimator key (see this module docstring for descriptions)
             lmax_ivf: max. CMB multipole used in the QE
             source: anisotropy source key
             cls_weight(dict): fiducial spectra entering the QE weights (numerator in Eq. 2 of https://arxiv.org/abs/1807.06210)
@@ -224,9 +253,31 @@ def get_response(qe_key, lmax_ivf, source, cls_weight, cls_cmb, fal, fal_leg2=No
             lmax_ivf2(optional): max. CMB multipole used in the QE on the second leg (if different to lmax_ivf)
             lmax_qlm(optional): responses are calculated up to this multipole. Defaults to lmax_ivf + lmax_ivf2
 
+        Note:
+            The result is *not* symmetrized with respect to the 'fals', if not the same on the two legs.
+            In this case you probably want to run this twice swapping the fals in the second run.
+
     """
     if lmax_ivf2 is None: lmax_ivf2 = lmax_ivf
     if lmax_qlm is None : lmax_qlm = lmax_ivf + lmax_ivf2
+    if '_bh_' in qe_key: # Bias-hardened estimators:
+        k, hsource = qe_key.split('_bh_')# kQE hardened against hsource
+        assert len(hsource) == 1, hsource
+        h = hsource[0]
+        RGG_ks, RCC_ks, RGC_ks, RCG_ks = get_response(k, lmax_ivf, source, cls_weight, cls_cmb, fal,
+                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm)
+        RGG_hs, RCC_hs, RGC_hs, RCG_hs = get_response(h + k[1:], lmax_ivf, source, cls_weight, cls_cmb, fal,
+                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm)
+        RGG_kh, RCC_kh, RGC_kh, RCG_kh = get_response(k, lmax_ivf, h, cls_weight, cls_cmb, fal,
+                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm)
+        RGG_hh, RCC_hh, RGC_hh, RCG_hh = get_response(h + k[1:], lmax_ivf, h, cls_weight, cls_cmb, fal,
+                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm)
+        RGG = RGG_ks - (RGG_kh * RGG_hs  * ut.cli(RGG_hh) + RGC_kh * RCG_hs  * ut.cli(RCC_hh))
+        RCC = RCC_ks - (RCG_kh * RGC_hs  * ut.cli(RGG_hh) + RCC_kh * RCC_hs  * ut.cli(RCC_hh))
+        RGC = RGC_ks - (RGG_kh * RGC_hs  * ut.cli(RGG_hh) + RGC_kh * RCC_hs  * ut.cli(RCC_hh))
+        RCG = RCG_ks - (RCG_kh * RGG_hs  * ut.cli(RGG_hh) + RCC_kh * RCG_hs  * ut.cli(RCC_hh))
+        return RGG, RCC, RGC, RCG
+
     qes = get_qes(qe_key, lmax_ivf, cls_weight, lmax2=lmax_ivf2)
     return _get_response(qes, source, cls_cmb, fal, lmax_qlm, fal_leg2=fal_leg2)
 
