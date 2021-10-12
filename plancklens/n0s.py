@@ -46,7 +46,7 @@ from plancklens import utils, qresp, nhl
 def get_N0(beam_fwhm=1.4, nlev_t=5., nlev_p=None, lmax_CMB=3000,  lmin_CMB=100, lmax_out=None,
            cls_len:dict or None =None, cls_weight:dict or None=None,
            joint_TP=True, ksource='p'):
-    """Example function to calculates reconstruction noise levels for a bunch of quadratic estimators
+    r"""Example function to calculates reconstruction noise levels for a bunch of quadratic estimators
 
         Args:
             beam_fwhm: beam fwhm in arcmin
@@ -167,7 +167,7 @@ def dls2cls(dls):
 
 def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl_fid:dict, lmin_ivf, lmax_ivf, itermax, cls_unl_dat=None,
                 lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None):
-    """Iterative lensing-N0 estimate
+    r"""Iterative lensing-N0 estimate
 
         Calculates iteratively partially lensed spectra and lensing noise levels.
         This uses the python camb package to get the partially lensed spectra.
