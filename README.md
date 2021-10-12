@@ -41,3 +41,4 @@ You might also need to check out the [plancklens documentation](https://planckle
 * Jan 14 2021: important bug fix in fortran N1 file affecting EB TB and TE. The n1 module must be rebuilt.
 
 ![ERC logo](https://erc.europa.eu/sites/default/files/content/erc_banner-vertical.jpg)
+![SNSF logo](./docs/SNF_logo_standard_web_color_neg_e.svg)
