@@ -6,15 +6,22 @@
 
     Anisotropy source keys are a one-letter string including
         'p' (lensing gradient)
+
         'x' (lensing curl)
+
         's' (point sources)
+
         'f' (modulation field)
+
         'a' (polarization rotation)
 
     Typical keys include then:
         'ptt', 'xtt', 'stt', 'ftt' for the corresponding QEs from temperature only
+
         'p_p', 'x_p', 'f_p', 'a_p' for the corresponding QEs from polarization only (combining EE EB and BB if relevant)
+
         'p', 'x', 'f', 'a', 'f' ... for the MV (or GMV) combination
+
         'p_eb', ... for the EB estimator (this is the symmetrized version  ('peb' + 'pbe') / 2  so that E and B appear each once on the gradient and inverse-variance filtered leg)
 
 
@@ -39,7 +46,7 @@ from plancklens import utils, qresp, nhl
 def get_N0(beam_fwhm=1.4, nlev_t=5., nlev_p=None, lmax_CMB=3000,  lmin_CMB=100, lmax_out=None,
            cls_len:dict or None =None, cls_weight:dict or None=None,
            joint_TP=True, ksource='p'):
-    """Example function to calculates reconstruction noise levels for a bunch of quadratic estimators
+    r"""Example function to calculates reconstruction noise levels for a bunch of quadratic estimators
 
         Args:
             beam_fwhm: beam fwhm in arcmin
@@ -160,7 +167,7 @@ def dls2cls(dls):
 
 def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl_fid:dict, lmin_ivf, lmax_ivf, itermax, cls_unl_dat=None,
                 lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None):
-    """Iterative lensing-N0 estimate
+    r"""Iterative lensing-N0 estimate
 
         Calculates iteratively partially lensed spectra and lensing noise levels.
         This uses the python camb package to get the partially lensed spectra.
@@ -176,7 +183,7 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
             lmin_ivf: minimal CMB multipole used in the QE
             lmax_ivf: maximal CMB multipole used in the QE
             itermax: number of iterations to perform
-            lmax_qlm(optional): maximum lensing multipole to consider. Defaults to :math:`2 lmax_ivf`
+            lmax_qlm(optional): maximum lensing multipole to consider. Defaults to 2 lmax_ivf
             ret_delcls(optional): returns the partially delensed CMB cls as well if set
             datnoise_cls(optional): feeds in custom noise spectra to the data. The nlevs and beam only apply to the filtering in this case
 
