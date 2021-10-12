@@ -72,11 +72,14 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None):
                     lega = uqe.qeleg(s_left, s_left, 0.5 *(1. + (s_left == 0)) * np.ones(lmax + 1, dtype=float))
                     legb = uqe.qeleg(sin, sout + s_qe, 0.5 * (1. + (sin == 0)) * 2 * cl_sosi)
                     qes.append(uqe.qe(lega, legb, cL_out))
-        if qe_key[1:] in ['te', 'et', 'tb', 'bt', 'ee', 'eb', 'be', 'bb']:
+        if len(qe_key) == 1 or qe_key[1:] in ['tt', '_p']:
+            return uqe.qe_simplify(qes)
+        elif qe_key[1:] in ['te', 'et', 'tb', 'bt', 'ee', 'eb', 'be', 'bb']:
             return uqe.qe_simplify(uqe.qe_proj(qes, qe_key[1], qe_key[2]))
         elif qe_key[1:] in ['_te', '_tb', '_eb']:
             return uqe.qe_simplify(uqe.qe_proj(qes, qe_key[2], qe_key[3]) + uqe.qe_proj(qes, qe_key[3], qe_key[2]))
-        return uqe.qe_simplify(qes)
+        else:
+            assert 0, 'qe key %s  not recognized'%qe_key
     else:
         assert 0, qe_key + ' not implemented'
 
