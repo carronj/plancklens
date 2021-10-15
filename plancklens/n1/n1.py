@@ -141,7 +141,7 @@ class library_n1:
 
     def get_n1(self, kA, k_ind, cl_kind, ftlA, felA, fblA, Lmax, kB=None, ftlB=None, felB=None, fblB=None,
                clttfid=None, cltefid=None, cleefid=None, n1_flat=lambda ell: np.ones(len(ell), dtype=float),
-               recache=False, sglLmode=True):
+               recache=False, remove_only=False, sglLmode=True):
         r"""Calls a N1 bias
 
             Args:
@@ -204,10 +204,12 @@ class library_n1:
 
             ret = self.npdb.get(idx)
             if ret is not None:
-                if not recache:
+                if not recache and not remove_only:
                     return ret
                 else:
                     self.npdb.remove(idx)
+                    if remove_only:
+                        return np.zeros_like(ret)
                     ret = None
             if ret is None:
                 Ls = np.unique(np.concatenate([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.arange(1, Lmax + 1)[::20], [Lmax]]))
