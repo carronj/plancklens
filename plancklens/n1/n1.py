@@ -140,7 +140,8 @@ class library_n1:
                 'dL': self.dL, 'lps': self.lps}
 
     def get_n1(self, kA, k_ind, cl_kind, ftlA, felA, fblA, Lmax, kB=None, ftlB=None, felB=None, fblB=None,
-               clttfid=None, cltefid=None, cleefid=None, n1_flat=lambda ell: np.ones(len(ell), dtype=float), sglLmode=True):
+               clttfid=None, cltefid=None, cleefid=None, n1_flat=lambda ell: np.ones(len(ell), dtype=float),
+               recache=False, sglLmode=True):
         r"""Calls a N1 bias
 
             Args:
@@ -201,7 +202,14 @@ class library_n1:
             idx += '_cleefid' + clhash(cleefid)
             idx += '_Lmax%s' % Lmax
 
-            if self.npdb.get(idx) is None:
+            ret = self.npdb.get(idx)
+            if ret is not None:
+                if not recache:
+                    return ret
+                else:
+                    self.npdb.remove(idx)
+                    ret = None
+            if ret is None:
                 Ls = np.unique(np.concatenate([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.arange(1, Lmax + 1)[::20], [Lmax]]))
                 if sglLmode:
                     n1L = np.zeros(len(Ls), dtype=float)
@@ -225,6 +233,7 @@ class library_n1:
                 ret[1:] =  spline(Ls, np.array(n1L) * n1_flat(Ls), s=0., ext='raise', k=3)(np.arange(1, Lmax + 1) * 1.)
                 ret[1:] *= cli(n1_flat(np.arange(1, Lmax + 1) * 1.))
                 self.npdb.add(idx, ret)
+                return ret
             return self.npdb.get(idx)
 
         if (kA in estimator_keys_derived) and (kB in estimator_keys_derived):
