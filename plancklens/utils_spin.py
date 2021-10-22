@@ -105,8 +105,11 @@ def get_spin_lower(s, lmax):
 def _dict_transpose(cls):
     ret = {}
     for k in cls.keys():
-        assert len(k) == 2
-        ret[k[1] + k[0]] = np.copy(cls[k])
+        if len(k) == 1:
+            ret[k + k] = np.copy(cls[k])
+        else:
+            assert len(k) == 2
+            ret[k[1] + k[0]] = np.copy(cls[k])
     return ret
 
 
@@ -130,13 +133,13 @@ def spin_cls(s1, s2, cls):
     elif s1 == 2:
         if s2 == 0:
             assert 'te' in cls.keys() or 'et' in cls.keys()
-            tb = cls.get('bt', cls.get('tb', None), None)
+            tb = cls.get('bt', cls.get('tb', None))
             et = cls.get('et', cls.get('te'))
             return  -et if tb is None else  -et - 1j * tb
         elif s2 == 2:
             return cls['ee'] + cls['bb']
         elif s2 == -2:
-            eb = cls.get('be', cls.get('eb', None), None)
+            eb = cls.get('be', cls.get('eb', None))
             return  cls['ee'] - cls['bb'] if eb is None else  cls['ee'] - cls['bb'] + 2j * eb
         else:
             assert 0
