@@ -2,5 +2,5 @@
 plancklens.n0s
 ==============
 
-.. automodule:: plancklens.n0s
-    :members: get_N0, get_N0_iter
+.. automodule:: plancklens.patchy
+    :members: get_N0, ge
