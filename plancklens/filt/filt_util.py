@@ -11,7 +11,7 @@ class library_ftl:
     """ Library of a-posteriori re-scaled filtered CMB maps, for separate temperature and polarization filtering
 
     Args:
-         ivfs : inverse filtering library instance.
+         ivfs : inverse filtering library instance (e.g. one of those in plancklens.filt.filt_simple).
          lmax (int) : defines the new healpy alm array shape (identical for temperature and polarization)
          lfilt_t (1d array): filtered temperature alms are rescaled by lfilt_t
          lfilt_e (1d array): filtered E-polarization alms are rescaled by lfilt_e
@@ -73,6 +73,86 @@ class library_ftl:
         return hp.almxfl(utils.alm_copy(self.ivfs.get_sim_bmliklm(idx), lmax=self.lmax), self.lfilt_b)
 
 
+class library_fml:
+    def __init__(self, ivfs, lmax, mfilt_t, mfilt_e, mfilt_b):
+        """Library of a-posteriori re-scaled filtered CMB maps
+
+            This rescales the maps according to 'm' values, alm -> fm alm
+
+        Args:
+             ivfs : inverse filtering library instance (e.g. one of those in plancklens.filt.filt_simple).
+             lmax (int) : defines the new healpy alm array shape (identical for temperature and polarization)
+             mfilt_t (1d array): filtered temperature alms are rescaled by mfilt_t
+             mfilt_e (1d array): filtered E-polarization alms are rescaled by mfilt_e
+             mfilt_b (1d array): filtered B-polarization alms are rescaled by mfilt_b
+
+        Wraps the input filtering instance *(ivfs)* methods to keep the same interface.
+
+
+        """
+        assert len(mfilt_t) > lmax and len(mfilt_e) > lmax and len(mfilt_b) > lmax
+        self.ivfs = ivfs
+        self.lmax = lmax
+        self.mfilt_t = mfilt_t
+        self.mfilt_e = mfilt_e
+        self.mfilt_b = mfilt_b
+        self.lib_dir = ivfs.lib_dir
+
+    def hashdict(self):
+        return {'ivfs': self.ivfs.hashdict(),
+                'filt_t': utils.clhash(self.mfilt_t[:self.lmax + 1]),
+                'filt_e': utils.clhash(self.mfilt_e[:self.lmax + 1]),
+                'filt_b': utils.clhash(self.mfilt_b[:self.lmax + 1])}
+
+
+    def get_fmask(self):
+        return self.ivfs.get_fmask()
+
+    @staticmethod
+    def almxfm(alm, fm, lmax):
+        ret = utils.alm_copy(alm, lmax=lmax)
+        for m in range(lmax + 1):
+            ret[hp.Alm.getidx(lmax, np.arange(m, lmax + 1, dtype=int), m)] *= fm[m]
+        return ret
+
+    def get_tal(self, a):
+        return self.ivfs.get_tal(a)
+
+    def get_ftl(self):
+        m_rescal = 2 * np.cumsum(self.mfilt_t[:self.lmax + 1]) - self.mfilt_t[0]
+        m_rescal /= (2 * np.arange(self.lmax + 1) + 1)
+        return self.ivfs.get_ftl()[:self.lmax + 1] * m_rescal
+
+    def get_fel(self):
+        m_rescal = 2 * np.cumsum(self.mfilt_e[:self.lmax + 1]) - self.mfilt_e[0]
+        m_rescal /= (2 * np.arange(self.lmax + 1) + 1)
+        return self.ivfs.get_fel()[:self.lmax + 1] * np.sum(self.mfilt_e[:self.lmax + 1]) / (2 * np.arange(self.lmax + 1) + 1)
+
+    def get_fbl(self):
+        m_rescal = 2 * np.cumsum(self.mfilt_b[:self.lmax + 1]) - self.mfilt_b[0]
+        m_rescal /= (2 * np.arange(self.lmax + 1) + 1)
+        return self.ivfs.get_fbl()[:self.lmax + 1] * np.sum(self.mfilt_b[:self.lmax + 1]) / (2 * np.arange(self.lmax + 1) + 1)
+
+    def get_sim_tlm(self, idx):
+        return self.almxfm(self.ivfs.get_sim_tlm(idx), self.mfilt_t, self.lmax)
+
+    def get_sim_elm(self, idx):
+        return self.almxfm(self.ivfs.get_sim_elm(idx), self.mfilt_t, self.lmax)
+
+    def get_sim_blm(self, idx):
+        return self.almxfm(self.ivfs.get_sim_blm(idx), self.mfilt_t, self.lmax)
+
+    def get_sim_tmliklm(self, idx):
+        return self.almxfm(self.ivfs.get_sim_tmliklm(idx), self.mfilt_t, self.lmax)
+
+    def get_sim_emliklm(self, idx):
+        return self.almxfm(self.ivfs.get_sim_emliklm(idx), self.mfilt_e, self.lmax)
+
+    def get_sim_bmliklm(self, idx):
+        return self.almxfm(self.ivfs.get_sim_bmliklm(idx), self.mfilt_b, self.lmax)
+
+
+
 class library_shuffle:
     r"""A library of filtered sims with remapped indices.
 
@@ -124,4 +204,5 @@ class library_shuffle:
 
     def get_sim_bmliklm(self, idx):
         return self.ivfs.get_sim_bmliklm(self.idxs[idx])
+
 
