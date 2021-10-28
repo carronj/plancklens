@@ -121,17 +121,17 @@ class library_fml:
     def get_ftl(self):
         m_rescal = 2 * np.cumsum(self.mfilt_t[:self.lmax + 1]) - self.mfilt_t[0]
         m_rescal /= (2 * np.arange(self.lmax + 1) + 1)
-        return self.ivfs.get_ftl()[:self.lmax + 1] * m_rescal
+        return self.ivfs.get_ftl()[:self.lmax + 1] * np.sqrt(m_rescal) # root has better chance to work at the spectrum level
 
     def get_fel(self):
         m_rescal = 2 * np.cumsum(self.mfilt_e[:self.lmax + 1]) - self.mfilt_e[0]
         m_rescal /= (2 * np.arange(self.lmax + 1) + 1)
-        return self.ivfs.get_fel()[:self.lmax + 1] * np.sum(self.mfilt_e[:self.lmax + 1]) / (2 * np.arange(self.lmax + 1) + 1)
+        return self.ivfs.get_fel()[:self.lmax + 1] * np.sqrt(m_rescal)
 
     def get_fbl(self):
         m_rescal = 2 * np.cumsum(self.mfilt_b[:self.lmax + 1]) - self.mfilt_b[0]
         m_rescal /= (2 * np.arange(self.lmax + 1) + 1)
-        return self.ivfs.get_fbl()[:self.lmax + 1] * np.sum(self.mfilt_b[:self.lmax + 1]) / (2 * np.arange(self.lmax + 1) + 1)
+        return self.ivfs.get_fbl()[:self.lmax + 1] * np.sqrt(m_rescal)
 
     def get_sim_tlm(self, idx):
         return self.almxfm(self.ivfs.get_sim_tlm(idx), self.mfilt_t, self.lmax)
