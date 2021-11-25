@@ -102,28 +102,44 @@ def get_spin_lower(s, lmax):
     ret[abs(s):] = -np.sqrt(np.arange(s + abs(s), lmax + s + 1) * np.arange(abs(s) - s + 1, lmax - s + 2))
     return ret
 
+def _dict_transpose(cls):
+    ret = {}
+    for k in cls.keys():
+        if len(k) == 1:
+            ret[k + k] = np.copy(cls[k])
+        else:
+            assert len(k) == 2
+            ret[k[1] + k[0]] = np.copy(cls[k])
+    return ret
+
+
 def spin_cls(s1, s2, cls):
     r"""Spin-weighted power spectrum :math:`_{s1}X_{lm} _{s2}X^{*}_{lm}`
 
         The output is real unless necessary.
 
+
     """
     if s1 < 0:
-        return (-1) ** (s1 + s2) * np.conjugate(spin_cls(-s1, -s2, cls))
+        return (-1) ** (s1 + s2) * np.conjugate(spin_cls(-s1, -s2, _dict_transpose(cls)))
     assert s1 in [0, -2, 2] and s2 in [0, -2, 2], (s1, s2, 'not implemented')
     if s1 == 0:
         if s2 == 0:
             return cls['tt']
         tb = cls.get('tb', None)
-        return  -cls['te'] if tb is None else  -cls['te'] + 1j * np.sign(s2) * tb
+        assert 'te' in cls.keys() or 'et' in cls.keys()
+        te = cls.get('te', cls.get('et'))
+        return  -te if tb is None else  -te + 1j * np.sign(s2) * tb
     elif s1 == 2:
         if s2 == 0:
-            tb = cls.get('tb', None)
-            return  -cls['te'] if tb is None else  -cls['te'] - 1j * tb
+            assert 'te' in cls.keys() or 'et' in cls.keys()
+            tb = cls.get('bt', cls.get('tb', None))
+            et = cls.get('et', cls.get('te'))
+            return  -et if tb is None else  -et - 1j * tb
         elif s2 == 2:
             return cls['ee'] + cls['bb']
         elif s2 == -2:
-            eb = cls.get('eb', None)
+            eb = cls.get('be', cls.get('eb', None))
             return  cls['ee'] - cls['bb'] if eb is None else  cls['ee'] - cls['bb'] + 2j * eb
         else:
             assert 0

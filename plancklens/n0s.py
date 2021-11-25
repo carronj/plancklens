@@ -41,9 +41,10 @@ import healpy as hp
 import numpy as np
 import plancklens
 from plancklens import utils, qresp, nhl
+from copy import deepcopy
 
 
-def get_N0(beam_fwhm=1.4, nlev_t=5., nlev_p=None, lmax_CMB=3000,  lmin_CMB=100, lmax_out=None,
+def get_N0(beam_fwhm=1.4, nlev_t=5., nlev_p=None, lmax_CMB: dict or int =3000,  lmin_CMB=100, lmax_out=None,
            cls_len:dict or None =None, cls_weight:dict or None=None,
            joint_TP=True, ksource='p'):
     r"""Example function to calculates reconstruction noise levels for a bunch of quadratic estimators
@@ -52,7 +53,7 @@ def get_N0(beam_fwhm=1.4, nlev_t=5., nlev_p=None, lmax_CMB=3000,  lmin_CMB=100, 
             beam_fwhm: beam fwhm in arcmin
             nlev_t: T white noise level in uK-arcmin
             nlev_p: P white noise level in uK-arcmin (defaults to root(2) nlevt)
-            lmax_CMB: max. CMB multipole used in the QE
+            lmax_CMB: max. CMB multipole used in the QE (use a dict with 't' 'e' 'b' keys instead of int to set different CMB lmaxes)
             lmin_CMB: min. CMB multipole used in the QE
             lmax_out: max lensing 'L' multipole calculated
             cls_len: CMB spectra entering the sky response to the anisotropy (defaults to FFP10 lensed CMB spectra)
@@ -67,8 +68,15 @@ def get_N0(beam_fwhm=1.4, nlev_t=5., nlev_p=None, lmax_CMB=3000,  lmin_CMB=100, 
     """
     if nlev_p is None:
         nlev_p = nlev_t * np.sqrt(2)
+    if not isinstance(lmax_CMB, dict):
+        lmaxs_CMB = {s: lmax_CMB for s in ['t', 'e', 'b']}
+    else:
+        lmaxs_CMB = lmax_CMB
+        print("Seeing lmax's:")
+        for s in lmaxs_CMB.keys():
+            print(s + ': ' + str(lmaxs_CMB[s]))
 
-    lmax_ivf = lmax_CMB
+    lmax_ivf =  np.max(list(lmaxs_CMB.values()))
     lmin_ivf = lmin_CMB
     lmax_qlm = lmax_out or lmax_ivf
     cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens.__file__)), 'data', 'cls')
@@ -92,23 +100,20 @@ def get_N0(beam_fwhm=1.4, nlev_t=5., nlev_p=None, lmax_CMB=3000,  lmin_CMB=100, 
         'bb': (cls_len['bb'][:lmax_ivf + 1] + Noise_L_P),
         'te': np.copy(cls_len['te'][:lmax_ivf + 1])}
 
+    for s in cls_dat.keys():
+        cls_dat[s][min(lmaxs_CMB[s[0]], lmaxs_CMB[s[1]]) + 1:] *= 0.
+
     # (C+N)^{-1} filter spectra
     # For independent T and P filtering, this is really just 1/ (C+ N), diagonal in T, E, B space
     fal_sepTP = {spec: utils.cli(cls_dat[spec]) for spec in ['tt', 'ee', 'bb']}
-
     # Spectra of the inverse-variance filtered maps
     # In general cls_ivfs = fal * dat_cls * fal^t, with a matrix product in T, E, B space
-    # Here we have assumed data cls match perfectly filtering cls, so that for independent TP filter:
-    cls_ivfs_sepTP = {'tt': fal_sepTP['tt'].copy(),
-                      'ee': fal_sepTP['ee'].copy(),
-                      'bb': fal_sepTP['bb'].copy(),
-                      'te': cls_len['te'][:lmax_ivf + 1] * fal_sepTP['tt'] * fal_sepTP['ee']}
+    cls_ivfs_sepTP = utils.cls_dot([fal_sepTP, cls_dat, fal_sepTP], ret_dict=True)
 
     # For joint TP filtering, fals is matrix inverse
     fal_jtTP = utils.cl_inverse(cls_dat)
     # since cls_dat = fals, cls_ivfs = fals. If the data spectra do not match the filter, this must be changed:
-    cls_ivfs_jtTP = utils.cl_inverse(cls_dat)
-
+    cls_ivfs_jtTP = utils.cls_dot([fal_jtTP, cls_dat, fal_jtTP], ret_dict=True)
     for cls in [fal_sepTP, fal_jtTP, cls_ivfs_sepTP, cls_ivfs_jtTP]:
         for cl in cls.values():
             cl[:max(1, lmin_ivf)] *= 0.
@@ -165,7 +170,7 @@ def dls2cls(dls):
     return cls
 
 
-def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl_fid:dict, lmin_ivf, lmax_ivf, itermax, cls_unl_dat=None,
+def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl_fid:dict, lmin_cmb, lmax_cmb, itermax, cls_unl_dat=None,
                 lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None):
     r"""Iterative lensing-N0 estimate
 
@@ -180,8 +185,8 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
             nlev_p: polarisation noise level (in :math:`\mu `K-arcmin)
             beam_fwhm: Gaussian beam full width half maximum in arcmin
             cls_unl_fid(dict): unlensed CMB power spectra
-            lmin_ivf: minimal CMB multipole used in the QE
-            lmax_ivf: maximal CMB multipole used in the QE
+            lmin_cmb: minimal CMB multipole used in the QE
+            lmax_cmb: maximal CMB multipole used in the QE
             itermax: number of iterations to perform
             lmax_qlm(optional): maximum lensing multipole to consider. Defaults to 2 lmax_ivf
             ret_delcls(optional): returns the partially delensed CMB cls as well if set
@@ -201,7 +206,15 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
     except ImportError:
         assert 0, "could not import camb.correlations.lensed_cls"
 
-
+    if isinstance(lmax_cmb, dict):
+        lmaxs_ivf = lmax_cmb
+        print("Seeing lmax's:")
+        for s in lmaxs_ivf.keys():
+            print(s + ': ' + str(lmaxs_ivf[s]))
+    else:
+        lmaxs_ivf = {s: lmax_cmb for s in ['t', 'e', 'b']}
+    lmin_ivf = lmin_cmb
+    lmax_ivf = np.max(list(lmaxs_ivf.values()))
     if lmax_qlm is None:
         lmax_qlm = 2 * lmax_ivf
     lmax_qlm = min(lmax_qlm, 2 * lmax_ivf)
@@ -240,7 +253,6 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
         cls_plen_true = dls2cls(lensed_cls(dls_unl_true, cldd_true))
 
         cls_filt = cls_plen_fid
-        cls_w = cls_plen_fid
         cls_f = cls_plen_true
         fal = {}
         dat_delcls = {}
@@ -255,17 +267,21 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
         if qe_key in ['p']:
             fal['te'] = np.copy(cls_filt['te'][:lmax_ivf + 1])
             dat_delcls['te'] = np.copy(cls_plen_true['te'][:lmax_ivf + 1])
+        for spec in fal.keys():
+            fal[spec][min(lmaxs_ivf[spec[0]], lmaxs_ivf[spec[1]]) + 1:] *= 0
+        for spec in dat_delcls.keys():
+            dat_delcls[spec][min(lmaxs_ivf[spec[0]], lmaxs_ivf[spec[1]]) + 1:] *= 0
+
         fal = utils.cl_inverse(fal)
         for cl in fal.values():
             cl[:lmin_ivf] *= 0.
         for cl in dat_delcls.values():
             cl[:lmin_ivf] *= 0.
-        cls_ivfs_arr = utils.cls_dot([fal, dat_delcls, fal])
-        cls_ivfs = dict()
-        for i, a in enumerate(['t', 'e', 'b']):
-            for j, b in enumerate(['t', 'e', 'b'][i:]):
-                if np.any(cls_ivfs_arr[i, j + i]):
-                    cls_ivfs[a + b] = cls_ivfs_arr[i, j + i]
+        cls_ivfs = utils.cls_dot([fal, dat_delcls, fal], ret_dict=True)
+        cls_w = deepcopy(cls_plen_fid)
+        for spec in cls_w.keys(): # in principle not necessary
+            cls_w[spec][:lmin_ivf] *= 0.
+            cls_w[spec][min(lmaxs_ivf[spec[0]], lmaxs_ivf[spec[1]]) + 1:] *= 0
 
         n_gg = nhl.get_nhl(qe_key, qe_key, cls_w, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)[0]
         r_gg_true = qresp.get_response(qe_key, lmax_ivf, 'p', cls_w, cls_f, fal, lmax_qlm=lmax_qlm)[0]

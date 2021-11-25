@@ -310,6 +310,12 @@ class library:
         Q2, U2 = (self.f2map2.get_pmap(idx, joint=joint) if not swapped else self.f2map1.get_pmap(idx, joint=joint))
         return -4. * hp.map2alm(Q1 * U2 -  U1 * Q2 , lmax=self.get_lmax_qlm('P'), iter=0)
 
+    def _get_sim_MVgclm(self, idx, k, swapped=False):
+        assert k == 'p'
+        GP, CP = self._get_sim_Pgclm(idx, 'p', swapped=swapped)
+        GT, CT = self._get_sim_Tgclm(idx, 'p', swapped=swapped)
+        return GP + GT, CP + GT
+
     def _build_sim_Tgclm(self, idx):
         """ T only lensing potentials estimators """
         G, C = self._get_sim_Tgclm(idx, 'ptt')
@@ -338,22 +344,15 @@ class library:
 
     def _build_sim_MVgclm(self, idx):
         """ MV. lensing potentials estimators """
-        G, C = self._get_sim_Pgclm(idx, 'p')
+        G, C = self._get_sim_MVgclm(idx, 'p')
         if not self.f2map1.ivfs == self.f2map2.ivfs:
-            _G, _C = self._get_sim_Pgclm(idx, 'p', swapped=True)
+            _G, _C = self._get_sim_MVgclm(idx, 'p', swapped=True)
             G = 0.5 * (G + _G)
             del _G
             C = 0.5 * (C + _C)
             del _C
-        GT, CT = self._get_sim_Tgclm(idx, 'p')
-        if not self.f2map1.ivfs == self.f2map2.ivfs:
-            _G, _C = self._get_sim_Tgclm(idx, 'p', swapped=True)
-            GT = 0.5 * (GT + _G)
-            del _G
-            CT = 0.5 * (CT + _C)
-            del _C
-        _write_alm(os.path.join(self.lib_dir, 'sim_p_%04d.fits'%idx if idx != -1 else 'dat_p.fits'), G + GT)
-        _write_alm(os.path.join(self.lib_dir, 'sim_x_%04d.fits'%idx if idx != -1 else 'dat_x.fits'), C + CT)
+        _write_alm(os.path.join(self.lib_dir, 'sim_p_%04d.fits'%idx if idx != -1 else 'dat_p.fits'), G)
+        _write_alm(os.path.join(self.lib_dir, 'sim_x_%04d.fits'%idx if idx != -1 else 'dat_x.fits'), C)
 
     def _build_sim_f(self, idx):
         """ MV. modulation estimators. """

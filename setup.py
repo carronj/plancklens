@@ -8,6 +8,7 @@ with open("README.md", "r") as fh:
 
 def configuration(parent_package='', top_path=''):
     config = Configuration('', parent_package, top_path)
+    # try extra_link_args = ['-lgomp', '-qopenmp'] was useful at some point for intel compilers (Kareem)
     config.add_extension('plancklens.wigners.wigners', ['plancklens/wigners/wigners.f90'],
                          extra_link_args=['-lgomp'], libraries=['gomp'], extra_f90_compile_args=['-fopenmp', '-w'])
     config.add_extension('plancklens.n1.n1f', ['plancklens/n1/n1f.f90'],

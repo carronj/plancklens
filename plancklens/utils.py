@@ -117,6 +117,9 @@ def clhash(cl, dtype=np.float16):
 
     By default we avoid here double precision checks since this might be machine dependent.
 
+        Note: casting to low precision can be a really bad choice for small numbers...
+
+
     """
     return hashlib.sha1(np.copy(cl.astype(dtype), order='C')).hexdigest()
 
@@ -322,6 +325,7 @@ def camb_clfile(fname, lmax=None):
         cls['pe'][ell[idc]] = cols[7][idc] / wptpe(ell[idc])
     return cls
 
+
 def cl_inverse(cls):
     """Inverse of T E B spectral matrices. Input and ouputs are dictionaries.
 
@@ -369,7 +373,7 @@ def _cldict2arr(cls_dict):
             ret[i, j] =  extcl(lmaxp1 - 1, cls_dict.get(x + y, cls_dict.get(y + x, np.array([0.]))))
     return ret
 
-def cls_dot(cls_list):
+def cls_dot(cls_list, ret_dict=False):
     """T E B spectral matrices product
 
         Args:
@@ -389,4 +393,11 @@ def cls_dot(cls_list):
         for j in range(3):
             for k in range(3):
                 ret[i, j] += cls_0[i, k] * cls[k, j]
+    if ret_dict:
+        clsi = {}
+        for k, (i, j) in zip(['tt', 'ee', 'bb', 'te', 'tb', 'eb'], [[0, 0], [1, 1], [2, 2], [0, 1], [0, 2], [1, 2]]):
+            arr = ret[i, j, :].copy()
+            if np.any(arr):
+                clsi[k] = arr
+        return clsi
     return ret

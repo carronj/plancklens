@@ -140,7 +140,8 @@ class library_n1:
                 'dL': self.dL, 'lps': self.lps}
 
     def get_n1(self, kA, k_ind, cl_kind, ftlA, felA, fblA, Lmax, kB=None, ftlB=None, felB=None, fblB=None,
-               clttfid=None, cltefid=None, cleefid=None, n1_flat=lambda ell: np.ones(len(ell), dtype=float), sglLmode=True):
+               clttfid=None, cltefid=None, cleefid=None, n1_flat=lambda ell: np.ones(len(ell), dtype=float),
+               recache=False, remove_only=False, sglLmode=True):
         r"""Calls a N1 bias
 
             Args:
@@ -201,18 +202,27 @@ class library_n1:
             idx += '_cleefid' + clhash(cleefid)
             idx += '_Lmax%s' % Lmax
 
-            if self.npdb.get(idx) is None:
+            ret = self.npdb.get(idx)
+            if ret is not None:
+                if not recache and not remove_only:
+                    return ret
+                else:
+                    self.npdb.remove(idx)
+                    if remove_only:
+                        return np.zeros_like(ret)
+                    ret = None
+            if ret is None:
                 Ls = np.unique(np.concatenate([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.arange(1, Lmax + 1)[::20], [Lmax]]))
                 if sglLmode:
                     n1L = np.zeros(len(Ls), dtype=float)
                     for i, L in enumerate(Ls[mpi.rank::mpi.size]):
                         print("n1: doing L %s kA %s kB %s kind %s" % (L, kA, kB, k_ind))
-                        n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid))
+                        n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid, remove_only=remove_only))
                     if mpi.size > 1:
                         mpi.barrier()
                         for i, L in enumerate(Ls): # reoading cached n1L's
                             n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid,
-                                             cltefid, cleefid))
+                                             cltefid, cleefid, remove_only=remove_only))
 
                 else: # entire vector from f90 openmp call
                     lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlA, felA, fblA]])
@@ -225,6 +235,7 @@ class library_n1:
                 ret[1:] =  spline(Ls, np.array(n1L) * n1_flat(Ls), s=0., ext='raise', k=3)(np.arange(1, Lmax + 1) * 1.)
                 ret[1:] *= cli(n1_flat(np.arange(1, Lmax + 1) * 1.))
                 self.npdb.add(idx, ret)
+                return ret
             return self.npdb.get(idx)
 
         if (kA in estimator_keys_derived) and (kB in estimator_keys_derived):
@@ -258,7 +269,7 @@ class library_n1:
             return ret
         assert 0
 
-    def _get_n1_L(self, L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid):
+    def _get_n1_L(self, L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid, remove_only=False):
         if kB is None: kB = kA
         assert kA in estimator_keys and kB in estimator_keys
         assert len(cl_kind) > self.lmaxphi
@@ -285,14 +296,22 @@ class library_n1:
                 idx += '_cltefid' + clhash(cltefid)
                 idx += '_cleefid' + clhash(cleefid)
 
-                if self.fldb.get(idx) is None:
+                n1_L = self.fldb.get(idx)
+
+                if n1_L is None:
+                    if remove_only:
+                        return 0.
                     n1_L = n1f.n1l(L, cl_kind, kA, kB, k_ind,
                                   self.cltt, self.clte, self.clee, clttfid, cltefid, cleefid,
                                   ftlA, felA, fblA, ftlB, felB, fblB,
                                   lmin_ftlA, lmin_ftlB,  self.dL, self.lps)
                     self.fldb.add(idx, n1_L)
                     return n1_L
-                return self.fldb.get(idx)
+                else:
+                    if remove_only:
+                        self.fldb.remove(idx)
+                        return 0.
+                    return n1_L
         assert 0
 
     def get_n1_jtp(self, kA, k_ind, cl_kind, fAlmat, Lmax, kB=None, fBlmat=None,

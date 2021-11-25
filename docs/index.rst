@@ -21,6 +21,7 @@ Welcome to plancklens documentation!
    n0
    n1
    qresp
+   patchy
 
 Indices and tables
 ==================
