@@ -16,7 +16,8 @@ class smica_dx12:
     r""" SMICA 2018 release simulation and data library at NERSC.
 
         Note:
-
+            This now converts all maps to double precision
+            (healpy 1.15 changed read_map default type behavior, breaking in a way that is not very clear as yet the behavior of the conjugate gradient inversion chain)
     """
     def __init__(self):
         self.cmbs = '/project/projectdirs/cmb/data/planck2018/ffp10/compsep/mc_cmb/dx12_v3_smica_cmb_mc_%05d_005a_2048.fits'
@@ -38,10 +39,10 @@ class smica_dx12:
         """
         if idx == -1:
             return self.get_dat_tmap()
-        return 1e6 * (hp.read_map(self.cmbs % idx, field=0) + hp.read_map(self.noise % idx, field=0))
+        return 1e6 * (hp.read_map(self.cmbs % idx, field=0, dtype=np.float64) + hp.read_map(self.noise % idx, field=0, dtype=np.float64))
 
     def get_dat_tmap(self):
-        return 1e6 * hp.read_map(self.data, field=0)
+        return 1e6 * hp.read_map(self.data, field=0, dtype=np.float64)
 
     def get_sim_pmap(self, idx):
         r"""Returns dx12 SMICA polarization map for a simulation
@@ -55,12 +56,12 @@ class smica_dx12:
         """
         if idx == -1:
             return self.get_dat_pmap()
-        Q = 1e6 * (hp.read_map(self.cmbs % idx, field=1) + hp.read_map(self.noise % idx, field=1))
-        U = 1e6 * (hp.read_map(self.cmbs % idx, field=2) + hp.read_map(self.noise % idx, field=2))
+        Q = 1e6 * (hp.read_map(self.cmbs % idx, field=1, dtype=np.float64) + hp.read_map(self.noise % idx, field=1, dtype=np.float64))
+        U = 1e6 * (hp.read_map(self.cmbs % idx, field=2, dtype=np.float64) + hp.read_map(self.noise % idx, field=2, dtype=np.float64))
         return Q, U
 
     def get_dat_pmap(self):
-        return 1e6 * hp.read_map(self.data, field=1), 1e6 * hp.read_map(self.data, field=2)
+        return 1e6 * hp.read_map(self.data, field=1, dtype=np.float64), 1e6 * hp.read_map(self.data, field=2, dtype=np.float64)
 
 class ffp10cmb_widnoise:
     r"""Simulation library with freq-0 FFP10 lensed CMB together with idealized, homogeneous noise.
