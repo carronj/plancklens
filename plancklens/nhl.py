@@ -13,7 +13,7 @@ from plancklens.helpers import mpi, sql
 
 
 def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
-            lmax_out=None, lmax_ivf12=None, lmax_ivf22=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
+            lmax_out=None, lmax_ivf12=None, lmax_ivf22=None, cls_weights2=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
     """(Semi-)Analytical noise level calculation for the cross-spectrum of two QE keys.
 
         Args:
@@ -26,6 +26,7 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
             lmax_ivf1: QE 1 uses CMB multipoles down to lmax_ivf1.
             lmax_ivf2: QE 2 uses CMB multipoles down to lmax_ivf2.
             lmax_out(optional): outputs are calculated down to lmax_out. Defaults to lmax_ivf1 + lmax_ivf2
+            cls_weights2(optional): Second QE cls weights, if different from cls_weights
 
         Outputs:
             4-tuple of gradient (G) and curl (C) mode Gaussian noise co-variances GG, CC, GC, CG.
@@ -33,8 +34,9 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
     """
     if lmax_ivf12 is None: lmax_ivf12 = lmax_ivf1
     if lmax_ivf22 is None: lmax_ivf22 = lmax_ivf2
+    if cls_weights2 is None: cls_weights2 = cls_weights
     qes1 = qresp.get_qes(qe_key1, lmax_ivf1, cls_weights, lmax2=lmax_ivf12)
-    qes2 = qresp.get_qes(qe_key2, lmax_ivf2, cls_weights, lmax2=lmax_ivf22)
+    qes2 = qresp.get_qes(qe_key2, lmax_ivf2, cls_weights2, lmax2=lmax_ivf22)
     if lmax_out is None:
         lmax_out = max(lmax_ivf1, lmax_ivf12) + max(lmax_ivf2, lmax_ivf22)
     return  _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab)
