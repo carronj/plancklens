@@ -77,7 +77,7 @@ class qeleg_multi:
         return np.max([len(cl) for cl in self.cls]) - 1
 
 class qe:
-    def __init__(self, leg_a, leg_b, cL):
+    def __init__(self, leg_a:qeleg, leg_b:qeleg, cL):
         assert leg_a.spin_ou +  leg_b.spin_ou >= 0
         self.leg_a = leg_a
         self.leg_b = leg_b
