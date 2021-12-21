@@ -78,7 +78,11 @@ class library(object):
     def get_lmaxqcl(self, k1, k2):
         return min(self.qeA.get_lmax_qlm(k1), self.qeB.get_lmax_qlm(k2))
 
-    def get_sim_qcl(self, k1, idx, k2=None, lmax=None, recache=False):
+    def load_sim_qcl(self, k1, idx, k2=None, lmax=None):
+        """Same as get_sim_qcl without triggering its calculation"""
+        return self.get_sim_qcl(k1, idx, k2=k2, lmax=lmax, calc=False)
+
+    def get_sim_qcl(self, k1, idx, k2=None, lmax=None, recache=False, calc=True):
         """Returns QE (cross-)power spectrum for a simulation index.
 
             Args:
@@ -86,6 +90,7 @@ class library(object):
                 idx: simulation index
                 k2: QE anisotropy key 2 (defaults to k1)
                 lmax: optionally reduce the output to multipole lmax
+                calc: calculates it if not done already. Otherwise throws an error if set to False
 
             Returns:
                QE power spectrum (1d array)
@@ -102,7 +107,9 @@ class library(object):
         else:
             assert idx ==-1
             fname = os.path.join(self.lib_dir, 'sim_qcl_k1%s_k2%s_lmax%s_dat_%s.dat' % (k1, k2, lmax_qcl, self._mcmf_hash()))
-        if self.npdb.get(fname) is None or recache:
+        if calc:
+            recache=False
+        if calc and (self.npdb.get(fname) is None or recache):
             qlmA = self.qeA.get_sim_qlm(k1, idx, lmax=lmax_qcl)
             qlmA -= self.qeA.get_sim_qlm_mf(k1, self.mc_sims_mf[0::2], lmax=lmax_qcl)
             qlmB = self.qeB.get_sim_qlm(k2, idx, lmax=lmax_qcl)
@@ -157,6 +164,7 @@ class average:
                 pk.dump(self.hashdict(), open(hname, 'wb'), protocol=2)
         mpi.barrier()
         utils.hash_check(pk.load(open(hname, 'rb')), self.hashdict())
+        self.mc_sims_mf = np.sort(np.unique(np.concatenate([qcl.mc_sims_mf for qcl in self.qclibs])))
 
     def hashdict(self):
         return {'qcl_lib %s'%i : qclib.hashdict() for i, qclib in enumerate(self.qclibs)}

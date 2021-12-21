@@ -35,7 +35,7 @@ class cacher_npy(cacher):
     def load(self, fn):
         assert '.npy' not in fn
         p = self._path(fn)
-        assert os.path.exists(p)
+        assert os.path.exists(p), p
         if self.verbose:
             print("Loading " + fn + '.npy')
         return np.load(p)

@@ -1,0 +1,6 @@
+==============
+plancklens.n0s
+==============
+
+.. automodule:: plancklens.patchy
+    :members: get_N0, ge

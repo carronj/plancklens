@@ -94,8 +94,11 @@ def mask_hash(m, dtype=bool):
         return 'callable'
     assert 0, 'not implemented'
 
-def load_map(f):
+def load_map(f): # Same as read_map?
     if type(f) is str:
-        return hp.read_map(f)
+        if ',' not in f:
+            return hp.read_map(f)
+        m, field = f.split(',')
+        return hp.read_map(m, field=int(field))
     else:
         return f
