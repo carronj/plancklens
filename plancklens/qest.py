@@ -231,11 +231,12 @@ class library:
         assert k in self.keys_fund, (k, self.keys_fund)
         fname = os.path.join(self.lib_dir, 'simMF_k1%s_%s.fits' % (k, ut.mchash(mc_sims)))
         if not os.path.exists(fname):
+            this_mcs = np.unique(mc_sims)
             MF = np.zeros(hp.Alm.getsize(lmax), dtype=complex)
-            if len(mc_sims) == 0: return MF
-            for i, idx in ut.enumerate_progress(mc_sims, label='calculating %s MF' % k):
+            if len(this_mcs) == 0: return MF
+            for i, idx in ut.enumerate_progress(this_mcs, label='calculating %s MF' % k):
                 MF += self.get_sim_qlm(k, idx, lmax=lmax)
-            MF /= len(mc_sims)
+            MF /= len(this_mcs)
             _write_alm(fname, MF)
             print("Cached ", fname)
         return ut.alm_copy(hp.read_alm(fname), lmax=lmax)
