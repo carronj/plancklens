@@ -200,7 +200,7 @@ class cinv_t(cinv):
         if s_cls['tt'][0] == 0.: assert self.chain.n_inv_filt.marge_monopole
         if s_cls['tt'][1] == 0.: assert self.chain.n_inv_filt.marge_dipole
 
-        ftl = utils.cli(s_cls['tt'][0:self.lmax + 1] + (NlevT_uKamin * np.pi / 180. / 60.) ** 2 / b_transf[0:self.lmax + 1] ** 2)
+        ftl = utils.cli(s_cls['tt'][0:self.lmax + 1] + (NlevT_uKamin * np.pi / 180. / 60.) ** 2 * utils.cli(b_transf[0:self.lmax + 1] ** 2))
         if self.chain.n_inv_filt.marge_monopole: ftl[0] = 0.0
         if self.chain.n_inv_filt.marge_dipole: ftl[1] = 0.0
 
@@ -334,8 +334,8 @@ class cinv_p(cinv):
 
         s_cls = self.chain.s_cls
         b_transf = self.chain.n_inv_filt.b_transf
-        fel = utils.cli(s_cls['ee'][:self.lmax + 1] + (NlevP_uKamin * np.pi / 180. / 60.) ** 2 / b_transf[0:self.lmax + 1] ** 2)
-        fbl = utils.cli(s_cls['bb'][:self.lmax + 1] + (NlevP_uKamin * np.pi / 180. / 60.) ** 2 / b_transf[0:self.lmax + 1] ** 2)
+        fel = utils.cli(s_cls['ee'][:self.lmax + 1] + (NlevP_uKamin * np.pi / 180. / 60.) ** 2 * utils.cli(b_transf[0:self.lmax + 1] ** 2))
+        fbl = utils.cli(s_cls['bb'][:self.lmax + 1] + (NlevP_uKamin * np.pi / 180. / 60.) ** 2 * utils.cli(b_transf[0:self.lmax + 1] ** 2))
 
         fel[0:2] *= 0.0
         fbl[0:2] *= 0.0
