@@ -184,7 +184,7 @@ class alm_filter_ninv(object):
         """Missing doc. """
         npix = len(self.n_inv)
         hp.almxfl(alm, self.b_transf, inplace=True)
-        tmap = alm2map(alm, hp.npix2nside(npix), verbose=False)
+        tmap = alm2map(alm, hp.npix2nside(npix))
         self.apply_map(tmap)
         alm[:] = map2alm(tmap, lmax=hp.Alm.getlmax(alm.size), iter=0)
         hp.almxfl(alm, self.b_transf  *  (npix / (4. * np.pi)), inplace=True)

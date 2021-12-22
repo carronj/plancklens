@@ -200,7 +200,7 @@ class cinv_t(cinv):
         if s_cls['tt'][0] == 0.: assert self.chain.n_inv_filt.marge_monopole
         if s_cls['tt'][1] == 0.: assert self.chain.n_inv_filt.marge_dipole
 
-        ftl = utils.cli(s_cls['tt'][0:self.lmax + 1] + (NlevT_uKamin * np.pi / 180. / 60.) ** 2 / b_transf[0:self.lmax + 1] ** 2)
+        ftl = utils.cli(s_cls['tt'][0:self.lmax + 1] + (NlevT_uKamin * np.pi / 180. / 60.) ** 2 * utils.cli(b_transf[0:self.lmax + 1] ** 2))
         if self.chain.n_inv_filt.marge_monopole: ftl[0] = 0.0
         if self.chain.n_inv_filt.marge_dipole: ftl[1] = 0.0
 
@@ -241,21 +241,25 @@ class cinv_p(cinv):
             lmax: filtered alm's are reconstructed up to lmax
             nside: healpy resolution of maps to filter
             cl: fiducial CMB spectra used to filter the data (dict with 'tt' key)
-            transf: CMB maps transfer function (array)
+            transf: CMB E-mode polarization transfer function (array)
             ninv: inverse pixel variance maps. Must be a list of either 3 (QQ, QU, UU) or 1 (QQ = UU noise) elements.
                   These element are themselves list of paths or of healpy maps with consistent nside.
+            transf_blm(optional): B-polarization transfer function (if different from E-mode one)
 
         Note:
-            this implementation does not support template projection
+            This implementation now supports template projection
 
     """
-    def __init__(self, lib_dir, lmax, nside, cl, transf, ninv, pcf='default', chain_descr=None):
+    def __init__(self, lib_dir, lmax, nside, cl, transf, ninv, pcf='default',
+                 chain_descr=None, transf_blm=None, marge_qmaps=(), marge_umaps=()):
         assert lib_dir is not None and lmax >= 1024 and nside >= 512, (lib_dir, lmax, nside)
         super(cinv_p, self).__init__(lib_dir, lmax)
 
         self.nside = nside
         self.cl = cl
-        self.transf = transf
+        self.transf_e = transf
+        self.transf_b = transf if transf_blm is None else transf_blm
+        self.transf = transf if transf_blm is None else 0.5 * self.transf_e + 0.5 * self.transf_b
         self.ninv = ninv
 
         pcf = os.path.join(lib_dir, "dense.pk") if pcf == 'default' else None
@@ -263,7 +267,8 @@ class cinv_p(cinv):
             [[2, ["split(dense(" + pcf + "), 32, diag_cl)"], 512, 256, 3, 0.0, cd_solve.tr_cg,cd_solve.cache_mem()],
              [1, ["split(stage(2),  512, diag_cl)"], 1024, 512, 3, 0.0, cd_solve.tr_cg, cd_solve.cache_mem()],
              [0, ["split(stage(1), 1024, diag_cl)"], lmax, nside, np.inf, 1.0e-5, cd_solve.tr_cg, cd_solve.cache_mem()]]
-        n_inv_filt = util.jit(opfilt_pp.alm_filter_ninv, ninv, transf[0:lmax + 1])
+        n_inv_filt = util.jit(opfilt_pp.alm_filter_ninv, ninv, transf[0:lmax + 1],
+                              b_transf_b=transf_blm, marge_umaps=marge_umaps, marge_qmaps=marge_qmaps)
         self.chain = util.jit(multigrid.multigrid_chain, opfilt_pp, chain_descr, cl, n_inv_filt)
 
         if mpi.rank == 0:
@@ -333,9 +338,10 @@ class cinv_p(cinv):
         print("cinv_p::noiseP_uk_arcmin = %.3f"%NlevP_uKamin)
 
         s_cls = self.chain.s_cls
-        b_transf = self.chain.n_inv_filt.b_transf
-        fel = utils.cli(s_cls['ee'][:self.lmax + 1] + (NlevP_uKamin * np.pi / 180. / 60.) ** 2 / b_transf[0:self.lmax + 1] ** 2)
-        fbl = utils.cli(s_cls['bb'][:self.lmax + 1] + (NlevP_uKamin * np.pi / 180. / 60.) ** 2 / b_transf[0:self.lmax + 1] ** 2)
+        b_transf_e = self.chain.n_inv_filt.b_transf_e
+        b_transf_b = self.chain.n_inv_filt.b_transf_b
+        fel = utils.cli(s_cls['ee'][:self.lmax + 1] + (NlevP_uKamin * np.pi / 180. / 60.) ** 2 * utils.cli(b_transf_e[0:self.lmax + 1] ** 2))
+        fbl = utils.cli(s_cls['bb'][:self.lmax + 1] + (NlevP_uKamin * np.pi / 180. / 60.) ** 2 * utils.cli(b_transf_b[0:self.lmax + 1] ** 2))
 
         fel[0:2] *= 0.0
         fbl[0:2] *= 0.0
