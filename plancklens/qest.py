@@ -627,7 +627,7 @@ class lib_filt2map_sepTP(lib_filt2map):
             if np.isscalar(Clm):
                 return hp.alm2map_spin([Glm, Glm * 0.], self.nside, spin, lmax)
             else:
-                return hp.alm2map_spin([Glm, Glm], self.nside, spin, lmax)
+                return hp.alm2map_spin([Glm, Clm], self.nside, spin, lmax)
         else:
             return np.zeros(hp.nside2npix(self.nside), dtype=float), np.zeros(hp.nside2npix(self.nside), dtype=float)
 
