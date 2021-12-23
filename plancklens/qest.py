@@ -600,7 +600,7 @@ class lib_filt2map_sepTP(lib_filt2map):
             assert isinstance(xfilt, dict) and 'e' in xfilt.keys() and 'b' in xfilt.keys() and 't' in xfilt.keys()
 
         need_p = (xfilt is None) or (np.any(xfilt['e']) or np.any(xfilt['b']))
-        Glm, Clm = self.ivfs.get_sim_emliklm(idx), self.ivfs.get_sim_bmliklm(idx) if need_p else (0., 0.)
+        Glm, Clm = (self.ivfs.get_sim_emliklm(idx), self.ivfs.get_sim_bmliklm(idx)) if need_p else (0., 0.)
         if xfilt is not None and need_p:
             hp.almxfl(Glm, xfilt['e'], inplace=True)
             hp.almxfl(Clm, xfilt['b'], inplace=True)
