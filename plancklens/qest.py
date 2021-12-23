@@ -498,10 +498,13 @@ class lib_filt2map(object):
         return hp.alm2map_spin([Glm, Clm], self.nside, spin, lmax)
 
     def get_irestmap(self, idx, xfilt=None):
-        reslm =self.ivfs.get_sim_tlm(idx)
         if xfilt is not None:
             assert isinstance(xfilt, dict) and 't' in xfilt.keys()
-            hp.almxfl(reslm, xfilt['t'], inplace=True)
+            if not np.any(xfilt['t']):
+                return np.zeros(hp.nside2npix(self.nside), dtype=float)
+        reslm = self.ivfs.get_sim_tlm(idx)
+        if xfilt is not None:
+            reslm = hp.almxfl(reslm, xfilt['t'], inplace=True)
         return hp.alm2map(reslm, self.nside, lmax=hp.Alm.getlmax(reslm.size), verbose=False)
 
     def get_wirestmap(self, idx, wl):
@@ -564,19 +567,26 @@ class lib_filt2map_sepTP(lib_filt2map):
         assert k in ['ptt', 'p'], k
         if xfilt is not None:
             assert isinstance(xfilt, dict) and 't' in xfilt.keys()
-        mliktlm = self.ivfs.get_sim_tmliklm(idx)
-        if xfilt is not None:
+            if k in ['p']:
+                assert 'e' in xfilt.keys()
+        need_t = (xfilt is None) or np.any(xfilt['t']) # want to avoid T-calc if unnecessary
+        mliktlm = self.ivfs.get_sim_tmliklm(idx) if need_t else 0.
+        if xfilt is not None and need_t:
             hp.almxfl(mliktlm, xfilt['t'], inplace=True)
         if k == 'p':
-            telm = hp.almxfl(self.ivfs.get_sim_elm(idx), self.clte)
-            if xfilt is not None:
+            need_e = (xfilt is None) or np.any(xfilt['e'])
+            telm = hp.almxfl(self.ivfs.get_sim_elm(idx), self.clte) if need_e else 0.
+            if xfilt is not None and need_e:
                 assert 'e' in xfilt.keys()
                 hp.almxfl(telm, xfilt['e'], inplace=True)
-            mliktlm += telm
+            mliktlm = mliktlm + telm
             del telm
-        lmax = hp.Alm.getlmax(mliktlm.size)
-        Glm = hp.almxfl(mliktlm, -np.sqrt(np.arange(lmax + 1, dtype=float) * (np.arange(1, lmax + 2))))
-        return hp.alm2map_spin([Glm, np.zeros_like(Glm)], self.nside, 1, lmax)
+        if np.any(mliktlm):
+            lmax = hp.Alm.getlmax(mliktlm.size)
+            Glm = hp.almxfl(mliktlm, -np.sqrt(np.arange(lmax + 1, dtype=float) * (np.arange(1, lmax + 2))))
+            return hp.alm2map_spin([Glm, np.zeros_like(Glm)], self.nside, 1, lmax)
+        else:
+            return np.zeros(hp.nside2npix(self.nside), dtype=float), np.zeros(hp.nside2npix(self.nside), dtype=float)
 
     def get_gpmap(self, idx, spin, k=None, xfilt=None):
         """
@@ -588,27 +598,36 @@ class lib_filt2map_sepTP(lib_filt2map):
         assert spin in [1, 3]
         if xfilt is not None:
             assert isinstance(xfilt, dict) and 'e' in xfilt.keys() and 'b' in xfilt.keys() and 't' in xfilt.keys()
-        Glm = self.ivfs.get_sim_emliklm(idx)
-        Clm = self.ivfs.get_sim_bmliklm(idx)
-        if xfilt is not None:
+
+        need_p = (xfilt is None) or (np.any(xfilt['e']) or np.any(xfilt['b']))
+        Glm, Clm = self.ivfs.get_sim_emliklm(idx), self.ivfs.get_sim_bmliklm(idx) if need_p else (0., 0.)
+        if xfilt is not None and need_p:
             hp.almxfl(Glm, xfilt['e'], inplace=True)
             hp.almxfl(Clm, xfilt['b'], inplace=True)
         if k == 'p':
-            G_tlm = hp.almxfl(self.ivfs.get_sim_tlm(idx), self.clte)
-            if xfilt is not None:
+            need_t = (xfilt is None) or np.any(xfilt['t'])
+            G_tlm = hp.almxfl(self.ivfs.get_sim_tlm(idx), self.clte) if need_t else 0.
+            if xfilt is not None and need_t:
                 hp.almxfl(G_tlm, xfilt['t'], inplace=True)
-            Glm += G_tlm
+            Glm = Glm + G_tlm
             del G_tlm
-        assert Glm.size == Clm.size, (Clm.size, Clm.size)
-        lmax = hp.Alm.getlmax(Glm.size)
-        if spin == 1:
-            fl = np.arange(2, lmax + 3, dtype=float) * (np.arange(-1, lmax))
-        elif spin == 3:
-            fl = np.arange(-2, lmax - 1, dtype=float) * (np.arange(3, lmax + 4))
+        if np.any(Glm) or np.any(Clm):
+            lmax = hp.Alm.getlmax(Glm.size)
+            if spin == 1:
+                fl = np.arange(2, lmax + 3, dtype=float) * (np.arange(-1, lmax))
+            elif spin == 3:
+                fl = np.arange(-2, lmax - 1, dtype=float) * (np.arange(3, lmax + 4))
+            else:
+                assert 0
+            fl[:spin] *= 0.
+            fl = np.sqrt(fl)
+            hp.almxfl(Glm, fl, inplace=True)
+            if np.any(Clm):
+                hp.almxfl(Clm, fl, inplace=True)
+            if np.isscalar(Clm):
+                return hp.alm2map_spin([Glm, Glm * 0.], self.nside, spin, lmax)
+            else:
+                return hp.alm2map_spin([Glm, Glm], self.nside, spin, lmax)
         else:
-            assert 0
-        fl[:spin] *= 0.
-        fl = np.sqrt(fl)
-        hp.almxfl(Glm, fl, inplace=True)
-        hp.almxfl(Clm, fl, inplace=True)
-        return hp.alm2map_spin([Glm, Clm], self.nside, spin, lmax)
+            return np.zeros(hp.nside2npix(self.nside), dtype=float), np.zeros(hp.nside2npix(self.nside), dtype=float)
+
