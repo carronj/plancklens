@@ -184,25 +184,30 @@ class library_fullsky_sepTP(library_sepTP):
         sim_lib: simulation library instance to inverse-filter
         nside: healpix resolution of the simulation library
         cl_len : CMB spectra, used to compute the Wiener-filtered CMB from the inverse variance filtered maps.
-        transf : fiducial transfer function of the CMB maps.
+        transf : fiducial transfer function of the CMB maps. (if dict, then must have keys 't' 'e' and 'b' for individual transfer functions)
         ftl (1d-array): isotropic filtering array for temperature (filtered tlm's are ftl * tlm of the data)
         fel (1d-array): isotropic filtering array for E-pol. (filtered elm's are fel * elm of the data)
         fbl (1d-array): isotropic filtering array for B-po. (filtered blm's are fbl * blm of the data)
         cache: filtered alm's will be cached if set.
 
     """
-    def __init__(self, lib_dir, sim_lib, nside, transf, cl_len, ftl, fel, fbl, cache=False):
+    def __init__(self, lib_dir, sim_lib, nside, transf:np.ndarray or dict, cl_len, ftl, fel, fbl, cache=False):
+
+        transfd = transf if isinstance(transf, dict) else {'t': transf, 'e': transf, 'b': transf}
+        assert 't' in transfd.keys() and 'e' in transfd.keys() and 'b' in transfd.keys()
+
         self.sim_lib = sim_lib
         self.ftl = ftl
         self.fel = fel
         self.fbl = fbl
         self.lmax_fl = np.max([len(ftl), len(fel), len(fbl)]) - 1
-        self.transf = transf
         self.nside = nside
+        self.transf = transfd
+
         super(library_fullsky_sepTP, self).__init__(lib_dir, sim_lib, cl_len, cache=cache)
 
     def hashdict(self):
-        return {'sim_lib':self.sim_lib.hashdict(), 'transf': utils.clhash(self.transf),
+        return {'sim_lib':self.sim_lib.hashdict(), 'transf': utils.clhash(self.transf['t']),
                 'cl_len': {k: utils.clhash(self.cl[k]) for k in ['tt', 'ee', 'bb']},
                 'ftl': utils.clhash(self.ftl), 'fel': utils.clhash(self.fel), 'fbl': utils.clhash(self.fbl)}
 
@@ -211,7 +216,7 @@ class library_fullsky_sepTP(library_sepTP):
 
     def get_tal(self, a):
         assert (a.lower() in ['t', 'e', 'b'])
-        return utils.cli(self.transf)
+        return utils.cli(self.transf[a.lower()])
 
     def get_ftl(self):
         return np.copy(self.ftl)
@@ -225,13 +230,13 @@ class library_fullsky_sepTP(library_sepTP):
     def _apply_ivf_t(self, tmap, soltn=None):
         assert len(tmap) == hp.nside2npix(self.nside), (hp.npix2nside(tmap.size), self.nside)
         alm = hp.map2alm(tmap, lmax=self.lmax_fl, iter=0)
-        return hp.almxfl(alm, self.get_ftl() * utils.cli(self.transf[:len(self.ftl)]))
+        return hp.almxfl(alm, self.get_ftl() * utils.cli(self.transf['t'][:len(self.ftl)]))
 
     def _apply_ivf_p(self, pmap, soltn=None):
         assert len(pmap[0]) == hp.nside2npix(self.nside) and len(pmap[0]) == len(pmap[1])
         elm, blm = hp.map2alm_spin([m for m in pmap], 2, lmax=self.lmax_fl)
-        elm = hp.almxfl(elm, self.get_fel() * utils.cli(self.transf[:len(self.fel)]))
-        blm = hp.almxfl(blm, self.get_fbl() * utils.cli(self.transf[:len(self.fbl)]))
+        elm = hp.almxfl(elm, self.get_fel() * utils.cli(self.transf['e'][:len(self.fel)]))
+        blm = hp.almxfl(blm, self.get_fbl() * utils.cli(self.transf['b'][:len(self.fbl)]))
         return elm, blm
 
 
