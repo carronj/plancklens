@@ -293,7 +293,7 @@ class library_fullsky_alms_sepTP(library_sepTP):
 
     def _apply_ivf_p(self, eblm, soltn=None):
         elm = hp.almxfl(eblm[0], self.get_fel() * utils.cli(self.transf['e'][:len(self.fel)]))
-        blm = hp.almxfl(eblm[0], self.get_fbl() * utils.cli(self.transf['b'][:len(self.fbl)]))
+        blm = hp.almxfl(eblm[1], self.get_fbl() * utils.cli(self.transf['b'][:len(self.fbl)]))
         return elm, blm
 
 
