@@ -272,6 +272,9 @@ class library_fullsky_alms_sepTP(library_sepTP):
                 'cl_len': {k: utils.clhash(self.cl[k]) for k in ['tt', 'ee', 'bb']},
                 'ftl': utils.clhash(self.ftl), 'fel': utils.clhash(self.fel), 'fbl': utils.clhash(self.fbl)}
 
+    def get_fmask(self):
+        return np.array([1.]) # For compatibility purposes only...
+
     def get_tal(self, a):
         assert (a.lower() in ['t', 'e', 'b'])
         return utils.cli(self.transf[a.lower()])
