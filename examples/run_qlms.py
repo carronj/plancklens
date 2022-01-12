@@ -1,3 +1,22 @@
+"""This script may be used to
+
+    - inverse-variance filter the CMB maps
+    - build the QE estimates from them
+    - build the mean-field estimates
+    - build the QE spectra, MC-N0 and RD-N0 terms
+    - calculate the semi-analytical N0's
+    - calculate cross-spectra to FFP10 CMB lensing potential input maps
+
+    The script takes as input a parameter file looking like e.g. /params/smicadx12_planck2018.py
+
+    For example, to builds the polarization QE,
+
+        srun -n 30 python params/smicadx12_planck2018.py run_qlms.py  -imin 0 -imax 299 -k p_p -ivp -dd
+
+    uses 30 processes to calculate the polarization-only QE for the simulations 0 to 299
+
+"""
+
 import argparse
 import numpy as np
 import imp
