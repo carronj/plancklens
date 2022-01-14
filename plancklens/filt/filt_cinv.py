@@ -484,7 +484,7 @@ class library_cinv_sepTP(filt_simple.library_sepTP):
             sim_lib: simulation library instance (requires get_sim_tmap, get_sim_pmap methods)
             cinvt: temperature-only filtering library
             cinvp: poalrization-only filtering library
-            soltn_lib (optional): simulation libary providing starting guesses for the fitlering.
+            soltn_lib (optional): simulation libary providing starting guesses for the filtering.
 
     """
 
