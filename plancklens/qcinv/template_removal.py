@@ -137,13 +137,13 @@ class template_dipole(template):
         assert (len(coeffs) == self.nmodes)
 
         nside = hp.npix2nside(len(tmap))
-        tmap *= hp.alm2map(xyz_to_alm(coeffs), nside, verbose=False)
+        tmap *= hp.alm2map(xyz_to_alm(coeffs), nside)
 
     def accum(self, tmap, coeffs):
         assert (len(coeffs) == self.nmodes)
 
         nside = hp.npix2nside(len(tmap))
-        tmap += hp.alm2map(xyz_to_alm(coeffs), nside, verbose=False)
+        tmap += hp.alm2map(xyz_to_alm(coeffs), nside)
 
     def dot(self, tmap):
         npix = len(tmap)
