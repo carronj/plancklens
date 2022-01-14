@@ -227,6 +227,8 @@ class library_jTP(object):
 
             :math:`F_\ell \sim (C_\ell + N_\ell / b_\ell^2)^{-1}`
 
+            Output is dictionary with the usual 'tt', 'ee', 'te', 'bb', ... keys/
+
         """
         assert 0, 'override this'
 
