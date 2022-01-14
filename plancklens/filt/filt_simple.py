@@ -54,7 +54,9 @@ class library_sepTP(object):
         assert 0, 'override this'
 
     def get_ftl(self):
-        """Isotropic approximation to temperature inverse variance filtering  $$N_L$$.
+        """Isotropic approximation to temperature inverse variance filtering.
+
+            :math:`F^{T}_\ell = (C_\ell^{TT} + N^{T}_\ell / b_\ell^2)^{-1}`
 
         """
         assert 0, 'override this'
@@ -62,11 +64,16 @@ class library_sepTP(object):
     def get_fel(self):
         """Isotropic approximation to E-polarization inverse variance filtering.
 
+            :math:`F^{E}_\ell = (C_\ell^{EE} + N^{E}_\ell / b_\ell^2)^{-1}`
+
         """
         assert 0, 'override this'
 
     def get_fbl(self):
         """Isotropic approximation to B-polarization inverse variance filtering.
+
+            :math:`F^{B}_\ell = (C_\ell^{BB} + N^{B}_\ell / b_\ell^2)^{-1}`
+
 
         """
         assert 0, 'override this'
@@ -216,7 +223,7 @@ class library_jTP(object):
 
 
     def get_fal(self):
-        """Isotropic matrix approximation to temperature inverse variance filtering
+        """Isotropic matrix approximation to inverse variance filtering
 
             :math:`F_\ell \sim (C_\ell + N_\ell / b_\ell^2)^{-1}`
 
