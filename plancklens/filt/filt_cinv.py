@@ -17,75 +17,7 @@ from plancklens.qcinv import opfilt_pp, opfilt_tt, opfilt_tp
 from plancklens.qcinv import util, util_alm
 from plancklens.qcinv import multigrid, cd_solve
 
-class library_cinv_sepTP(filt_simple.library_sepTP):
-    """Library to perform inverse-variance filtering of a simulation library.
 
-        Suitable for separate temperature and polarization filtering.
-
-        Args:
-            lib_dir (str): a
-            sim_lib: simulation library instance (requires get_sim_tmap, get_sim_pmap methods)
-            cinv_t: temperature-only filtering library
-            cinv_p: poalrization-only filtering library
-            soltn_lib (optional): simulation libary providing starting guesses for the fitlering.
-
-    """
-
-    def __init__(self, lib_dir, sim_lib, cinv_t, cinv_p, cl_weights, soltn_lib=None):
-        self.cinv_t = cinv_t
-        self.cinv_p = cinv_p
-        super(library_cinv_sepTP, self).__init__(lib_dir, sim_lib, cl_weights, soltn_lib=soltn_lib)
-
-        if mpi.rank == 0:
-            fname_mask = os.path.join(self.lib_dir, "fmask.fits.gz")
-            if not os.path.exists(fname_mask):
-                fmask = self.cinv_t.get_fmask()
-                assert np.all(fmask == self.cinv_p.get_fmask())
-                hp.write_map(fname_mask, fmask)
-
-        mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
-
-    def hashdict(self):
-        return {'cinv_t': self.cinv_t.hashdict(),
-                'cinv_p': self.cinv_p.hashdict(),
-                'sim_lib': self.sim_lib.hashdict()}
-
-    def get_fmask(self):
-        return hp.read_map(os.path.join(self.lib_dir, "fmask.fits.gz"))
-
-    def get_tal(self, a, lmax=None):
-        assert (a.lower() in ['t', 'e', 'b']), a
-        if a.lower() == 't':
-            return self.cinv_t.get_tal(a, lmax=lmax)
-        else:
-            return self.cinv_p.get_tal(a, lmax=lmax)
-
-    def get_ftl(self, lmax=None):
-        return self.cinv_t.get_ftl(lmax=lmax)
-
-    def get_fel(self, lmax=None):
-        return self.cinv_p.get_fel(lmax=lmax)
-
-    def get_fbl(self, lmax=None):
-        return self.cinv_p.get_fbl(lmax=lmax)
-
-    def _apply_ivf_t(self, tmap, soltn=None):
-        return self.cinv_t.apply_ivf(tmap, soltn=soltn)
-
-    def _apply_ivf_p(self, pmap, soltn=None):
-        return self.cinv_p.apply_ivf(pmap, soltn=soltn)
-
-    def get_tmliklm(self, idx):
-        return  hp.almxfl(self.get_sim_tlm(idx), self.cinv_t.cl['tt'])
-
-    def get_emliklm(self, idx):
-        assert not hasattr(self.cinv_p.cl, 'eb')
-        return  hp.almxfl(self.get_sim_elm(idx), self.cinv_t.cl['ee'])
-
-    def get_bmliklm(self, idx):
-        assert not hasattr(self.cinv_p.cl, 'eb')
-        return  hp.almxfl(self.get_sim_blm(idx), self.cinv_t.cl['bb'])
 
 class cinv(object):
     def __init__(self, lib_dir, lmax):
@@ -540,6 +472,77 @@ class cinv_tp:
             else:
                 ret.append(ninv_comp)
         return [ret]
+
+
+class library_cinv_sepTP(filt_simple.library_sepTP):
+    """Library to perform inverse-variance filtering of a simulation library.
+
+        Suitable for separate temperature and polarization filtering.
+
+        Args:
+            lib_dir (str): a
+            sim_lib: simulation library instance (requires get_sim_tmap, get_sim_pmap methods)
+            cinvt: temperature-only filtering library
+            cinvp: poalrization-only filtering library
+            soltn_lib (optional): simulation libary providing starting guesses for the fitlering.
+
+    """
+
+    def __init__(self, lib_dir, sim_lib, cinvt:cinv_t, cinvp:cinv_p, cl_weights:dict, soltn_lib=None):
+        self.cinv_t = cinvt
+        self.cinv_p = cinvp
+        super(library_cinv_sepTP, self).__init__(lib_dir, sim_lib, cl_weights, soltn_lib=soltn_lib)
+
+        if mpi.rank == 0:
+            fname_mask = os.path.join(self.lib_dir, "fmask.fits.gz")
+            if not os.path.exists(fname_mask):
+                fmask = self.cinv_t.get_fmask()
+                assert np.all(fmask == self.cinv_p.get_fmask())
+                hp.write_map(fname_mask, fmask)
+
+        mpi.barrier()
+        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
+
+    def hashdict(self):
+        return {'cinv_t': self.cinv_t.hashdict(),
+                'cinv_p': self.cinv_p.hashdict(),
+                'sim_lib': self.sim_lib.hashdict()}
+
+    def get_fmask(self):
+        return hp.read_map(os.path.join(self.lib_dir, "fmask.fits.gz"))
+
+    def get_tal(self, a, lmax=None):
+        assert (a.lower() in ['t', 'e', 'b']), a
+        if a.lower() == 't':
+            return self.cinv_t.get_tal(a, lmax=lmax)
+        else:
+            return self.cinv_p.get_tal(a, lmax=lmax)
+
+    def get_ftl(self, lmax=None):
+        return self.cinv_t.get_ftl(lmax=lmax)
+
+    def get_fel(self, lmax=None):
+        return self.cinv_p.get_fel(lmax=lmax)
+
+    def get_fbl(self, lmax=None):
+        return self.cinv_p.get_fbl(lmax=lmax)
+
+    def _apply_ivf_t(self, tmap, soltn=None):
+        return self.cinv_t.apply_ivf(tmap, soltn=soltn)
+
+    def _apply_ivf_p(self, pmap, soltn=None):
+        return self.cinv_p.apply_ivf(pmap, soltn=soltn)
+
+    def get_tmliklm(self, idx):
+        return  hp.almxfl(self.get_sim_tlm(idx), self.cinv_t.cl['tt'])
+
+    def get_emliklm(self, idx):
+        assert not hasattr(self.cinv_p.cl, 'eb')
+        return  hp.almxfl(self.get_sim_elm(idx), self.cinv_t.cl['ee'])
+
+    def get_bmliklm(self, idx):
+        assert not hasattr(self.cinv_p.cl, 'eb')
+        return  hp.almxfl(self.get_sim_blm(idx), self.cinv_t.cl['bb'])
 
 class library_cinv_jTP(filt_simple.library_jTP):
     """Library to perform inverse-variance filtering of a simulation library.

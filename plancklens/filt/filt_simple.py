@@ -216,7 +216,9 @@ class library_jTP(object):
 
 
     def get_fal(self):
-        """Isotropic matrix approximation to temperature inverse variance filtering  $$N_L$$.
+        """Isotropic matrix approximation to temperature inverse variance filtering
+
+            :math:`F_\ell \sim (C_\ell + N_\ell / b_\ell^2)^{-1}`
 
         """
         assert 0, 'override this'
