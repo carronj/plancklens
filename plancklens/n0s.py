@@ -44,15 +44,15 @@ from plancklens import utils, qresp, nhl
 from copy import deepcopy
 
 
-def get_N0(beam_fwhm=1.4, nlev_t=5., nlev_p=None, lmax_CMB: dict or int =3000,  lmin_CMB=100, lmax_out=None,
+def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p=None, lmax_CMB: dict or int =3000,  lmin_CMB=100, lmax_out=None,
            cls_len:dict or None =None, cls_weight:dict or None=None,
            joint_TP=True, ksource='p'):
     r"""Example function to calculates reconstruction noise levels for a bunch of quadratic estimators
 
         Args:
             beam_fwhm: beam fwhm in arcmin
-            nlev_t: T white noise level in uK-arcmin
-            nlev_p: P white noise level in uK-arcmin (defaults to root(2) nlevt)
+            nlev_t: T white noise level in uK-arcmin (an array of size lmax_CMB can be passed for scale-dependent noise level)
+            nlev_p: P white noise level in uK-arcmin (defaults to root(2) nlevt) (can also be an array)
             lmax_CMB: max. CMB multipole used in the QE (use a dict with 't' 'e' 'b' keys instead of int to set different CMB lmaxes)
             lmin_CMB: min. CMB multipole used in the QE
             lmax_out: max lensing 'L' multipole calculated
@@ -170,7 +170,7 @@ def dls2cls(dls):
     return cls
 
 
-def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl_fid:dict, lmin_cmb, lmax_cmb, itermax, cls_unl_dat=None,
+def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarray, beam_fwhm:float, cls_unl_fid:dict, lmin_cmb, lmax_cmb, itermax, cls_unl_dat=None,
                 lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None):
     r"""Iterative lensing-N0 estimate
 
@@ -181,8 +181,8 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
 
         Args:
             qe_key: QE estimator key
-            nlev_t: temperature noise level (in :math:`\mu `K-arcmin)
-            nlev_p: polarisation noise level (in :math:`\mu `K-arcmin)
+            nlev_t: temperature noise level (in :math:`\mu `K-arcmin) (an array can be passed for scale-dependent noise level)
+            nlev_p: polarisation noise level (in :math:`\mu `K-arcmin)(an array can be passed for scale-dependent noise level)
             beam_fwhm: Gaussian beam full width half maximum in arcmin
             cls_unl_fid(dict): unlensed CMB power spectra
             lmin_cmb: minimal CMB multipole used in the QE

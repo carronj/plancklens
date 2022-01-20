@@ -273,7 +273,7 @@ class alm_filter_ninv:
         hp.almxfl(alm.elm, self.b_transf_e, inplace=True)
         hp.almxfl(alm.blm, self.b_transf_b, inplace=True)
 
-        tmap, qmap, umap = hp.alm2map((alm.tlm, alm.elm, alm.blm), self.nside, verbose=False, pol=True)
+        tmap, qmap, umap = hp.alm2map((alm.tlm, alm.elm, alm.blm), self.nside, pol=True)
         # qmap, umap = hp.alm2map_spin((alm.elm, alm.blm), self.nside, 2)
 
         self.apply_map([tmap, qmap, umap])

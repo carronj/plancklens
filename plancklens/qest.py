@@ -505,12 +505,12 @@ class lib_filt2map(object):
         reslm = self.ivfs.get_sim_tlm(idx)
         if xfilt is not None:
             reslm = hp.almxfl(reslm, xfilt['t'], inplace=True)
-        return hp.alm2map(reslm, self.nside, lmax=hp.Alm.getlmax(reslm.size), verbose=False)
+        return hp.alm2map(reslm, self.nside, lmax=hp.Alm.getlmax(reslm.size))
 
     def get_wirestmap(self, idx, wl):
         """ weighted res map w_l res_l"""
         reslm = self.ivfs.get_sim_tlm(idx)
-        return hp.alm2map(hp.almxfl(reslm,wl), self.nside, lmax=hp.Alm.getlmax(reslm.size), verbose=False)
+        return hp.alm2map(hp.almxfl(reslm,wl), self.nside, lmax=hp.Alm.getlmax(reslm.size))
 
     def get_irespmap(self, idx, xfilt=None):
         reselm = self.ivfs.get_sim_elm(idx)
@@ -600,7 +600,7 @@ class lib_filt2map_sepTP(lib_filt2map):
             assert isinstance(xfilt, dict) and 'e' in xfilt.keys() and 'b' in xfilt.keys() and 't' in xfilt.keys()
 
         need_p = (xfilt is None) or (np.any(xfilt['e']) or np.any(xfilt['b']))
-        Glm, Clm = self.ivfs.get_sim_emliklm(idx), self.ivfs.get_sim_bmliklm(idx) if need_p else (0., 0.)
+        Glm, Clm = (self.ivfs.get_sim_emliklm(idx), self.ivfs.get_sim_bmliklm(idx)) if need_p else (0., 0.)
         if xfilt is not None and need_p:
             hp.almxfl(Glm, xfilt['e'], inplace=True)
             hp.almxfl(Clm, xfilt['b'], inplace=True)
@@ -627,7 +627,7 @@ class lib_filt2map_sepTP(lib_filt2map):
             if np.isscalar(Clm):
                 return hp.alm2map_spin([Glm, Glm * 0.], self.nside, spin, lmax)
             else:
-                return hp.alm2map_spin([Glm, Glm], self.nside, spin, lmax)
+                return hp.alm2map_spin([Glm, Clm], self.nside, spin, lmax)
         else:
             return np.zeros(hp.nside2npix(self.nside), dtype=float), np.zeros(hp.nside2npix(self.nside), dtype=float)
 
