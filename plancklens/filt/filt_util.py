@@ -204,5 +204,3 @@ class library_shuffle:
 
     def get_sim_bmliklm(self, idx):
         return self.ivfs.get_sim_bmliklm(self.idxs[idx])
-
-

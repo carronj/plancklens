@@ -315,7 +315,7 @@ class library:
         assert k == 'p'
         GP, CP = self._get_sim_Pgclm(idx, 'p', swapped=swapped)
         GT, CT = self._get_sim_Tgclm(idx, 'p', swapped=swapped)
-        return GP + GT, CP + GT
+        return GP + GT, CP + CT
 
     def _build_sim_Tgclm(self, idx):
         """ T only lensing potentials estimators """
@@ -505,12 +505,12 @@ class lib_filt2map(object):
         reslm = self.ivfs.get_sim_tlm(idx)
         if xfilt is not None:
             reslm = hp.almxfl(reslm, xfilt['t'], inplace=True)
-        return hp.alm2map(reslm, self.nside, lmax=hp.Alm.getlmax(reslm.size), verbose=False)
+        return hp.alm2map(reslm, self.nside, lmax=hp.Alm.getlmax(reslm.size))
 
     def get_wirestmap(self, idx, wl):
         """ weighted res map w_l res_l"""
         reslm = self.ivfs.get_sim_tlm(idx)
-        return hp.alm2map(hp.almxfl(reslm,wl), self.nside, lmax=hp.Alm.getlmax(reslm.size), verbose=False)
+        return hp.alm2map(hp.almxfl(reslm,wl), self.nside, lmax=hp.Alm.getlmax(reslm.size))
 
     def get_irespmap(self, idx, xfilt=None):
         reselm = self.ivfs.get_sim_elm(idx)

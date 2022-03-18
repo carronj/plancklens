@@ -94,7 +94,7 @@ class library_sepTP(object):
         tfname = os.path.join(self.lib_dir, 'sim_%04d_tlm.fits'%idx if idx >= 0 else 'dat_tlm.fits')
         if not os.path.exists(tfname):
             tlm = self._apply_ivf_t(self.sim_lib.get_sim_tmap(idx), soltn=None if self.soltn_lib is None else self.soltn_lib.get_sim_tmliklm(idx))
-            if self.cache: hp.write_alm(tfname, tlm)
+            if self.cache: hp.write_alm(tfname, tlm, overwrite=True)
             return tlm
         return hp.read_alm(tfname)
 
@@ -116,8 +116,8 @@ class library_sepTP(object):
                 soltn = np.array([self.soltn_lib.get_sim_emliklm(idx), self.soltn_lib.get_sim_bmliklm(idx)])
             elm, blm = self._apply_ivf_p(self.sim_lib.get_sim_pmap(idx), soltn=soltn)
             if self.cache:
-                hp.write_alm(tfname, elm)
-                hp.write_alm(os.path.join(self.lib_dir, 'sim_%04d_blm.fits'%idx if idx >= 0 else 'dat_blm.fits'), blm)
+                hp.write_alm(tfname, elm, overwrite=True)
+                hp.write_alm(os.path.join(self.lib_dir, 'sim_%04d_blm.fits'%idx if idx >= 0 else 'dat_blm.fits'), blm, overwrite=True)
             return elm
         else:
             return hp.read_alm(tfname)
@@ -140,8 +140,8 @@ class library_sepTP(object):
                 soltn = np.array([self.soltn_lib.get_sim_emliklm(idx), self.soltn_lib.get_sim_bmliklm(idx)])
             elm, blm = self._apply_ivf_p(self.sim_lib.get_sim_pmap(idx), soltn=soltn)
             if self.cache:
-                hp.write_alm(tfname, blm)
-                hp.write_alm(os.path.join(self.lib_dir, 'sim_%04d_elm.fits'%idx if idx >= 0 else 'dat_elm.fits'), elm)
+                hp.write_alm(tfname, blm, overwrite=True)
+                hp.write_alm(os.path.join(self.lib_dir, 'sim_%04d_elm.fits'%idx if idx >= 0 else 'dat_elm.fits'), elm, overwrite=True)
             return blm
         else:
             return hp.read_alm(tfname)
