@@ -73,4 +73,10 @@ Typical keys include then:
     <img src="https://erc.europa.eu/sites/default/files/LOGO-ERC_negatif.png#gh-dark-mode-only" width="300" height="300" />
   </a>
   
-![SNSF logo](./docs/SNF_logo_standard_web_color_neg_e.svg)
+   <a href="./docs/SNF_logo_lighttheme_web_color_neg_e.png#gh-light-mode-only">
+    <img src="./docs/SNF_logo_lighttheme_web_color_neg_e.png#gh-light-mode-only" width="300" height="300" />
+  </a>
+
+  <a href="./docs/SNF_logo_standard_web_color_neg_e.svg#gh-dark-mode-only">
+    <img src="./docs/SNF_logo_standard_web_color_neg_e.svg#gh-dark-mode-only" width="300" height="300" />
+  </a>
