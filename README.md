@@ -74,9 +74,9 @@ Typical keys include then:
   </a>
   
    <a href="./docs/SNF_logo_lighttheme_web_color_neg_e.png#gh-light-mode-only">
-    <img src="./docs/SNF_logo_lighttheme_web_color_neg_e.png#gh-light-mode-only" width="400" height="150" />
+    <img src="./docs/SNF_logo_lighttheme_web_color_neg_e.png#gh-light-mode-only" width="500" height="150" />
   </a>
 
   <a href="./docs/SNF_logo_standard_web_color_neg_e.svg#gh-dark-mode-only">
-    <img src="./docs/SNF_logo_standard_web_color_neg_e.svg#gh-dark-mode-only" width="400" height="150" />
+    <img src="./docs/SNF_logo_standard_web_color_neg_e.svg#gh-dark-mode-only" width="500" height="150" />
   </a>
