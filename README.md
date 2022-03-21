@@ -65,5 +65,12 @@ Typical keys include then:
 
 * Jan 14 2021: important bug fix in fortran N1 file affecting EB TB and TE. The n1 module must be rebuilt.
 
-![ERC logo](https://erc.europa.eu/sites/default/files/content/erc_banner-vertical.jpg)
+  <a href="https://erc.europa.eu/sites/default/files/content/erc_banner-vertical.jpg#gh-light-mode-only">
+    <img src="https://erc.europa.eu/sites/default/files/content/erc_banner-vertical.jpg#gh-light-mode-only" width="300" height="300" />
+  </a>
+
+  <a href="https://erc.europa.eu/sites/default/files/LOGO-ERC_negatif.png#gh-dark-mode-only">
+    <img src="https://erc.europa.eu/sites/default/files/LOGO-ERC_negatif.png#gh-dark-mode-only" width="300" height="300" />
+  </a>
+  
 ![SNSF logo](./docs/SNF_logo_standard_web_color_neg_e.svg)
