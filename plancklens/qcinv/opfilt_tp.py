@@ -142,7 +142,7 @@ class alm_filter_sinv:
         self.slinv = slinv
 
         self.te_only = True
-        if np.any(slmat[:, 0, 1]) or np.any(slmat[:, 0, 2]) or np.any(slmat[:, 1, 2]):
+        if np.any(slmat[:, 0, 2]) or np.any(slmat[:, 1, 2]):
             self.te_only = False
 
     def calc(self, alm):
