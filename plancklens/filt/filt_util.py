@@ -6,6 +6,7 @@ This module collects some convenience wrapper libraries.
 import healpy as hp
 from plancklens import utils
 import numpy as np
+from lenscarf.utils_hp import alm_copy
 
 class library_ftl:
     """ Library of a-posteriori re-scaled filtered CMB maps, for separate temperature and polarization filtering
@@ -28,6 +29,7 @@ class library_ftl:
         assert len(lfilt_t) > lmax and len(lfilt_e) > lmax and len(lfilt_b) > lmax
         self.ivfs = ivfs
         self.lmax = lmax
+        self.mmax = lmax
         self.lfilt_t = lfilt_t
         self.lfilt_e = lfilt_e
         self.lfilt_b = lfilt_b
@@ -55,22 +57,22 @@ class library_ftl:
         return self.ivfs.get_fbl()[:self.lmax + 1] * self.lfilt_b[:self.lmax + 1]
 
     def get_sim_tlm(self, idx):
-        return hp.almxfl(utils.alm_copy(self.ivfs.get_sim_tlm(idx), lmax=self.lmax), self.lfilt_t)
+        return hp.almxfl(alm_copy(self.ivfs.get_sim_tlm(idx), None, self.lmax, self.mmax), self.lfilt_t)
 
     def get_sim_elm(self, idx):
-        return hp.almxfl(utils.alm_copy(self.ivfs.get_sim_elm(idx), lmax=self.lmax), self.lfilt_e)
+        return hp.almxfl(alm_copy(self.ivfs.get_sim_elm(idx), None, self.lmax, self.mmax), self.lfilt_e)
 
     def get_sim_blm(self, idx):
-        return hp.almxfl(utils.alm_copy(self.ivfs.get_sim_blm(idx), lmax=self.lmax), self.lfilt_b)
+        return hp.almxfl(alm_copy(self.ivfs.get_sim_blm(idx), None, self.lmax, self.mmax), self.lfilt_b)
 
     def get_sim_tmliklm(self, idx):
-        return hp.almxfl(utils.alm_copy(self.ivfs.get_sim_tmliklm(idx), lmax=self.lmax), self.lfilt_t)
+        return hp.almxfl(alm_copy(self.ivfs.get_sim_tmliklm(idx), None, self.lmax, self.mmax), self.lfilt_t)
 
     def get_sim_emliklm(self, idx):
-        return hp.almxfl(utils.alm_copy(self.ivfs.get_sim_emliklm(idx), lmax=self.lmax), self.lfilt_e)
+        return hp.almxfl(alm_copy(self.ivfs.get_sim_emliklm(idx), None, self.lmax, self.mmax), self.lfilt_e)
 
     def get_sim_bmliklm(self, idx):
-        return hp.almxfl(utils.alm_copy(self.ivfs.get_sim_bmliklm(idx), lmax=self.lmax), self.lfilt_b)
+        return hp.almxfl(alm_copy(self.ivfs.get_sim_bmliklm(idx), None, self.lmax, self.mmax), self.lfilt_b)
 
 
 class library_fml:
