@@ -315,7 +315,7 @@ class library:
         assert k == 'p'
         GP, CP = self._get_sim_Pgclm(idx, 'p', swapped=swapped)
         GT, CT = self._get_sim_Tgclm(idx, 'p', swapped=swapped)
-        return GP + GT, CP + GT
+        return GP + GT, CP + CT
 
     def _build_sim_Tgclm(self, idx):
         """ T only lensing potentials estimators """

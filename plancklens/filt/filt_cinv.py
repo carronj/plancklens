@@ -53,7 +53,6 @@ class cinv(object):
         return ret[:lmax + 1]
 
 
-
 class cinv_t(cinv):
     r"""Temperature-only inverse-variance (or Wiener-)filtering instance.
 
@@ -64,9 +63,15 @@ class cinv_t(cinv):
             cl: fiducial CMB spectra used to filter the data (dict with 'tt' key)
             transf: CMB maps transfer function (array)
             ninv: inverse pixel variance map. Must be a list of paths or of healpy maps with consistent nside.
+            rescal_cl: isotropic rescaling of the map prior the cg inversion. This just makes the convergence criterium change a bit
+
+        Note:
+
+            The only difference of the original plancklens filter is the rescaling of the maps. In effect, the modes of :math'`D_\ell` rather than :math'`C_\ell` are reconstructed
+            This changes nothing to the iterations, but gives the dot product testing for convergence more sensitvity to relevant scales
 
     """
-    def __init__(self, lib_dir, lmax, nside, cl, transf, ninv,
+    def __init__(self, lib_dir, lmax, nside, cl, transf, ninv, rescal_cl='default',
                  marge_monopole=True, marge_dipole=True, marge_maps=(), pcf='default', chain_descr=None):
 
         assert lib_dir is not None and lmax >= 1024 and nside >= 512, (lib_dir, lmax, nside)
@@ -74,13 +79,26 @@ class cinv_t(cinv):
         super(cinv_t, self).__init__(lib_dir, lmax)
 
 
+        if rescal_cl in ['default', None]:
+            rescal_cl = np.sqrt(np.arange(lmax + 1, dtype=float) * np.arange(1, lmax + 2, dtype=float) / 2. / np.pi)
+        dl = {k: rescal_cl ** 2 * cl[k][:lmax + 1] for k in cl.keys()}  # rescaled cls (Dls by default)
+        transf_dl = transf[:lmax + 1] * utils.cli(rescal_cl)
+
         self.nside = nside
+
         self.cl = cl
-        self.transf = transf
+        self.dl = dl
+
+        self.transf = transf[:lmax + 1]
+        self.rescaled_transf =transf_dl
+        self.rescal_cl = rescal_cl
+
         self.ninv = ninv
         self.marge_monopole = marge_monopole
         self.marge_dipole = marge_dipole
         self.marge_maps = marge_maps
+
+
 
         pcf = os.path.join(lib_dir, "dense.pk") if pcf == 'default' else '' # Dense matrices will be cached there.
         if chain_descr is None : chain_descr = \
@@ -89,9 +107,9 @@ class cinv_t(cinv):
              [1, ["split(stage(2),  512, diag_cl)"], 1024, 512, 3, 0.0, cd_solve.tr_cg, cd_solve.cache_mem()],
              [0, ["split(stage(1), 1024, diag_cl)"], lmax, nside, np.inf, 1.0e-5, cd_solve.tr_cg, cd_solve.cache_mem()]]
 
-        n_inv_filt = util.jit(opfilt_tt.alm_filter_ninv, ninv, transf[0:lmax + 1],
+        n_inv_filt = util.jit(opfilt_tt.alm_filter_ninv, ninv, transf_dl,
                         marge_monopole=marge_monopole, marge_dipole=marge_dipole, marge_maps=marge_maps)
-        self.chain = util.jit(multigrid.multigrid_chain, opfilt_tt, chain_descr, cl, n_inv_filt)
+        self.chain = util.jit(multigrid.multigrid_chain, opfilt_tt, chain_descr, dl, n_inv_filt)
         if mpi.rank == 0:
             if not os.path.exists(lib_dir):
                 os.makedirs(lib_dir)
@@ -126,13 +144,13 @@ class cinv_t(cinv):
         NlevT_uKamin = np.sqrt(4. * np.pi / npix / np.sum(ninv) * len(np.where(ninv != 0.0)[0])) * 180. * 60. / np.pi
         print("cinv_t::noiseT_uk_arcmin = %.3f"%NlevT_uKamin)
 
-        s_cls = self.chain.s_cls
-        b_transf = self.chain.n_inv_filt.b_transf
+        s_cls = self.cl
+        b_transf = self.transf
 
         if s_cls['tt'][0] == 0.: assert self.chain.n_inv_filt.marge_monopole
         if s_cls['tt'][1] == 0.: assert self.chain.n_inv_filt.marge_dipole
 
-        ftl = utils.cli(s_cls['tt'][0:self.lmax + 1] + (NlevT_uKamin * np.pi / 180. / 60.) ** 2 * utils.cli(b_transf[0:self.lmax + 1] ** 2))
+        ftl = utils.cli(s_cls['tt'][0:self.lmax + 1] + (NlevT_uKamin * np.pi / 180. / 60.) ** 2 / b_transf[0:self.lmax + 1] ** 2)
         if self.chain.n_inv_filt.marge_monopole: ftl[0] = 0.0
         if self.chain.n_inv_filt.marge_dipole: ftl[1] = 0.0
 
@@ -149,6 +167,7 @@ class cinv_t(cinv):
     def hashdict(self):
         return {'lmax': self.lmax,
                 'nside': self.nside,
+                'rescal_cl':utils.clhash(self.rescal_cl),
                 'cltt': utils.clhash(self.cl['tt'][:self.lmax + 1]),
                 'transf': utils.clhash(self.transf[:self.lmax + 1]),
                 'ninv': self._ninv_hash(),
@@ -162,6 +181,7 @@ class cinv_t(cinv):
         else:
             talm = soltn.copy()
         self.chain.solve(talm, tmap)
+        hp.almxfl(talm, self.rescal_cl, inplace=True)
         return talm
 
 
