@@ -111,8 +111,11 @@ class library(object):
             recache=False
         if calc and (self.npdb.get(fname) is None or recache):
             qlmA = self.qeA.get_sim_qlm(k1, idx, lmax=lmax_qcl)
+            if (k1 == k2) and (self.qeA is self.qeB):
+                qlmB = np.copy(qlmA)
+            else:
+                qlmB = self.qeB.get_sim_qlm(k2, idx, lmax=lmax_qcl)
             qlmA -= self.qeA.get_sim_qlm_mf(k1, self.mc_sims_mf[0::2], lmax=lmax_qcl)
-            qlmB = self.qeB.get_sim_qlm(k2, idx, lmax=lmax_qcl)
             qlmB -= self.qeB.get_sim_qlm_mf(k2, self.mc_sims_mf[1::2], lmax=lmax_qcl)
             if recache and self.npdb.get(fname) is not None:
                 self.npdb.remove(fname)
