@@ -79,6 +79,9 @@ class smica_dx12_SZdeproj:
         self.noise = '/project/projectdirs/planck/data/compsep/comparison/dx12_v3/nosz/mc_noise/dx12_v3_smica_nosz_noise_mc_%05d_005a_2048.fits'
         self.data  = '/project/projectdirs/planck/data/compsep/comparison/dx12_v3/nosz/dx12_v3_smica_nosz_cmb_005a_2048.fits'
 
+    def hashdict(self):
+        return {'cmbs':self.cmbs, 'noise':self.noise, 'data':self.data}
+
     def get_sim_tmap(self, idx):
         r"""Returns dx12 tSZ-deproj SMICA temperature map for a simulation
 
