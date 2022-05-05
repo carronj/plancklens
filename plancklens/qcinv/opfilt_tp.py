@@ -142,7 +142,7 @@ class alm_filter_sinv:
         self.slinv = slinv
 
         self.te_only = True
-        if np.any(slmat[:, 0, 1]) or np.any(slmat[:, 0, 2]) or np.any(slmat[:, 1, 2]):
+        if np.any(slmat[:, 0, 2]) or np.any(slmat[:, 1, 2]):
             self.te_only = False
 
     def calc(self, alm):
@@ -273,7 +273,7 @@ class alm_filter_ninv:
         hp.almxfl(alm.elm, self.b_transf_e, inplace=True)
         hp.almxfl(alm.blm, self.b_transf_b, inplace=True)
 
-        tmap, qmap, umap = hp.alm2map((alm.tlm, alm.elm, alm.blm), self.nside, verbose=False, pol=True)
+        tmap, qmap, umap = hp.alm2map((alm.tlm, alm.elm, alm.blm), self.nside, pol=True)
         # qmap, umap = hp.alm2map_spin((alm.elm, alm.blm), self.nside, 2)
 
         self.apply_map([tmap, qmap, umap])

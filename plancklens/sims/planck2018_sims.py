@@ -13,7 +13,7 @@ import numpy as np
 from plancklens import utils
 
 class smica_dx12:
-    r""" SMICA 2018 release simulation and data library at NERSC.
+    r""" SMICA 2018 release simulation and data library at NERSC in uK.
 
         Note:
             This now converts all maps to double precision
@@ -62,6 +62,55 @@ class smica_dx12:
 
     def get_dat_pmap(self):
         return 1e6 * hp.read_map(self.data, field=1, dtype=np.float64), 1e6 * hp.read_map(self.data, field=2, dtype=np.float64)
+
+
+class smica_dx12_SZdeproj:
+    r"""tSZ-deprojected SMICA 2018 release simulation and data library at NERSC in uK
+
+        Note:
+
+            This now converts all maps to double precision
+            (healpy 1.15 changed read_map default type behavior, breaking in a way that is not very clear as yet the behavior of the conjugate gradient inversion chain)
+
+
+    """
+    def __init__(self):
+        self.cmbs  = '/project/projectdirs/planck/data/compsep/comparison/dx12_v3/nosz/mc_cmb/dx12_v3_smica_nosz_cmb_mc_%05d_005a_2048.fits'
+        self.noise = '/project/projectdirs/planck/data/compsep/comparison/dx12_v3/nosz/mc_noise/dx12_v3_smica_nosz_noise_mc_%05d_005a_2048.fits'
+        self.data  = '/project/projectdirs/planck/data/compsep/comparison/dx12_v3/nosz/dx12_v3_smica_nosz_cmb_005a_2048.fits'
+
+    def hashdict(self):
+        return {'cmbs':self.cmbs, 'noise':self.noise, 'data':self.data}
+
+    def get_sim_tmap(self, idx):
+        r"""Returns dx12 tSZ-deproj SMICA temperature map for a simulation
+
+            Args:
+                idx: simulation index
+
+            Returns:
+                SMICA simulation *idx*, including noise. Returns dx12 SMICA data map for *idx* =-1
+
+        """
+        if idx == -1:
+            return self.get_dat_tmap()
+        return 1e6 * (hp.read_map(self.cmbs % idx, field=0, dtype=np.float64) + hp.read_map(self.noise % idx, field=0, dtype=np.float64))
+
+    def get_dat_tmap(self):
+        r"""Returns dx12 tSZ-deproj SMICA Planck data temperature map
+
+        """
+        return 1e6 * hp.read_map(self.data, field=0, dtype=np.float64)
+
+    @staticmethod
+    def get_sim_pmap(idx):
+        return smica_dx12().get_sim_pmap(idx)
+
+    @staticmethod
+    def get_dat_pmap():
+        return smica_dx12().get_dat_pmap()
+
+
 
 class ffp10cmb_widnoise:
     r"""Simulation library with freq-0 FFP10 lensed CMB together with idealized, homogeneous noise.

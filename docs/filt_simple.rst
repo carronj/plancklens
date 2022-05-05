@@ -3,7 +3,7 @@ plancklens.filt.filt_simple
 ===========================
 
 .. automodule:: filt_simple
-    :members: library_sepTP
+    :members: library_sepTP, library_jTP
 
 .. autoclass:: library_fullsky_sepTP
 

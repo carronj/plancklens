@@ -14,15 +14,21 @@ class cmb_maps(object):
 
         Args:
             sims_cmb_len: lensed CMB library (e.g. *plancklens.sims.planck2018_sims.cmb_len_ffp10*)
-            cl_transf: CMB transfer function, identical in temperature and polarization
+            cl_transf: CMB temperature transfer function
             nside: healpy resolution of the maps. Defaults to 2048.
             lib_dir(optional): hash checks will be cached, as well as possibly other things for subclasses.
+            cl_transf_P: CMB pol transfer function (if different from cl_transf)
 
     """
-    def __init__(self, sims_cmb_len, cl_transf, nside=2048, lib_dir=None):
+    def __init__(self, sims_cmb_len, cl_transf, nside=2048, cl_transf_P=None, lib_dir=None):
+        if cl_transf_P is None:
+            cl_transf_P = np.copy(cl_transf)
+
         self.sims_cmb_len = sims_cmb_len
-        self.cl_transf = cl_transf
+        self.cl_transf_T = cl_transf
+        self.cl_transf_P = cl_transf_P
         self.nside = nside
+
         if lib_dir is not None:
             fn_hash = os.path.join(lib_dir, 'sim_hash.pk')
             if mpi.rank == 0 and not os.path.exists(fn_hash):
@@ -31,7 +37,10 @@ class cmb_maps(object):
             hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')))
 
     def hashdict(self):
-        return {'sims_cmb_len':self.sims_cmb_len.hashdict(),'nside':self.nside,'cl_transf':clhash(self.cl_transf)}
+        ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(),'nside':self.nside,'cl_transf':clhash(self.cl_transf_T)}
+        if not (np.all(self.cl_transf_P == self.cl_transf_T)):
+            ret['cl_transf_P'] = clhash(self.cl_transf_P)
+        return ret
 
     def get_sim_tmap(self,idx):
         """Returns temperature healpy map for a simulation
@@ -44,7 +53,7 @@ class cmb_maps(object):
 
         """
         tmap = self.sims_cmb_len.get_sim_tlm(idx)
-        hp.almxfl(tmap,self.cl_transf,inplace=True)
+        hp.almxfl(tmap,self.cl_transf_T,inplace=True)
         tmap = hp.alm2map(tmap,self.nside)
         return tmap + self.get_sim_tnoise(idx)
 
@@ -59,9 +68,9 @@ class cmb_maps(object):
 
         """
         elm = self.sims_cmb_len.get_sim_elm(idx)
-        hp.almxfl(elm,self.cl_transf,inplace=True)
+        hp.almxfl(elm,self.cl_transf_P,inplace=True)
         blm = self.sims_cmb_len.get_sim_blm(idx)
-        hp.almxfl(blm, self.cl_transf, inplace=True)
+        hp.almxfl(blm, self.cl_transf_P, inplace=True)
         Q,U = hp.alm2map_spin([elm,blm], self.nside, 2,hp.Alm.getlmax(elm.size))
         del elm,blm
         return Q + self.get_sim_qnoise(idx),U + self.get_sim_unoise(idx)
@@ -76,8 +85,8 @@ class cmb_maps(object):
         assert 0, 'subclass this'
 
 class cmb_maps_noisefree(cmb_maps):
-    def __init__(self,sims_cmb_len,cl_transf,nside=2048):
-        super(cmb_maps_noisefree, self).__init__(sims_cmb_len, cl_transf, nside=nside)
+    def __init__(self,sims_cmb_len,cl_transf,nside=2048, cl_transf_P=None):
+        super(cmb_maps_noisefree, self).__init__(sims_cmb_len, cl_transf, nside=nside, cl_transf_P=cl_transf_P)
 
     def get_sim_tnoise(self,idx):
         return np.zeros(hp.nside2npix(self.nside))
@@ -116,9 +125,12 @@ class cmb_maps_nlev(cmb_maps):
 
 
     def hashdict(self):
-        return {'sims_cmb_len':self.sims_cmb_len.hashdict(),
-                'nside':self.nside,'cl_transf':clhash(self.cl_transf),
+        ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(),
+                'nside':self.nside,'cl_transf':clhash(self.cl_transf_T),
                 'nlev_t':self.nlev_t,'nlev_p':self.nlev_p, 'pixphas':self.pix_lib_phas.hashdict()}
+        if not (np.all(self.cl_transf_P == self.cl_transf_T)):
+            ret['cl_transf_P'] = clhash(self.cl_transf_P)
+        return ret
 
     def get_sim_tnoise(self,idx):
         """Returns noise temperature map for a simulation
