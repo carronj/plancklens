@@ -214,7 +214,7 @@ def dls2cls(dls):
 
 
 def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl_fid:dict, lmin_ivf, lmax_ivf, itermax, cls_unl_dat=None,
-                lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None, unlQE=False, version='1'):
+                lmax_qlm=None, ret_delcls=False, ret_resp=False, datnoise_cls:dict or None=None, unlQE=False, version='1'):
     """Iterative lensing-N0 estimate
 
         Calculates iteratively partially lensed spectra and lensing noise levels.
@@ -233,6 +233,7 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
             itermax: number of iterations to perform
             lmax_qlm(optional): maximum lensing multipole to consider. Defaults to :math:`2 lmax_ivf`
             ret_delcls(optional): returns the partially delensed CMB cls as well if set
+            ret_resp(optional): returns the iterative response
             datnoise_cls(optional): feeds in custom noise spectra to the data. The nlevs and beam only apply to the filtering in this case
 
         Returns
@@ -322,7 +323,7 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
         dat_delcls = {}
         if qe_key in ['ptt', 'p']:
             fal['tt'] = cls_filt['tt'][:lmax_ivf + 1] + (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
-            dat_delcls['tt'] = cls_plen_true['tt'][:lmax_ivf + 1] + datnoise_cls['ee']
+            dat_delcls['tt'] = cls_plen_true['tt'][:lmax_ivf + 1] + datnoise_cls['tt']
         if qe_key in ['p_p', 'p']:
             fal['ee'] = cls_filt['ee'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
             fal['bb'] = cls_filt['bb'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
@@ -374,5 +375,9 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
 
         N1s_biased.append(N1_biased)
         N1s_unbiased.append(N1_unbiased)
-
-    return (np.array(N0s_biased), np.array(N0s_unbiased)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), delcls_fid, delcls_true))
+    ret = (np.array(N0s_biased), np.array(N0s_unbiased))
+    if ret_delcls:
+        ret += (delcls_fid, delcls_true)
+    if ret_resp:
+        ret += (r_gg_fid, r_gg_true)
+    return ret
