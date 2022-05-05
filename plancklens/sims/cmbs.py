@@ -227,3 +227,51 @@ class sims_cmb_len:
         if not os.path.exists(fname):
             self._cache_eblm(idx)
         return hp.read_alm(fname)
+
+
+
+class sims_cmb_unl_fixed_phi(sims_cmb_unl):
+    """Simumaltion library for unlensed CMB with fixed lensing potential field.
+    
+    By default the lensing potential field is the one from the simulation index 0.
+    """
+
+    def __init__(self, cls_unl, lib_pha, plm=None):
+        super(sims_cmb_unl_fixed_phi, self).__init__(cls_unl, lib_pha) 
+        
+        if plm is None: 
+            self.fixed_plm = super(sims_cmb_unl_fixed_phi, self)._get_sim_alm(0, self.fields.index('p'))
+        else:
+            self.fixed_plm = plm
+
+
+    def _get_sim_alm(self, idx, idf):
+        
+        if idf == self.fields.index('p'):
+            ret = self.fixed_plm
+        else:
+            ret = hp.almxfl(self.lib_pha.get_sim(idx, idf=0), self.rmat[:, idf, 0])
+            for _i in range(1,len(self.fields)):
+                ret += hp.almxfl(self.lib_pha.get_sim(idx, idf=_i), self.rmat[:, idf, _i])
+            
+        return ret
+
+
+class sims_cmb_len_fixed_phi(sims_cmb_len):
+    """Simumaltion library for lensed CMB with fixed lensing potential field.
+    """
+
+    def __init__(self, lib_dir, lmax, cls_unl, plm=None, lib_pha=None,
+                 dlmax=1024, nside_lens=4096, facres=0, nbands=16, verbose=True):
+
+        fields = _get_fields(cls_unl)
+        if lib_pha is None and mpi.rank == 0:
+            lib_pha = phas.lib_phas(os.path.join(lib_dir, 'phas'), len(fields), lmax + dlmax)
+        else:  # Check that the lib_alms are compatible :
+            assert lib_pha.lmax == lmax + dlmax
+        mpi.barrier()
+        
+        super(sims_cmb_len_fixed_phi, self).__init__(lib_dir, lmax, cls_unl, lib_pha,
+                 dlmax, nside_lens, facres, nbands, verbose)         
+
+        self.unlcmbs = sims_cmb_unl_fixed_phi(cls_unl, lib_pha, plm)
