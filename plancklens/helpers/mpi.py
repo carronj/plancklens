@@ -5,7 +5,7 @@
 from __future__ import print_function
 import os
 
-verbose = False
+verbose = True
 
 has_key = lambda key : key in os.environ.keys()
 cond4mpi4py = not has_key('NERSC_HOST') or (has_key('NERSC_HOST') and has_key('SLURM_SUBMIT_DIR'))
@@ -26,6 +26,7 @@ if cond4mpi4py:
         finalize = lambda: -1
         if verbose: print('mpi.py: unable to import mpi4py\n')
 else:
+    if verbose: print('mpi.py: not importing mpi4py\n')
     rank = 0
     size = 1
     barrier = lambda: -1
