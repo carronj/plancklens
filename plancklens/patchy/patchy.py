@@ -5,16 +5,14 @@ import healpy as hp
 import numpy as np
 from plancklens import utils, nhl, qresp
 from plancklens.helpers import cachers
-
+from plancklens.qcinv.util import read_map
 def _read_map(m):
-    if isinstance(m, str):
-        return hp.read_map(m)
-    return m
+    return read_map(m)
 
 
 def get_patchy_N0s(qekey_in, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_dat, cls_cmb_filt, cls_weight, lmin_ivf, lmax_ivf, lmax_qlm, transf,
                   rvmap_uKamin_t_data=None, rvmap_uKamin_p_data=None, joint_TP=False,
-                  nlevt_fid=None, nlevp_fid=None, cacher=cachers.cacher_mem(), source='p'):
+                  nlevt_fid=None, nlevp_fid=None, cacher=cachers.cacher_mem(), source='p', patch_method='percentiles'):
     """Collects the effective reconstruction noise levels for different filtering and spectrum weighting schemes
 
         Args:
@@ -49,8 +47,15 @@ def get_patchy_N0s(qekey_in, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_
     assert qekey_in[0] in ['p', 'x'], 'fix curl fiducial and MC correction'
     qe_key = 'p' + qekey_in[1:]
 
-    nlevst_ftl, nlevst_data, _nlevt_fid, fskiest, masks = mk_patches(npatches, pixivmap_t, rvmap_uKamin_data=rvmap_uKamin_t_data)
-    nlevsp_ftl, nlevsp_data, _nlevp_fid, fskiesp, masks = mk_patches(npatches, pixivmap_p, rvmap_uKamin_data=rvmap_uKamin_p_data)
+    if (not joint_TP) and qe_key == 'ptt': # dont need pol partitioning here
+        nlevst_ftl, nlevst_data, _nlevt_fid, fskiest, masks = mk_patches(npatches, pixivmap_t, rvmap_uKamin_data=rvmap_uKamin_t_data, method=patch_method)
+        nlevsp_ftl, nlevsp_data, _nlevp_fid, fskiesp = (1e30 * np.ones_like(nlevst_ftl), 1e30 * np.copy(nlevst_data), 1e30, fskiest.copy())
+    elif (not joint_TP) and qe_key == 'p_p':# dont need T  here
+        nlevsp_ftl, nlevsp_data, _nlevp_fid, fskiesp, masks = mk_patches(npatches, pixivmap_p, rvmap_uKamin_data=rvmap_uKamin_p_data, method=patch_method)
+        nlevst_ftl, nlevst_data, _nlevt_fid, fskiest = (1e30 * np.ones_like(nlevsp_ftl), 1e30 * np.copy(nlevsp_data), 1e30, fskiesp.copy())
+    else:
+        nlevst_ftl, nlevst_data, _nlevt_fid, fskiest, masks = mk_patches(npatches, pixivmap_t, rvmap_uKamin_data=rvmap_uKamin_t_data, method=patch_method)
+        nlevsp_ftl, nlevsp_data, _nlevp_fid, fskiesp, masks = mk_patches(npatches, pixivmap_p, rvmap_uKamin_data=rvmap_uKamin_p_data, method=patch_method)
     if nlevt_fid is None: nlevt_fid = _nlevt_fid
     if nlevp_fid is None: nlevp_fid = _nlevp_fid
 
@@ -77,6 +82,9 @@ def get_patchy_N0s(qekey_in, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_
     cMCcorr_vmap = np.zeros(lmax_qlm + 1, dtype=float)
 
     fsky_tot = np.sum(fskies)
+    print('total observed sky area %.3f'%fsky_tot)
+    print('Using nlev fids %.3f %.3f'%(nlevt_fid, nlevp_fid))
+
     rfidi = utils.cli(rfid[rid])
 
     for i, (fsky, resp, nhl_pd, nhl_fd) in enumerate(zip(fskies, resps, nhls_pds, nhls_fds)):
@@ -101,7 +109,7 @@ def get_patchy_N0s(qekey_in, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_
         spec[:] = np.sqrt(spec) - cpp
     return N0s, MCcorr_vmap, cMCcorr_vmap
 
-def mk_patches(Np, pix_ivmap, rvmap_uKamin_data=None, ret_masks=False):
+def mk_patches(Np, pix_ivmap, rvmap_uKamin_data=None, ret_masks=False, method='percentiles', verbose=False):
     """Splits the variance maps into equal-area regions with different noise levels
 
         Args:
@@ -109,6 +117,9 @@ def mk_patches(Np, pix_ivmap, rvmap_uKamin_data=None, ret_masks=False):
             pix_ivmap: input inverse pixel variance map used for the filtering
             rvmap_uKamin_data: root variance map in uK amin of the data (if different from pix_ivmap)
             ret_masks: returns the defined series of masks if set
+            method: which method should be used to perform the calculation
+                     percentiles: equal sky areas regions
+                     linear: equally spaced nlevs in uK (this is best in terms of convergence towards an integral)
 
 
     """
@@ -116,8 +127,18 @@ def mk_patches(Np, pix_ivmap, rvmap_uKamin_data=None, ret_masks=False):
     mask = _read_map(pix_ivmap) > 0
     npix = mask.size
     nside = hp.npix2nside(npix)
-    vmap = utils.cli(np.sqrt(_read_map(pix_ivmap))) * np.sqrt(hp.nside2pixarea(nside)) / np.pi * 60 * 180.
-    edges = np.percentile(vmap[np.where(mask)], np.linspace(0, 100, Np + 1))
+    nlev_map = utils.cli(np.sqrt(_read_map(pix_ivmap))) * np.sqrt(hp.nside2pixarea(nside)) / np.pi * 60 * 180.
+    if method == 'percentiles':
+        edges = np.percentile(nlev_map[np.where(mask)], np.linspace(0, 100, Np + 1))
+    elif method == 'linear':
+        edges = np.linspace(np.min(nlev_map[np.where(mask)]), np.max(nlev_map[np.where(mask)]), Np + 1)
+    elif method == 'linear_vmap':
+        ninv = _read_map(pix_ivmap)
+        edges = np.linspace(np.min(ninv[np.where(mask)]), np.max(ninv[np.where(mask)]), Np + 1)
+        del ninv
+        edges = 1./np.sqrt(edges[::-1])  * np.sqrt(hp.nside2pixarea(nside)) / np.pi * 60 * 180.
+    else:
+        assert 0, 'method ' + method + ' not implemented'
     edges[0] = -1.
     edges[-1] = 10000
     nlevs = []  # from filtering variance map
@@ -125,19 +146,22 @@ def mk_patches(Np, pix_ivmap, rvmap_uKamin_data=None, ret_masks=False):
     fskies = []
     masks = []
     for i in range(1, Np + 1):
-        this_mask = (vmap > edges[i - 1]) & (vmap <= edges[i])
-        nlevs.append(np.mean(vmap[mask * this_mask]))
-        fskies.append(np.mean(mask * this_mask))
-        if rvmap_uKamin_data is not None:
-            nlevs_data.append(np.mean(_read_map(rvmap_uKamin_data[mask * this_mask])))
-        if ret_masks:
-            masks.append(this_mask * mask)
+        this_mask = (nlev_map > edges[i - 1]) & (nlev_map <= edges[i])
+        this_fsky = np.mean(mask * this_mask)
+        if this_fsky > 0:
+            nlevs.append(np.mean(nlev_map[mask * this_mask]))
+            fskies.append(this_fsky)
+            if rvmap_uKamin_data is not None:
+                nlevs_data.append(np.mean(_read_map(rvmap_uKamin_data[mask * this_mask])))
+            if ret_masks:
+                masks.append(this_mask * mask)
     if rvmap_uKamin_data is None:
         nlevs_data = nlevs
     nlev_fid = np.sqrt(4. * np.pi / npix / np.sum(_read_map(pix_ivmap)) * np.sum(mask)) * 180. * 60. / np.pi
-    for nf, nd in zip(nlevs, nlevs_data):
-        print('%.2f (ftl)   %.2f (dat) uKamin' % (nf, nd))
-    print('%.2f (fid)' %nlev_fid)
+    if verbose:
+        for nf, nd in zip(nlevs, nlevs_data):
+            print('%.2f (ftl)   %.2f (dat) uKamin' % (nf, nd))
+        print('%.2f (fid)' %nlev_fid)
     return nlevs, nlevs_data, nlev_fid, fskies, masks
 
 def get_nlev_fid(pix_ivmap):
@@ -246,13 +270,13 @@ def get_responses(qe_key, cls_cmb_dat, cls_cmb_filt, cls_weight, lmin, lmax, lma
     """
     resps = []
     for i, (nlevt_f, nlevp_f) in utils.enumerate_progress(list(zip(nlevts_filt, nlevps_filt)), 'collecting responses'):
-        fname = 'vmapresps%s_%s_%s' % ('jTP' * joint_TP, qe_key, qe_key) + utils.clhash(np.array([nlevt_f, nlevp_f]))
+        fname = 'vmapresps%s_%s_%s' % ('jTP' * joint_TP, qe_key, qe_key) + utils.clhash(np.array([nlevt_f, nlevp_f]), dtype=np.float32)
         if not cacher.is_cached(fname):
             cls_filt_i = get_ivf_cls(cls_cmb_dat, cls_cmb_filt, lmin, lmax, nlevt_f, nlevp_f, nlevt_f, nlevp_f, transf, jt_tp=joint_TP)[1]
             this_resp =  qresp.get_response(qe_key, lmax, source, cls_weight, cls_cmb_dat, cls_filt_i, lmax_qlm=lmax_qlm)
             cacher.cache(fname, this_resp)
-        resps.append(cacher.load(fname))
-    return resps
+        resps.append(np.array(cacher.load(fname)))
+    return np.array(resps)
 
 def get_nhls(qe_key1, qe_key2, cls_cmb_dat, cls_cmb_filt, cls_weight, lmin, lmax, lmax_qlm, transf, nlevts_filt, nlevts_map, nlevps_filt, nlevps_map,
              joint_TP=False, cacher=cachers.cacher_mem()):
@@ -290,6 +314,6 @@ def get_nhls(qe_key1, qe_key2, cls_cmb_dat, cls_cmb_filt, cls_weight, lmin, lmax
             ivf_cls = get_ivf_cls(cls_cmb_dat, cls_cmb_filt, lmin, lmax, nlevt_f, nlevp_f, nlevt_m, nlevp_m, transf, jt_tp=joint_TP)[0]
             this_nhl = nhl.get_nhl(qe_key1, qe_key2, cls_weight, ivf_cls, lmax, lmax, lmax_out=lmax_qlm)
             cacher.cache(fname, this_nhl)
-        Nhls.append(cacher.load(fname))
-    return Nhls
+        Nhls.append(np.arrray(cacher.load(fname)))
+    return np.array(Nhls)
 

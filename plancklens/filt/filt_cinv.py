@@ -80,8 +80,15 @@ class cinv_t(cinv):
 
 
         if rescal_cl in ['default', None]:
+            default_rescal = True
             rescal_cl = np.sqrt(np.arange(lmax + 1, dtype=float) * np.arange(1, lmax + 2, dtype=float) / 2. / np.pi)
-        dl = {k: rescal_cl ** 2 * cl[k][:lmax + 1] for k in cl.keys()}  # rescaled cls (Dls by default)
+        else:
+            default_rescal = False
+            
+            # otherwise will throw index error if rescal_cl is too small 
+            assert len(rescal_cl) >= lmax + 1, [rescal_cl.shape, lmax]
+            
+        dl = {k: rescal_cl[:lmax + 1] ** 2 * cl[k][:lmax + 1] for k in cl.keys()}  # rescaled cls (Dls by default)
         transf_dl = transf[:lmax + 1] * utils.cli(rescal_cl)
 
         self.nside = nside
@@ -92,6 +99,7 @@ class cinv_t(cinv):
         self.transf = transf[:lmax + 1]
         self.rescaled_transf =transf_dl
         self.rescal_cl = rescal_cl
+        self.default_rescal = default_rescal  # track default behaviour for hash key
 
         self.ninv = ninv
         self.marge_monopole = marge_monopole
@@ -165,16 +173,23 @@ class cinv_t(cinv):
         return np.where(ninv > 0, 1., 0.)
 
     def hashdict(self):
-        return {'lmax': self.lmax,
+        hd = {'lmax': self.lmax,
                 'nside': self.nside,
-                'rescal_cl':utils.clhash(self.rescal_cl),
                 'cltt': utils.clhash(self.cl['tt'][:self.lmax + 1]),
                 'transf': utils.clhash(self.transf[:self.lmax + 1]),
                 'ninv': self._ninv_hash(),
                 'marge_monopole': self.marge_monopole,
                 'marge_dipole': self.marge_dipole,
                 'marge_maps': self.marge_maps}
+        
+        # Don't hash rescaling unless deviates from default behaviour (Dls) ? Otherwise will produce key error in hash check for 
+        # maps filtered before this change.
+        # Alternatively: Could automatically update hash pk if missing 'rescal_cl' key? 
+        if self.default_rescal is False:
+            hd['rescal_cl'] = utils.clhash(self.rescal_cl)
 
+        return hd
+            
     def apply_ivf(self, tmap, soltn=None):
         if soltn is None:
             talm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
