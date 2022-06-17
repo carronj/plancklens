@@ -22,7 +22,7 @@ Alternatively, you can use the Dockerfile to install the code in a separate cont
 
 #### Docker installation 
   
-  The Dockerfile allows you to install plancklens and lenspyx in a [Docker](https://docs.docker.com/) container and to run the code with jupyter. 
+  The Dockerfile allows you to install plancklens and lenspyx in a [Docker](https://docs.docker.com/) container and to run Jupyter. 
   This image is based on the [jupyter/scipy-notebook](https://jupyter-docker-stacks.readthedocs.io/en/latest/) image.
   After [installing docker](https://docs.docker.com/get-docker/) on your machine, go in the plancklens repository and build the image with 
 
@@ -38,7 +38,7 @@ Visiting `http://<hostname>:8888/?token=<token>` in a browser loads JupyterLab, 
 
     `token` is the secret token printed in the console.
 
-If you only wish to run the terminal within the container type
+If you only wish to run a terminal within the container type
 
     docker run -it plancklens /bin/sh
  
