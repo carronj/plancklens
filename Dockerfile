@@ -15,7 +15,7 @@ RUN apt-get install gfortran --yes
 
 # Install plancklens 
 WORKDIR "${HOME}"
-RUN git clone https://github.com/carronj/plancklens.git
+COPY . "${HOME}/plancklens"
 WORKDIR "${HOME}/plancklens"
 RUN pip install -r requirements.txt
 RUN pip install -e .
