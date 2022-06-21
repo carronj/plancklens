@@ -1,5 +1,4 @@
-
-# Dockerfile adapted from jupyter/scipy-notebook 
+# Dockerfile adapted from jupyter/scipy-notebook by Louis Legrand
 # https://github.com/jupyter/docker-stacks/blob/master/scipy-notebook/Dockerfile
 
 ARG OWNER=jupyter
@@ -16,9 +15,8 @@ RUN apt-get install gfortran --yes
 
 # Install plancklens 
 WORKDIR "${HOME}"
-RUN git clone https://github.com/louisl3grand/plancklens.git
+COPY . "${HOME}/plancklens"
 WORKDIR "${HOME}/plancklens"
-RUN git checkout tutorial
 RUN pip install -r requirements.txt
 RUN pip install -e .
 

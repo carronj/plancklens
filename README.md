@@ -17,9 +17,36 @@ After cloning the repository, build an editable installation with
 
 The –-user is required only if you don’t have write permission to your main python installation. A fortran compiler is required for a successful installation.
 
+Alternatively, you can use the Dockerfile to install the code in a separate container (see below).
+
+
+#### Docker installation 
+  
+  The Dockerfile allows you to install plancklens and lenspyx in a [Docker](https://docs.docker.com/) container and to run Jupyter. 
+  This image is based on the [jupyter/scipy-notebook](https://jupyter-docker-stacks.readthedocs.io/en/latest/) image.
+  After [installing docker](https://docs.docker.com/get-docker/) on your machine, go in the plancklens repository and build the image with 
+
+    docker build -t plancklens .
+
+You can then start the container with
+
+    docker run -it -p 8888:8888 plancklens
+
+Visiting `http://<hostname>:8888/?token=<token>` in a browser loads JupyterLab, where:
+
+    `hostname` is the name of the computer running Docker
+
+    `token` is the secret token printed in the console.
+
+If you only wish to run a terminal within the container type
+
+    docker run -it plancklens /bin/sh
+ 
+
+
 ### Contents
 
-This code contains most of the Planck 2018 lensing pipeline. In particular it possible to reproduce the published map and band-powers basically exactly. Some more detailed parts of the pipeline have been left out or are not yet translated to python 3. This is the case notably of the band-powers likelihood code.
+This code contains most of the Planck 2018 lensing pipeline. In particular it is possible to reproduce the published map and band-powers basically exactly. Some more detailed parts of the pipeline have been left out or are not yet translated to python 3. This is the case notably of the band-powers likelihood code.
 
 The code used to produce lensed CMB skies is the stand-alone pip package [lenspyx](https://github.com/carronj/lenspyx) (with big speed improvement expected soon)
 
@@ -80,3 +107,5 @@ Typical keys include then:
   <a href="./docs/SNF_logo_standard_web_color_neg_e.svg#gh-dark-mode-only">
     <img src="./docs/SNF_logo_standard_web_color_neg_e.svg#gh-dark-mode-only" width="500" height="150" />
   </a>
+  
+  
