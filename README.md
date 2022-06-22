@@ -20,7 +20,7 @@ The –-user is required only if you don’t have write permission to your main 
 Alternatively, you can use the Dockerfile to install the code in a separate container (see below).
 
 
-#### Docker installation 
+#### Docker installation (credits Louis Legrand)
   
   The Dockerfile allows you to install plancklens and lenspyx in a [Docker](https://docs.docker.com/) container and to run Jupyter. 
   This image is based on the [jupyter/scipy-notebook](https://jupyter-docker-stacks.readthedocs.io/en/latest/) image.
