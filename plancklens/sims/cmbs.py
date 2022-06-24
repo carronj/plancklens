@@ -24,10 +24,11 @@ def _get_fields(cls):
 
 class sims_cmb_unl:
     """Unlensed CMB skies simulation library.
-
+    plm: Provided if you want to lens the sims with the same lensing potential
     """
-    def __init__(self, cls_unl, lib_pha):
+    def __init__(self, cls_unl, lib_pha, plm=None):
         lmax = lib_pha.lmax
+        self.plm = plm
         lmin = 0
         fields = _get_fields(cls_unl)
         Nf = len(fields)
@@ -50,7 +51,10 @@ class sims_cmb_unl:
 
         self._cl_hash = {}
         for k in cls_unl.keys():
-            self._cl_hash[k] =utils.clhash(cls_unl[k])
+            if self.plm is None:
+                self._cl_hash[k] =utils.clhash(cls_unl[k])
+            else:
+                self._cl_hash[k] =utils.clhash(cls_unl[k] + self.plm)
         self.rmat = rmat
         self.lib_pha = lib_pha
         self.fields = fields
@@ -64,7 +68,14 @@ class sims_cmb_unl:
         # FIXME : triangularise this
         ret = hp.almxfl(self.lib_pha.get_sim(idx, idf=0), self.rmat[:, idf, 0])
         for _i in range(1,len(self.fields)):
-            ret += hp.almxfl(self.lib_pha.get_sim(idx, idf=_i), self.rmat[:, idf, _i])
+            if idf == self.fields.index('p'):
+                if self.plm is not None:
+                    if verbose: print('Use input plm for sims')
+                    ret = self.plm
+                else:
+                    ret += hp.almxfl(self.lib_pha.get_sim(idx, idf=_i), self.rmat[:, idf, _i])
+            else:
+                ret += hp.almxfl(self.lib_pha.get_sim(idx, idf=_i), self.rmat[:, idf, _i])
         return ret
 
     def get_sim_alm(self, idx, field):
@@ -102,13 +113,10 @@ class sims_cmb_unl:
 
 class sims_cmb_len:
     """Lensed CMB skies simulation library.
-
         Note:
             To produce the lensed CMB, the package lenspyx is mandatory
-
         Note:
             These sims do not contain aberration or modulation
-
         Args:
             lib_dir: lensed cmb alms will be cached there
             lmax: lensed cmbs are produced up to lmax
@@ -119,21 +127,18 @@ class sims_cmb_len:
             facres(defaults to 0): sets the interpolation resolution in lenspyx
             nbands(defaults to 16): number of band-splits in *lenspyx.alm2lenmap(_spin)*
             verbose(defaults to True): lenspyx timing info printout
-
     """
-    def __init__(self, lib_dir, lmax, cls_unl, lib_pha=None,
+    def __init__(self, lib_dir, lmax, cls_unl, lib_pha=None, plm=None,
                  dlmax=1024, nside_lens=4096, facres=0, nbands=16, verbose=True):
         if not os.path.exists(lib_dir) and mpi.rank == 0:
             os.makedirs(lib_dir)
         mpi.barrier()
         fields = _get_fields(cls_unl)
-
         if lib_pha is None and mpi.rank == 0:
             lib_pha = phas.lib_phas(os.path.join(lib_dir, 'phas'), len(fields), lmax + dlmax)
         else:  # Check that the lib_alms are compatible :
-            assert lib_pha.lmax == lmax + dlmax
+            assert lib_pha.lmax == lmax + dlmax, f"{lib_pha.lmax} =! {lmax} + {dlmax}"
         mpi.barrier()
-
 
         self.lmax = lmax
         self.dlmax = dlmax
@@ -141,8 +146,9 @@ class sims_cmb_len:
         self.nside_lens = nside_lens
         self.nbands = nbands
         self.facres = facres
+        self.plm = plm
 
-        self.unlcmbs = sims_cmb_unl(cls_unl, lib_pha)
+        self.unlcmbs = sims_cmb_unl(cls_unl, lib_pha, plm=self.plm)
         self.lib_dir = lib_dir
         self.fields = _get_fields(cls_unl)
 
@@ -160,8 +166,14 @@ class sims_cmb_len:
         self.verbose=verbose
 
     def hashdict(self):
-        return {'unl_cmbs': self.unlcmbs.hashdict(),'lmax':self.lmax,
-                'nside_lens':self.nside_lens, 'facres':self.facres}
+        # TODO: This shoudl be redefined in teh sims_cmb_len_fixed_phi I think, not sure if we need to have a plm input here, 
+        # becasue it might be confusing 
+        if self.plm is None:
+            return {'unl_cmbs': self.unlcmbs.hashdict(),'lmax':self.lmax,
+                    'nside_lens':self.nside_lens, 'facres':self.facres}
+        else:
+            return {'unl_cmbs': self.unlcmbs.hashdict(),'lmax':self.lmax,
+                    'nside_lens':self.nside_lens, 'facres':self.facres, 'plm':utils.clhash(self.plm)}
 
     def _is_full(self):
         return self.unlcmbs.lib_pha.is_full()
@@ -227,3 +239,49 @@ class sims_cmb_len:
         if not os.path.exists(fname):
             self._cache_eblm(idx)
         return hp.read_alm(fname)
+        
+class sims_cmb_unl_fixed_phi(sims_cmb_unl):
+    """Simumaltion library for unlensed CMB with fixed lensing potential field.
+    
+    By default the lensing potential field is the one from the simulation index 0.
+    """
+
+    def __init__(self, cls_unl, lib_pha, plm=None):
+        super(sims_cmb_unl_fixed_phi, self).__init__(cls_unl, lib_pha) 
+        
+        if plm is None: 
+            self.fixed_plm = super(sims_cmb_unl_fixed_phi, self)._get_sim_alm(0, self.fields.index('p'))
+        else:
+            self.fixed_plm = plm
+
+
+    def _get_sim_alm(self, idx, idf):
+        
+        if idf == self.fields.index('p'):
+            ret = self.fixed_plm
+        else:
+            ret = hp.almxfl(self.lib_pha.get_sim(idx, idf=0), self.rmat[:, idf, 0])
+            for _i in range(1,len(self.fields)):
+                ret += hp.almxfl(self.lib_pha.get_sim(idx, idf=_i), self.rmat[:, idf, _i])
+            
+        return ret
+
+
+class sims_cmb_len_fixed_phi(sims_cmb_len):
+    """Simumaltion library for lensed CMB with fixed lensing potential field.
+    """
+
+    def __init__(self, lib_dir, lmax, cls_unl, plm=None, lib_pha=None,
+                 dlmax=1024, nside_lens=4096, facres=0, nbands=16, verbose=True):
+
+        fields = _get_fields(cls_unl)
+        if lib_pha is None and mpi.rank == 0:
+            lib_pha = phas.lib_phas(os.path.join(lib_dir, 'phas'), len(fields), lmax + dlmax)
+        else:  # Check that the lib_alms are compatible :
+            assert lib_pha.lmax == lmax + dlmax
+        mpi.barrier()
+
+        super(sims_cmb_len_fixed_phi, self).__init__(lib_dir, lmax, cls_unl, lib_pha=lib_pha,
+                 dlmax=dlmax, nside_lens=nside_lens, facres=facres, nbands=nbands, verbose=verbose)         
+
+        self.unlcmbs = sims_cmb_unl_fixed_phi(cls_unl, lib_pha, plm)
