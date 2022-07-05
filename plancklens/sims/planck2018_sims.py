@@ -7,6 +7,9 @@ r"""Planck 2018 release simulation libraries.
         Units of the maps stored at NERSC are :math:`K` but this module returns maps in :math:`\mu K`
 
 """
+
+import os
+from os.path import join as opj
 import healpy as hp
 import numpy as np
 
@@ -20,9 +23,9 @@ class smica_dx12:
             (healpy 1.15 changed read_map default type behavior, breaking in a way that is not very clear as yet the behavior of the conjugate gradient inversion chain)
     """
     def __init__(self):
-        self.cmbs = '/project/projectdirs/cmb/data/planck2018/ffp10/compsep/mc_cmb/dx12_v3_smica_cmb_mc_%05d_005a_2048.fits'
-        self.noise = '/project/projectdirs/cmb/data/planck2018/ffp10/compsep/mc_noise/dx12_v3_smica_noise_mc_%05d_005a_2048.fits'
-        self.data = '/project/projectdirs/cmb/data/planck2018/pr3/cmbmaps/dx12_v3_smica_cmb_005a_2048.fits'
+        self.cmbs = opj(os.environ["CFS"],'cmb/data/planck2018/ffp10/compsep/mc_cmb/dx12_v3_smica_cmb_mc_%05d_005a_2048.fits')
+        self.noise = opj(os.environ["CFS"],'cmb/data/planck2018/ffp10/compsep/mc_noise/dx12_v3_smica_noise_mc_%05d_005a_2048.fits')
+        self.data = opj(os.environ["CFS"],'cmb/data/planck2018/pr3/cmbmaps/dx12_v3_smica_cmb_005a_2048.fits')
 
     def hashdict(self):
         return {'cmbs':self.cmbs, 'noise':self.noise, 'data':self.data}
@@ -75,9 +78,9 @@ class smica_dx12_SZdeproj:
 
     """
     def __init__(self):
-        self.cmbs  = '/project/projectdirs/planck/data/compsep/comparison/dx12_v3/nosz/mc_cmb/dx12_v3_smica_nosz_cmb_mc_%05d_005a_2048.fits'
-        self.noise = '/project/projectdirs/planck/data/compsep/comparison/dx12_v3/nosz/mc_noise/dx12_v3_smica_nosz_noise_mc_%05d_005a_2048.fits'
-        self.data  = '/project/projectdirs/planck/data/compsep/comparison/dx12_v3/nosz/dx12_v3_smica_nosz_cmb_005a_2048.fits'
+        self.cmbs  = opj(os.environ["CFS"],'planck/data/compsep/comparison/dx12_v3/nosz/mc_cmb/dx12_v3_smica_nosz_cmb_mc_%05d_005a_2048.fits')
+        self.noise = opj(os.environ["CFS"],'planck/data/compsep/comparison/dx12_v3/nosz/mc_noise/dx12_v3_smica_nosz_noise_mc_%05d_005a_2048.fits')
+        self.data  = opj(os.environ["CFS"],'planck/data/compsep/comparison/dx12_v3/nosz/dx12_v3_smica_nosz_cmb_005a_2048.fits')
 
     def hashdict(self):
         return {'cmbs':self.cmbs, 'noise':self.noise, 'data':self.data}
@@ -173,7 +176,7 @@ class cmb_len_ffp10:
                 lensed temperature simulation healpy alm array
 
         """
-        return 1e6 * hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx, hdu=1)
+        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx, hdu=1))
 
     @staticmethod
     def get_sim_elm(idx):
@@ -185,7 +188,7 @@ class cmb_len_ffp10:
                 lensed E-polarization simulation healpy alm array
 
         """
-        return 1e6 * hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx, hdu=2)
+        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx, hdu=2))
 
     @staticmethod
     def get_sim_blm(idx):
@@ -197,7 +200,7 @@ class cmb_len_ffp10:
                 lensed B-polarization simulation healpy alm array
 
         """
-        return 1e6 * hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx, hdu=3)
+        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx, hdu=3))
 
 
 class cmb_unl_ffp10:
@@ -220,7 +223,7 @@ class cmb_unl_ffp10:
                 unlensed temperature simulation healpy alm array
 
         """
-        return 1e6 * hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=1)
+        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=1))
 
     @staticmethod
     def get_sim_elm(idx):
@@ -232,7 +235,7 @@ class cmb_unl_ffp10:
                 unlensed E-polarization simulation healpy alm array
 
         """
-        return 1e6 * hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=2)
+        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=2))
 
     @staticmethod
     def get_sim_blm(idx):
@@ -244,7 +247,7 @@ class cmb_unl_ffp10:
                 unlensed B-polarization simulation healpy alm array
 
         """
-        return 1e6 * hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=3)
+        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=3))
 
     @staticmethod
     def get_sim_plm(idx):
@@ -256,6 +259,4 @@ class cmb_unl_ffp10:
                lensing potential :math:`\phi_{LM}` simulation healpy alm array
 
         """
-        return hp.read_alm('/project/projectdirs/cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=4)
-
-
+        return hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=4))
