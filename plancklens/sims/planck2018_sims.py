@@ -176,7 +176,7 @@ class cmb_len_ffp10:
                 lensed temperature simulation healpy alm array
 
         """
-        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx, hdu=1))
+        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx), hdu=1)
 
     @staticmethod
     def get_sim_elm(idx):
@@ -188,7 +188,7 @@ class cmb_len_ffp10:
                 lensed E-polarization simulation healpy alm array
 
         """
-        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx, hdu=2))
+        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx), hdu=2)
 
     @staticmethod
     def get_sim_blm(idx):
@@ -200,7 +200,7 @@ class cmb_len_ffp10:
                 lensed B-polarization simulation healpy alm array
 
         """
-        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx, hdu=3))
+        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_lensed_scl_cmb_000_alm_mc_%04d.fits'%idx), hdu=3)
 
 
 class cmb_unl_ffp10:
@@ -223,7 +223,7 @@ class cmb_unl_ffp10:
                 unlensed temperature simulation healpy alm array
 
         """
-        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=1))
+        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx), hdu=1)
 
     @staticmethod
     def get_sim_elm(idx):
@@ -235,7 +235,7 @@ class cmb_unl_ffp10:
                 unlensed E-polarization simulation healpy alm array
 
         """
-        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=2))
+        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx), hdu=2)
 
     @staticmethod
     def get_sim_blm(idx):
@@ -247,7 +247,7 @@ class cmb_unl_ffp10:
                 unlensed B-polarization simulation healpy alm array
 
         """
-        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=3))
+        return 1e6 * hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx), hdu=3)
 
     @staticmethod
     def get_sim_plm(idx):
@@ -259,4 +259,6 @@ class cmb_unl_ffp10:
                lensing potential :math:`\phi_{LM}` simulation healpy alm array
 
         """
-        return hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx, hdu=4))
+        return hp.read_alm(opj(os.environ["CFS"],'cmb/data/generic/cmb/ffp10/mc/scalar/ffp10_unlensed_scl_cmb_000_tebplm_mc_%04d.fits'% idx), hdu=4)
+
+
