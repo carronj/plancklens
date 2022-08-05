@@ -52,6 +52,7 @@ class sims_cmb_unl:
         for k in cls_unl.keys():
             self._cl_hash[k] =utils.clhash(cls_unl[k])
         self.rmat = rmat
+        self.lmax = lmax
         self.lib_pha = lib_pha
         self.fields = fields
 
