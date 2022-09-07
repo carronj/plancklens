@@ -160,7 +160,7 @@ def dls2cls(dls):
     return cls
 
 
-def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarray, beam_fwhm:float, cls_unl_fid:dict, lmin_cmb, lmax_cmb, itermax, cls_unl_dat=None,
+def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarray, beam_fwhm:float, cls_unl_fid:dict, lmin_cmb:int or dict, lmax_cmb: int or dict, itermax, cls_unl_dat=None,
                 lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None):
     r"""Iterative lensing-N0 estimate
         Calculates iteratively partially lensed spectra and lensing noise levels.
@@ -196,12 +196,20 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
             print(s + ': ' + str(lmaxs_ivf[s]))
     else:
         lmaxs_ivf = {s: lmax_cmb for s in ['t', 'e', 'b']}
-    lmin_ivf = lmin_cmb
+
+    if isinstance(lmin_cmb, dict):
+        lmins_ivf = lmin_cmb
+        print("Seeing lmin's:")
+        for s in lmins_ivf.keys():
+            print(s + ': ' + str(lmins_ivf[s]))
+    else:
+        lmins_ivf = {s: max(lmin_cmb, 1) for s in ['t', 'e', 'b']}
+
+
     lmax_ivf = np.max(list(lmaxs_ivf.values()))
     if lmax_qlm is None:
         lmax_qlm = 2 * lmax_ivf
     lmax_qlm = min(lmax_qlm, 2 * lmax_ivf)
-    lmin_ivf = max(lmin_ivf, 1)
     transfi2 = utils.cli(hp.gauss_beam(beam_fwhm / 180. / 60. * np.pi, lmax=lmax_ivf)) ** 2
     llp2 = np.arange(lmax_qlm + 1, dtype=float) ** 2 * np.arange(1, lmax_qlm + 2, dtype=float) ** 2 / (2. * np.pi)
     
@@ -267,14 +275,14 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
             dat_delcls[spec][min(lmaxs_ivf[spec[0]], lmaxs_ivf[spec[1]]) + 1:] *= 0
 
         fal = utils.cl_inverse(fal)
-        for cl in fal.values():
-            cl[:lmin_ivf] *= 0.
-        for cl in dat_delcls.values():
-            cl[:lmin_ivf] *= 0.
+        for cl_key, cl_val in fal.items():
+            fal[cl_key][:max(lmins_ivf[cl_key[0]], lmins_ivf[cl_key[1]])] *= 0.
+        for cl_key, cl_val in dat_delcls.items():
+            dat_delcls[cl_key][:max(lmins_ivf[cl_key[0]], lmins_ivf[cl_key[1]])] *= 0.
         cls_ivfs = utils.cls_dot([fal, dat_delcls, fal], ret_dict=True)
         cls_w = deepcopy(cls_plen_fid)
         for spec in cls_w.keys(): # in principle not necessary
-            cls_w[spec][:lmin_ivf] *= 0.
+            cls_w[spec][:max(lmins_ivf[spec[0]], lmins_ivf[spec[1]])] *= 0.
             cls_w[spec][min(lmaxs_ivf[spec[0]], lmaxs_ivf[spec[1]]) + 1:] *= 0
 
         n_gg = nhl.get_nhl(qe_key, qe_key, cls_w, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)[0]
