@@ -57,7 +57,7 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
             print(s + ': ' + str(lmaxs_CMB[s]))
 
     # If nlev_p is arraylike
-    if isinstance(nlev_p, (np.array, np.ndarray, list)):
+    if isinstance(nlev_p, (np.ndarray, list)):
         if isinstance(nlev_p, list):
             nlev_p = np.array(nlev_p)
 
@@ -238,7 +238,7 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
     llp2 = np.arange(lmax_qlm + 1, dtype=float) ** 2 * np.arange(1, lmax_qlm + 2, dtype=float) ** 2 / (2. * np.pi)
 
     # If nlev_p is arraylike
-    if isinstance(nlev_p, (np.array, np.ndarray, list)):
+    if isinstance(nlev_p, (np.ndarray, list)):
         if isinstance(nlev_p, list):
             nlev_p = np.array(nlev_p)
 
