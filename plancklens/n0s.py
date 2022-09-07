@@ -55,15 +55,31 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
         print("Seeing CMB lmax's:")
         for s in lmaxs_CMB.keys():
             print(s + ': ' + str(lmaxs_CMB[s]))
-    if len(nlev_p) == 1:
-        nlev_e = nlev_p[0]
-        nlev_b = nlev_p[0]
-    elif len(nlev_p) == 2:
-        nlev_e = nlev_p[0]
-        nlev_b = nlev_p[1]
+            
+    # If nlev_p is arraylike
+    if isinstance(nlev_p, (np.array, np.ndarray, list)):
+        if isinstance(nlev_p, list):
+            nlev_p = np.array(nlev_p)
+
+        # e = b (scale-dependent) (catching shape=(1,lmax) and shape=(1,2))
+        if nlev_p.shape[0] == 1:
+            nlev_e = nlev_p[0]
+            nlev_b = nlev_p[0]
+        # e =/= b (scale-dependent) (catching shape=(2,lmax) and shape=(2,2))
+        elif nlev_p.shape[0] == 2:
+            nlev_e = nlev_p[0]
+            nlev_b = nlev_p[1]
+        # e = b scale-dependent noise (catching shape=lmax and shape=1)
+        else:
+            nlev_e = nlev_p
+            nlev_b = nlev_p
+
+    # If nlev_p is single number
+    elif isinstance(nlev_p, (float, int, np.float, np.int)):
+            nlev_e = nlev_p
+            nlev_b = nlev_p
     else:
-        nlev_e = nlev_p
-        nlev_b = nlev_p  
+        print("Not sure about the datatype of your nlev_p: {}".format(type(nlev_p)))
 
     lmax_ivf =  np.max(list(lmaxs_CMB.values()))
     lmin_ivf = lmin_CMB
@@ -212,16 +228,31 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
     lmax_qlm = min(lmax_qlm, 2 * lmax_ivf)
     transfi2 = utils.cli(hp.gauss_beam(beam_fwhm / 180. / 60. * np.pi, lmax=lmax_ivf)) ** 2
     llp2 = np.arange(lmax_qlm + 1, dtype=float) ** 2 * np.arange(1, lmax_qlm + 2, dtype=float) ** 2 / (2. * np.pi)
-    
-    if len(nlev_p) == 1:
-        nlev_e = nlev_p[0]
-        nlev_b = nlev_p[0]
-    elif len(nlev_p) == 2:
-        nlev_e = nlev_p[0]
-        nlev_b = nlev_p[1]
+
+    # If nlev_p is arraylike
+    if isinstance(nlev_p, (np.array, np.ndarray, list)):
+        if isinstance(nlev_p, list):
+            nlev_p = np.array(nlev_p)
+
+        # e = b (scale-dependent) (catching shape=(1,lmax) and shape=(1,2))
+        if nlev_p.shape[0] == 1:
+            nlev_e = nlev_p[0]
+            nlev_b = nlev_p[0]
+        # e =/= b (scale-dependent) (catching shape=(2,lmax) and shape=(2,2))
+        elif nlev_p.shape[0] == 2:
+            nlev_e = nlev_p[0]
+            nlev_b = nlev_p[1]
+        # e = b scale-dependent noise (catching shape=lmax and shape=1)
+        else:
+            nlev_e = nlev_p
+            nlev_b = nlev_p
+
+    # If nlev_p is single number
+    elif isinstance(nlev_p, (float, int, np.float, np.int)):
+            nlev_e = nlev_p
+            nlev_b = nlev_p
     else:
-        nlev_e = nlev_p
-        nlev_b = nlev_p  
+        print("Not sure about the datatype of your nlev_p: {}".format(type(nlev_p)))
 
     if datnoise_cls is None:
         datnoise_cls = dict()
