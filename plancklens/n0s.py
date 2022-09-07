@@ -55,7 +55,7 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
         print("Seeing CMB lmax's:")
         for s in lmaxs_CMB.keys():
             print(s + ': ' + str(lmaxs_CMB[s]))
-            
+
     # If nlev_p is arraylike
     if isinstance(nlev_p, (np.array, np.ndarray, list)):
         if isinstance(nlev_p, list):
@@ -82,7 +82,14 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
         print("Not sure about the datatype of your nlev_p: {}".format(type(nlev_p)))
 
     lmax_ivf =  np.max(list(lmaxs_CMB.values()))
-    lmin_ivf = lmin_CMB
+    if isinstance(lmin_CMB, dict):
+        lmins_ivf = lmin_CMB
+        print("Seeing lmin's:")
+        for s in lmins_ivf.keys():
+            print(s + ': ' + str(lmins_ivf[s]))
+    else:
+        lmins_ivf = {s: max(lmin_CMB, 1) for s in ['t', 'e', 'b']}
+
     lmax_qlm = lmax_out or lmax_ivf
     cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens.__file__)), 'data', 'cls')
     cls_len = cls_len or utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
@@ -108,6 +115,7 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
 
     for s in cls_dat.keys():
         cls_dat[s][min(lmaxs_CMB[s[0]], lmaxs_CMB[s[1]]) + 1:] *= 0.
+        cls_dat[s][:max(lmins_ivf[s[0]], lmins_ivf[s[1]])] *= 0.
 
     # (C+N)^{-1} filter spectra
     # For independent T and P filtering, this is really just 1/ (C+ N), diagonal in T, E, B space
@@ -121,8 +129,8 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
     # since cls_dat = fals, cls_ivfs = fals. If the data spectra do not match the filter, this must be changed:
     cls_ivfs_jtTP = utils.cls_dot([fal_jtTP, cls_dat, fal_jtTP], ret_dict=True)
     for cls in [fal_sepTP, fal_jtTP, cls_ivfs_sepTP, cls_ivfs_jtTP]:
-        for cl in cls.values():
-            cl[:max(1, lmin_ivf)] *= 0.
+        for cl_key, cl_val in cls.items():
+            cls[cl_key][:max(1, lmins_ivf[cl_key[0]], lmins_ivf[cl_key[1]])] *= 0.
 
     N0s = {}
     N0_curls = {}
