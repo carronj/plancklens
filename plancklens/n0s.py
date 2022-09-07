@@ -250,7 +250,7 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
         elif nlev_p.shape[0] == 2:
             nlev_e = nlev_p[0]
             nlev_b = nlev_p[1]
-        # e = b scale-dependent noise (catching shape=lmax and shape=1)
+        # e = b (scale-dependent) noise (catching shape=lmax and shape=1)
         else:
             nlev_e = nlev_p
             nlev_b = nlev_p
