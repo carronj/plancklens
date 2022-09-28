@@ -40,7 +40,11 @@ import pickle as pk
 from plancklens import utils as ut, utils_spin as uspin, utils_qe as uqe
 from plancklens.helpers import mpi, sql
 
-
+def _clinv(cl):
+    ret = np.zeros_like(cl)
+    ii = np.where(cl != 0)
+    ret[ii] = 1./cl[ii]
+    return ret
 
 def get_qes(qe_key, lmax, cls_weight, lmax2=None):
     """ Defines the quadratic estimator weights for quadratic estimator key.
@@ -56,7 +60,7 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None):
     """
     if lmax2 is None: lmax2 = lmax
     if qe_key[0] in ['p', 'x', 'a', 'f', 's']:
-        if qe_key in ['ptt', 'xtt', 'att', 'ftt', 'stt']:
+        if qe_key in ['ptt', 'xtt', 'att', 'ftt', 'stt', 'ntt']:
             s_lefts= [0]
         elif qe_key in ['p_p', 'x_p', 'a_p', 'f_p']:
             s_lefts= [-2, 2]
@@ -115,7 +119,7 @@ def get_resp_legs(source, lmax):
 
     assert 0, source + ' response legs not implemented'
 
-def get_covresp(source, s1, s2, cls, lmax):
+def get_covresp(source, s1, s2, cls, lmax, transf=None):
     r"""Defines the responses terms for a CMB covariance anisotropy source.
 
         \delta < s_d(n) _td^*(n')> \equiv
@@ -135,6 +139,14 @@ def get_covresp(source, s1, s2, cls, lmax):
         s_source = 0
         prR = 0.25 * cond * np.ones(lmax + 1, dtype=float)
         mrR = 0.25 * cond * np.ones(lmax + 1, dtype=float)
+        cL_scal =  lambda ell : np.ones(len(ell), dtype=float)
+        return s_source, prR, mrR, cL_scal
+    elif source in ['ntt']:
+        assert transf is not None
+        cond = s1 == 0 and s2 == 0
+        s_source = 0
+        prR = 0.25 * cond * _clinv(transf)
+        mrR = 0.25 * cond * _clinv(transf)
         cL_scal =  lambda ell : np.ones(len(ell), dtype=float)
         return s_source, prR, mrR, cL_scal
     else:
