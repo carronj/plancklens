@@ -46,7 +46,7 @@ def _clinv(cl):
     ret[ii] = 1./cl[ii]
     return ret
 
-def get_qes(qe_key, lmax, cls_weight, lmax2=None):
+def get_qes(qe_key, lmax, cls_weight, lmax2=None, transf=None):
     """ Defines the quadratic estimator weights for quadratic estimator key.
 
     Args:
@@ -71,7 +71,7 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None):
         for s_left in s_lefts:
             for sin in s_rights_in:
                 sout = -s_left
-                s_qe, irr1, cl_sosi, cL_out =  get_covresp(qe_key[0], sout, sin, cls_weight, lmax2)
+                s_qe, irr1, cl_sosi, cL_out =  get_covresp(qe_key[0], sout, sin, cls_weight, lmax2, transf=transf)
                 if np.any(cl_sosi):
                     lega = uqe.qeleg(s_left, s_left, 0.5 *(1. + (s_left == 0)) * np.ones(lmax + 1, dtype=float))
                     legb = uqe.qeleg(sin, sout + s_qe, 0.5 * (1. + (sin == 0)) * 2 * cl_sosi)
@@ -184,12 +184,13 @@ class resp_lib_simple:
             lmax_qlm(optional): responses are calculated up to this multipole. Defaults to lmax_ivf + lmax_ivf2
 
     """
-    def __init__(self, lib_dir, lmax_ivf, cls_weight, cls_cmb, fal, lmax_qlm):
+    def __init__(self, lib_dir, lmax_ivf, cls_weight, cls_cmb, fal, lmax_qlm, transf=None):
         self.lmax_qe = lmax_ivf
         self.lmax_qlm = lmax_qlm
         self.cls_weight = cls_weight
         self.cls_cmb = cls_cmb
         self.fal = fal
+        self.transf = transf
         self.lib_dir = lib_dir
 
         fn_hash = os.path.join(lib_dir, 'resp_hash.pk')
@@ -236,7 +237,7 @@ class resp_lib_simple:
         fn = 'qe_' + ksp + k[1:] + '_source_%s_'%ksource + GorC + GorC
         if self.npdb.get(fn) is None or recache:
             GG, CC, GC, CG = get_response(k, self.lmax_qe, ksource, self.cls_weight, self.cls_cmb, self.fal,
-                                lmax_qlm=self.lmax_qlm)
+                                lmax_qlm=self.lmax_qlm, transf=self.transf)
             if np.any(CG) or np.any(GC):
                 print("Warning: C-G or G-C responses non-zero but not returned")
                 # This may happen only if EB and/or TB are relevant and/or strange estimator mix.
@@ -251,7 +252,7 @@ class resp_lib_simple:
         return self.npdb.get(fn)
 
 
-def get_response(qe_key, lmax_ivf, source, cls_weight, cls_cmb, fal, fal_leg2=None, lmax_ivf2=None, lmax_qlm=None):
+def get_response(qe_key, lmax_ivf, source, cls_weight, cls_cmb, fal, fal_leg2=None, lmax_ivf2=None, lmax_qlm=None, transf=None):
     r"""QE response calculation
 
         Args:
@@ -277,20 +278,20 @@ def get_response(qe_key, lmax_ivf, source, cls_weight, cls_cmb, fal, fal_leg2=No
         assert len(hsource) == 1, hsource
         h = hsource[0]
         RGG_ks, RCC_ks, RGC_ks, RCG_ks = get_response(k, lmax_ivf, source, cls_weight, cls_cmb, fal,
-                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm)
+                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm, transf=transf)
         RGG_hs, RCC_hs, RGC_hs, RCG_hs = get_response(h + k[1:], lmax_ivf, source, cls_weight, cls_cmb, fal,
-                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm)
+                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm, transf=transf)
         RGG_kh, RCC_kh, RGC_kh, RCG_kh = get_response(k, lmax_ivf, h, cls_weight, cls_cmb, fal,
-                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm)
+                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm, transf=transf)
         RGG_hh, RCC_hh, RGC_hh, RCG_hh = get_response(h + k[1:], lmax_ivf, h, cls_weight, cls_cmb, fal,
-                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm)
+                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm, transf=transf)
         RGG = RGG_ks - (RGG_kh * RGG_hs  * ut.cli(RGG_hh) + RGC_kh * RCG_hs  * ut.cli(RCC_hh))
         RCC = RCC_ks - (RCG_kh * RGC_hs  * ut.cli(RGG_hh) + RCC_kh * RCC_hs  * ut.cli(RCC_hh))
         RGC = RGC_ks - (RGG_kh * RGC_hs  * ut.cli(RGG_hh) + RGC_kh * RCC_hs  * ut.cli(RCC_hh))
         RCG = RCG_ks - (RCG_kh * RGG_hs  * ut.cli(RGG_hh) + RCC_kh * RCG_hs  * ut.cli(RCC_hh))
         return RGG, RCC, RGC, RCG
 
-    qes = get_qes(qe_key, lmax_ivf, cls_weight, lmax2=lmax_ivf2)
+    qes = get_qes(qe_key, lmax_ivf, cls_weight, lmax2=lmax_ivf2, transf=transf)
     return _get_response(qes, source, cls_cmb, fal, lmax_qlm, fal_leg2=fal_leg2)
 
 def get_dresponse_dlncl(qe_key, l, cl_key, lmax_ivf, source, cls_weight, cls_cmb, fal_leg1,
