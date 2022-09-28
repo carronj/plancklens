@@ -141,13 +141,10 @@ def get_covresp(source, s1, s2, cls, lmax, transf=None):
         mrR = 0.25 * cond * np.ones(lmax + 1, dtype=float)
         cL_scal =  lambda ell : np.ones(len(ell), dtype=float)
         return s_source, prR, mrR, cL_scal
-    elif source in ['ntt']:
+    elif source in ['ntt', 'n']:
         assert transf is not None
-        cond = s1 == 0 and s2 == 0
-        s_source = 0
-        prR = 0.25 * cond * _clinv(transf)
-        mrR = 0.25 * cond * _clinv(transf)
         cL_scal =  lambda ell : np.ones(len(ell), dtype=float)
+        assert 0, 'dont think this parametrization works here'
         return s_source, prR, mrR, cL_scal
     else:
         assert 0, 'source ' + source + ' cov. response not implemented'
