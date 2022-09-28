@@ -59,7 +59,7 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None):
 
     """
     if lmax2 is None: lmax2 = lmax
-    if qe_key[0] in ['p', 'x', 'a', 'f', 's']:
+    if qe_key[0] in ['p', 'x', 'a', 'f', 's', 'n']:
         if qe_key in ['ptt', 'xtt', 'att', 'ftt', 'stt', 'ntt']:
             s_lefts= [0]
         elif qe_key in ['p_p', 'x_p', 'a_p', 'f_p']:
