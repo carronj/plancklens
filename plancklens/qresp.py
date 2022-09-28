@@ -59,8 +59,8 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None, transf=None):
 
     """
     if lmax2 is None: lmax2 = lmax
-    if qe_key[0] in ['p', 'x', 'a', 'f', 's', 'n']:
-        if qe_key in ['ptt', 'xtt', 'att', 'ftt', 'stt', 'ntt']:
+    if qe_key[0] in ['p', 'x', 'a', 'f', 's']:
+        if qe_key in ['ptt', 'xtt', 'att', 'ftt', 'stt']:
             s_lefts= [0]
         elif qe_key in ['p_p', 'x_p', 'a_p', 'f_p']:
             s_lefts= [-2, 2]
@@ -84,6 +84,11 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None, transf=None):
             return uqe.qe_simplify(uqe.qe_proj(qes, qe_key[2], qe_key[3]) + uqe.qe_proj(qes, qe_key[3], qe_key[2]))
         else:
             assert 0, 'qe key %s  not recognized'%qe_key
+    elif qe_key in ['ntt']:
+        lega = uqe.qeleg(0, 0, 1   * _clinv(transf[:lmax + 1]))
+        legb = uqe.qeleg(0, 0, 0.5 * _clinv(transf[:lmax + 1]))  # Weird norm to match PS case for no beam
+        qes = [uqe.qe(lega, legb, lambda ell: np.ones(len(ell), dtype=float))]
+
     else:
         assert 0, qe_key + ' not implemented'
 
