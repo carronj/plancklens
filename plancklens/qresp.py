@@ -296,7 +296,60 @@ def get_response(qe_key, lmax_ivf, source, cls_weight, cls_cmb, fal, fal_leg2=No
         return RGG, RCC, RGC, RCG
 
     qes = get_qes(qe_key, lmax_ivf, cls_weight, lmax2=lmax_ivf2, transf=transf)
-    return _get_response(qes, source, cls_cmb, fal, lmax_qlm, fal_leg2=fal_leg2)
+    customR =  _get_response_custom(qe_key, qes, source, fal, lmax_qlm, fal_leg2=fal_leg2, transf=transf)
+    if customR is None:
+        return _get_response(qes, source, cls_cmb, fal, lmax_qlm, fal_leg2=fal_leg2)
+    return customR
+
+
+def _get_response_custom(qe_key, qes, source, fal_leg1, lmax_qlm, fal_leg2=None, transf=None):
+    """Customized response code for selected keys """
+    fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
+    if 'tt' in qe_key and source in ['n', 'ntt']:
+        assert transf is not None
+        # mask source keys does not fit under original parametrization scheme of plancklens
+        # here source has spin 0 and qe can have any spin
+        RGG = np.zeros(lmax_qlm + 1, dtype=float)
+        RCC = np.zeros(lmax_qlm + 1, dtype=float)
+        RGC = np.zeros(lmax_qlm + 1, dtype=float)
+        RCG = np.zeros(lmax_qlm + 1, dtype=float)
+        Ls = np.arange(lmax_qlm + 1, dtype=int)
+        transfi = _clinv(transf)
+        for qe in qes:
+            si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
+            so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
+            s_qe  = abs(so + to)
+            s_source = 0
+            assert (si, ti) == (0, 0)
+            s2, t2 = (0, 0) # Temperature only noise maps
+            FA = uspin.get_spin_matrix(si, s2, fal_leg1)
+            FB = uspin.get_spin_matrix(ti, t2, fal_leg2)
+            if np.any(FB) and np.any(FB):
+                # qe_spin positive:
+                clA = ut.joincls([qe.leg_a.cl, FA, transfi ])
+                clB = ut.joincls([qe.leg_b.cl, FB, transfi ])
+                Rpr_st = uspin.wignerc(clA, clB, so, s2, to, t2, lmax_out=lmax_qlm)
+
+                # qe_spin negative
+                if s_qe > 0:
+                    fac = (-1) ** (so + si + to + ti)
+                    FA = uspin.get_spin_matrix(-si, s2, fal_leg1)
+                    FB = uspin.get_spin_matrix(-ti, t2, fal_leg2)
+                    clA = ut.joincls([qe.leg_a.cl.conj(), FA,  transfi])
+                    clB = ut.joincls([qe.leg_b.cl.conj(), FB,  transfi])
+                    Rmr_st = fac * uspin.wignerc(clA, clB, -so, s2, -to, t2, lmax_out=lmax_qlm)
+                else:
+                    Rmr_st = Rpr_st
+                prefac = 0.5 * qe.cL(Ls)
+                RGG += prefac * ( Rpr_st.real + Rmr_st.real * (-1) ** s_qe)
+                RCC += prefac * ( Rpr_st.real - Rmr_st.real * (-1) ** s_qe)
+                RGC += prefac * (-Rpr_st.imag + Rmr_st.imag * (-1) ** s_qe)
+                RCG += prefac * ( Rpr_st.imag + Rmr_st.imag * (-1) ** s_qe)
+
+        return RGG, RCC, RGC, RCG
+    else:
+        return None
+
 
 def get_dresponse_dlncl(qe_key, l, cl_key, lmax_ivf, source, cls_weight, cls_cmb, fal_leg1,
                         fal_leg2=None, lmax_ivf2=None, lmax_out=None):
