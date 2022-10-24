@@ -34,7 +34,7 @@ class cmb_maps(object):
             if mpi.rank == 0 and not os.path.exists(fn_hash):
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
             mpi.barrier()
-            hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')))
+            hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')), fn=fn_hash)
 
     def hashdict(self):
         ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(),'nside':self.nside,'cl_transf':clhash(self.cl_transf_T)}

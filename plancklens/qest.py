@@ -79,7 +79,7 @@ class library:
             pk.dump(self.hashdict(), open(fnhash, 'wb'), protocol=2)
         mpi.barrier()
 
-        ut.hash_check(pk.load(open(fnhash, 'rb')), self.hashdict())
+        ut.hash_check(pk.load(open(fnhash, 'rb')), self.hashdict(), fn=fnhash)
         if mpi.rank == 0:
             if not os.path.exists(os.path.join(lib_dir, 'fskies.dat')):
                 print("Caching sky fractions...")

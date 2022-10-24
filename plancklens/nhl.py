@@ -119,7 +119,7 @@ class nhl_lib_simple:
             if not os.path.exists(fn_hash):
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
         mpi.barrier()
-        utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict(), fn=fn_hash)
 
         self.lib_dir = lib_dir
         self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
@@ -333,6 +333,7 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
             fal['te'] = np.copy(cls_filt['te'][:lmax_ivf + 1])
             dat_delcls['te'] = np.copy(cls_plen_true['te'][:lmax_ivf + 1])
         fal = utils.cl_inverse(fal)
+        # TODO: Should update if we use different lmin_ivf for T, E and B ?
         for cl in fal.values():
             cl[:lmin_ivf] *= 0.
         for cl in dat_delcls.values():
@@ -380,4 +381,6 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
         ret += (delcls_fid, delcls_true)
     if ret_resp:
         ret += (r_gg_fid, r_gg_true)
+    if 'wN1' in version:
+        ret+= (N1s_biased, N1s_unbiased)
     return ret

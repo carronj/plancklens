@@ -150,7 +150,7 @@ class sims_cmb_len:
         if mpi.rank == 0 and not os.path.exists(fn_hash) :
             pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
         mpi.barrier()
-        utils.hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')))
+        utils.hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')), fn=fn_hash)
         try:
             import lenspyx
         except ImportError:
