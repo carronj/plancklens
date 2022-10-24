@@ -16,7 +16,7 @@ from plancklens import qresp
 
 _write_alm = lambda fn, alm : hp.write_alm(fn, alm, overwrite=True)
 
-def eval_qe(qe_key, lmax_ivf, cls_weight, get_alm, nside, lmax_qlm, verbose=True):
+def eval_qe(qe_key, lmax_ivf, cls_weight, get_alm, nside, lmax_qlm, verbose=True, get_alm2=None, transf=None):
     """Evaluates a quadratic estimator gradient and curl terms.
 
         (see 'library' below for QE estimation coupled to CMB inverse-variance filtered simulation libraries,
@@ -29,13 +29,14 @@ def eval_qe(qe_key, lmax_ivf, cls_weight, get_alm, nside, lmax_qlm, verbose=True
             get_alm: callable with 't', 'e', 'b' arguments, returning the corresponding inverse-variance filtered CMB map
             nside: the estimator are calculated in position space at healpy resolution nside.
             lmax_qlm: gradient and curl terms are obtained up to multipole lmax_qlm.
+            get_alm2: maps for second leg if different from first. The estimator is symmetrized
 
         Returns:
             glm and clm healpy arrays (gradient and curl terms of the QE estimate)
 
     """
-    qe_list = qresp.get_qes(qe_key, lmax_ivf, cls_weight)
-    return uqe.qe_eval(qe_list, nside, get_alm, lmax_qlm, verbose=verbose)
+    qe_list = qresp.get_qes(qe_key, lmax_ivf, cls_weight, transf=transf)
+    return uqe.qe_eval(qe_list, nside, get_alm, lmax_qlm, verbose=verbose, get_alm2=get_alm2)
 
 
 def library_jtTP(lib_dir, ivfs1, ivfs2, nside, lmax_qlm=None, resplib=None):

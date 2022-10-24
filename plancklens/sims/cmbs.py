@@ -57,6 +57,7 @@ class sims_cmb_unl:
             else:
                 self._cl_hash[k] =utils.clhash(cls_unl[k] + self.plm)
         self.rmat = rmat
+        self.lmax = lmax
         self.lib_pha = lib_pha
         self.fields = fields
 

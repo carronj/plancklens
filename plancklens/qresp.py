@@ -40,9 +40,13 @@ import pickle as pk
 from plancklens import utils as ut, utils_spin as uspin, utils_qe as uqe
 from plancklens.helpers import mpi, sql
 
+def _clinv(cl):
+    ret = np.zeros_like(cl)
+    ii = np.where(cl != 0)
+    ret[ii] = 1./cl[ii]
+    return ret
 
-
-def get_qes(qe_key, lmax, cls_weight, lmax2=None):
+def get_qes(qe_key, lmax, cls_weight, lmax2=None, transf=None):
     """ Defines the quadratic estimator weights for quadratic estimator key.
 
     Args:
@@ -67,7 +71,7 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None):
         for s_left in s_lefts:
             for sin in s_rights_in:
                 sout = -s_left
-                s_qe, irr1, cl_sosi, cL_out =  get_covresp(qe_key[0], sout, sin, cls_weight, lmax2)
+                s_qe, irr1, cl_sosi, cL_out =  get_covresp(qe_key[0], sout, sin, cls_weight, lmax2, transf=transf)
                 if np.any(cl_sosi):
                     lega = uqe.qeleg(s_left, s_left, 0.5 *(1. + (s_left == 0)) * np.ones(lmax + 1, dtype=float))
                     legb = uqe.qeleg(sin, sout + s_qe, 0.5 * (1. + (sin == 0)) * 2 * cl_sosi)
@@ -80,6 +84,18 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None):
             return uqe.qe_simplify(uqe.qe_proj(qes, qe_key[2], qe_key[3]) + uqe.qe_proj(qes, qe_key[3], qe_key[2]))
         else:
             assert 0, 'qe key %s  not recognized'%qe_key
+    elif qe_key in ['ntt']:
+        lega = uqe.qeleg(0, 0, 1   * _clinv(transf[:lmax + 1]))
+        legb = uqe.qeleg(0, 0, 0.5 * _clinv(transf[:lmax + 1]))  # Weird norm to match PS case for no beam
+        qes = [uqe.qe(lega, legb, lambda L: np.ones(len(L), dtype=float))]
+        return uqe.qe_simplify(qes)
+    elif qe_key in ['ktt']:
+        ls = np.arange(1, lmax + 3)
+        dlnDldlnl = ls[:-1] * np.diff(np.log(cls_weight['tt'][ls] * ls * (ls + 1)))
+        lega = uqe.qeleg(0, 0, np.ones(lmax + 1, dtype=float))
+        legb = uqe.qeleg(0, 0, 0.5 * cls_weight['tt'][:lmax+1] * dlnDldlnl)
+        qes = [uqe.qe(lega, legb, lambda L: -L * (L + 1.))]
+        return uqe.qe_simplify(qes)
     else:
         assert 0, qe_key + ' not implemented'
 
@@ -115,7 +131,7 @@ def get_resp_legs(source, lmax):
 
     assert 0, source + ' response legs not implemented'
 
-def get_covresp(source, s1, s2, cls, lmax):
+def get_covresp(source, s1, s2, cls, lmax, transf=None):
     r"""Defines the responses terms for a CMB covariance anisotropy source.
 
         \delta < s_d(n) _td^*(n')> \equiv
@@ -137,6 +153,11 @@ def get_covresp(source, s1, s2, cls, lmax):
         mrR = 0.25 * cond * np.ones(lmax + 1, dtype=float)
         cL_scal =  lambda ell : np.ones(len(ell), dtype=float)
         return s_source, prR, mrR, cL_scal
+    elif source in ['ntt', 'n']:
+        assert transf is not None
+        cL_scal =  lambda ell : np.ones(len(ell), dtype=float)
+        assert 0, 'dont think this parametrization works here'
+        return s_source, prR, mrR, cL_scal
     else:
         assert 0, 'source ' + source + ' cov. response not implemented'
 
@@ -147,7 +168,9 @@ def qe_spin_data(qe_key):
         unordered list of unique spins (>= 0) input to the estimator, and the spin-1 qe key.
 
     """
-    qes = get_qes(qe_key, 3, {k:np.array([1.]) for k in ['tt', 'te', 'ee', 'bb']})
+    if qe_key in ['ntt']:
+        return 0, 'G', [0], 'n'
+    qes = get_qes(qe_key, 10, {k:np.ones(11 + 4, dtype=float) for k in ['tt', 'te', 'ee', 'bb']}) #Hack
     spins_out = [qe.leg_a.spin_ou + qe.leg_b.spin_ou for qe in qes]
     spins_in = np.unique(np.abs([qe.leg_a.spin_in for qe in qes] + [qe.leg_b.spin_in for qe in qes]))
     assert len(np.unique(spins_out)) == 1, spins_out
@@ -172,12 +195,13 @@ class resp_lib_simple:
             lmax_qlm(optional): responses are calculated up to this multipole. Defaults to lmax_ivf + lmax_ivf2
 
     """
-    def __init__(self, lib_dir, lmax_ivf, cls_weight, cls_cmb, fal, lmax_qlm):
+    def __init__(self, lib_dir, lmax_ivf, cls_weight, cls_cmb, fal, lmax_qlm, transf=None):
         self.lmax_qe = lmax_ivf
         self.lmax_qlm = lmax_qlm
         self.cls_weight = cls_weight
         self.cls_cmb = cls_cmb
         self.fal = fal
+        self.transf = transf
         self.lib_dir = lib_dir
 
         fn_hash = os.path.join(lib_dir, 'resp_hash.pk')
@@ -224,7 +248,7 @@ class resp_lib_simple:
         fn = 'qe_' + ksp + k[1:] + '_source_%s_'%ksource + GorC + GorC
         if self.npdb.get(fn) is None or recache:
             GG, CC, GC, CG = get_response(k, self.lmax_qe, ksource, self.cls_weight, self.cls_cmb, self.fal,
-                                lmax_qlm=self.lmax_qlm)
+                                lmax_qlm=self.lmax_qlm, transf=self.transf)
             if np.any(CG) or np.any(GC):
                 print("Warning: C-G or G-C responses non-zero but not returned")
                 # This may happen only if EB and/or TB are relevant and/or strange estimator mix.
@@ -239,7 +263,7 @@ class resp_lib_simple:
         return self.npdb.get(fn)
 
 
-def get_response(qe_key, lmax_ivf, source, cls_weight, cls_cmb, fal, fal_leg2=None, lmax_ivf2=None, lmax_qlm=None):
+def get_response(qe_key, lmax_ivf, source, cls_weight, cls_cmb, fal, fal_leg2=None, lmax_ivf2=None, lmax_qlm=None, transf=None):
     r"""QE response calculation
 
         Args:
@@ -265,21 +289,74 @@ def get_response(qe_key, lmax_ivf, source, cls_weight, cls_cmb, fal, fal_leg2=No
         assert len(hsource) == 1, hsource
         h = hsource[0]
         RGG_ks, RCC_ks, RGC_ks, RCG_ks = get_response(k, lmax_ivf, source, cls_weight, cls_cmb, fal,
-                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm)
+                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm, transf=transf)
         RGG_hs, RCC_hs, RGC_hs, RCG_hs = get_response(h + k[1:], lmax_ivf, source, cls_weight, cls_cmb, fal,
-                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm)
+                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm, transf=transf)
         RGG_kh, RCC_kh, RGC_kh, RCG_kh = get_response(k, lmax_ivf, h, cls_weight, cls_cmb, fal,
-                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm)
+                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm, transf=transf)
         RGG_hh, RCC_hh, RGC_hh, RCG_hh = get_response(h + k[1:], lmax_ivf, h, cls_weight, cls_cmb, fal,
-                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm)
+                                                    fal_leg2=fal_leg2, lmax_ivf2=lmax_ivf2, lmax_qlm=lmax_qlm, transf=transf)
         RGG = RGG_ks - (RGG_kh * RGG_hs  * ut.cli(RGG_hh) + RGC_kh * RCG_hs  * ut.cli(RCC_hh))
         RCC = RCC_ks - (RCG_kh * RGC_hs  * ut.cli(RGG_hh) + RCC_kh * RCC_hs  * ut.cli(RCC_hh))
         RGC = RGC_ks - (RGG_kh * RGC_hs  * ut.cli(RGG_hh) + RGC_kh * RCC_hs  * ut.cli(RCC_hh))
         RCG = RCG_ks - (RCG_kh * RGG_hs  * ut.cli(RGG_hh) + RCC_kh * RCG_hs  * ut.cli(RCC_hh))
         return RGG, RCC, RGC, RCG
 
-    qes = get_qes(qe_key, lmax_ivf, cls_weight, lmax2=lmax_ivf2)
-    return _get_response(qes, source, cls_cmb, fal, lmax_qlm, fal_leg2=fal_leg2)
+    qes = get_qes(qe_key, lmax_ivf, cls_weight, lmax2=lmax_ivf2, transf=transf)
+    customR =  _get_response_custom(qe_key, qes, source, fal, lmax_qlm, fal_leg2=fal_leg2, transf=transf)
+    if customR is None:
+        return _get_response(qes, source, cls_cmb, fal, lmax_qlm, fal_leg2=fal_leg2)
+    return customR
+
+
+def _get_response_custom(qe_key, qes, source, fal_leg1, lmax_qlm, fal_leg2=None, transf=None):
+    """Customized response code for selected keys """
+    fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
+    if 'tt' in qe_key and source in ['n', 'ntt']:
+        assert transf is not None
+        # mask source keys does not fit under original parametrization scheme of plancklens
+        # here source has spin 0 and qe can have any spin
+        RGG = np.zeros(lmax_qlm + 1, dtype=float)
+        RCC = np.zeros(lmax_qlm + 1, dtype=float)
+        RGC = np.zeros(lmax_qlm + 1, dtype=float)
+        RCG = np.zeros(lmax_qlm + 1, dtype=float)
+        Ls = np.arange(lmax_qlm + 1, dtype=int)
+        transfi = _clinv(transf)
+        for qe in qes:
+            si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
+            so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
+            s_qe  = abs(so + to)
+            s_source = 0
+            assert (si, ti) == (0, 0)
+            s2, t2 = (0, 0) # Temperature only noise maps
+            FA = uspin.get_spin_matrix(si, s2, fal_leg1)
+            FB = uspin.get_spin_matrix(ti, t2, fal_leg2)
+            if np.any(FB) and np.any(FB):
+                # qe_spin positive:
+                clA = ut.joincls([qe.leg_a.cl, FA, transfi ])
+                clB = ut.joincls([qe.leg_b.cl, FB, transfi ])
+                Rpr_st = uspin.wignerc(clA, clB, so, s2, to, t2, lmax_out=lmax_qlm)
+
+                # qe_spin negative
+                if s_qe > 0:
+                    fac = (-1) ** (so + si + to + ti)
+                    FA = uspin.get_spin_matrix(-si, s2, fal_leg1)
+                    FB = uspin.get_spin_matrix(-ti, t2, fal_leg2)
+                    clA = ut.joincls([qe.leg_a.cl.conj(), FA,  transfi])
+                    clB = ut.joincls([qe.leg_b.cl.conj(), FB,  transfi])
+                    Rmr_st = fac * uspin.wignerc(clA, clB, -so, s2, -to, t2, lmax_out=lmax_qlm)
+                else:
+                    Rmr_st = Rpr_st
+                prefac = 0.5 * qe.cL(Ls)
+                RGG += prefac * ( Rpr_st.real + Rmr_st.real * (-1) ** s_qe)
+                RCC += prefac * ( Rpr_st.real - Rmr_st.real * (-1) ** s_qe)
+                RGC += prefac * (-Rpr_st.imag + Rmr_st.imag * (-1) ** s_qe)
+                RCG += prefac * ( Rpr_st.imag + Rmr_st.imag * (-1) ** s_qe)
+
+        return RGG, RCC, RGC, RCG
+    else:
+        return None
+
 
 def get_dresponse_dlncl(qe_key, l, cl_key, lmax_ivf, source, cls_weight, cls_cmb, fal_leg1,
                         fal_leg2=None, lmax_ivf2=None, lmax_out=None):
