@@ -25,9 +25,11 @@ def _get_fields(cls):
 class sims_cmb_unl:
     """Unlensed CMB skies simulation library.
 
+    plm: Provided if you want to lens the sims with the same lensing potential
     """
-    def __init__(self, cls_unl, lib_pha):
+    def __init__(self, cls_unl, lib_pha, plm=None):
         lmax = lib_pha.lmax
+        self.plm = plm
         lmin = 0
         fields = _get_fields(cls_unl)
         Nf = len(fields)
@@ -50,7 +52,10 @@ class sims_cmb_unl:
 
         self._cl_hash = {}
         for k in cls_unl.keys():
-            self._cl_hash[k] =utils.clhash(cls_unl[k])
+            if self.plm is None:
+                self._cl_hash[k] =utils.clhash(cls_unl[k])
+            else:
+                self._cl_hash[k] =utils.clhash(cls_unl[k] + self.plm)
         self.rmat = rmat
         self.lib_pha = lib_pha
         self.fields = fields
@@ -64,7 +69,14 @@ class sims_cmb_unl:
         # FIXME : triangularise this
         ret = hp.almxfl(self.lib_pha.get_sim(idx, idf=0), self.rmat[:, idf, 0])
         for _i in range(1,len(self.fields)):
-            ret += hp.almxfl(self.lib_pha.get_sim(idx, idf=_i), self.rmat[:, idf, _i])
+            if idf == self.fields.index('p'):
+                if self.plm is not None:
+                    if verbose: print('Use input plm for sims')
+                    ret = self.plm
+                else:
+                    ret += hp.almxfl(self.lib_pha.get_sim(idx, idf=_i), self.rmat[:, idf, _i])
+            else:
+                ret += hp.almxfl(self.lib_pha.get_sim(idx, idf=_i), self.rmat[:, idf, _i])
         return ret
 
     def get_sim_alm(self, idx, field):
@@ -121,7 +133,7 @@ class sims_cmb_len:
             verbose(defaults to True): lenspyx timing info printout
 
     """
-    def __init__(self, lib_dir, lmax, cls_unl, lib_pha=None,
+    def __init__(self, lib_dir, lmax, cls_unl, lib_pha=None, plm=None,
                  dlmax=1024, nside_lens=4096, facres=0, nbands=16, verbose=True):
         if not os.path.exists(lib_dir) and mpi.rank == 0:
             os.makedirs(lib_dir)
@@ -134,15 +146,15 @@ class sims_cmb_len:
             assert lib_pha.lmax == lmax + dlmax
         mpi.barrier()
 
-
         self.lmax = lmax
         self.dlmax = dlmax
         # lenspyx parameters:
         self.nside_lens = nside_lens
         self.nbands = nbands
         self.facres = facres
+        self.plm = plm
 
-        self.unlcmbs = sims_cmb_unl(cls_unl, lib_pha)
+        self.unlcmbs = sims_cmb_unl(cls_unl, lib_pha, plm=self.plm)
         self.lib_dir = lib_dir
         self.fields = _get_fields(cls_unl)
 
@@ -160,8 +172,12 @@ class sims_cmb_len:
         self.verbose=verbose
 
     def hashdict(self):
-        return {'unl_cmbs': self.unlcmbs.hashdict(),'lmax':self.lmax,
-                'nside_lens':self.nside_lens, 'facres':self.facres}
+        if self.plm is None:
+            return {'unl_cmbs': self.unlcmbs.hashdict(),'lmax':self.lmax,
+                    'nside_lens':self.nside_lens, 'facres':self.facres}
+        else:
+            return {'unl_cmbs': self.unlcmbs.hashdict(),'lmax':self.lmax,
+                    'nside_lens':self.nside_lens, 'facres':self.facres, 'plm':utils.clhash(self.plm)}
 
     def _is_full(self):
         return self.unlcmbs.lib_pha.is_full()

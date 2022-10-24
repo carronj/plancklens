@@ -105,11 +105,14 @@ class library:
 
         self.resplib = resplib
 
-        self.keys_fund = ['ptt', 'xtt', 'p_p', 'x_p', 'p', 'x', 'stt', 'ftt','f_p', 'f','dtt', 'ntt', 'a_p',
+        self.keys_fund = ['ptt', 'xtt', 'p_p', 'x_p', 'p', 'x', 'stt', 's', 'ftt','f_p', 'f','dtt', 'ntt', 'a_p',
                           'pte', 'pet', 'ptb', 'pbt', 'pee', 'peb', 'pbe', 'pbb',
                           'xte', 'xet', 'xtb', 'xbt', 'xee', 'xeb', 'xbe', 'xbb']
         self.keys = self.keys_fund + ['p_tp', 'x_tp', 'p_te', 'p_tb', 'p_eb', 'x_te', 'x_tb', 'x_eb', 'ptt_bh_n',
-                                      'ptt_bh_s', 'ptt_bh_f', 'ptt_bh_d', 'dtt_bh_p', 'stt_bh_p', 'ftt_bh_d']
+                                      'ptt_bh_s', 'ptt_bh_f', 'ptt_bh_d', 'dtt_bh_p', 'stt_bh_p', 'ftt_bh_d',
+                                      'p_bh_s']
+        #TODO: remove self.keys
+        self.keys_remaps = {'s':'stt'} # equivalent keys
 
     def hashdict(self):
         return {'f2map1': self.f2map1.hashdict(),
@@ -122,7 +125,6 @@ class library:
             _klist = k_list
         ret = []
         for k in _klist:
-            assert k in self.keys, (k, self.keys)
             if k in self.keys_fund:
                 ret.append(k)
             elif '_tp' in k:
@@ -158,7 +160,7 @@ class library:
                 lmax: optionally reduces the lmax of the output healpy array.
 
         """
-        assert k in self.keys, (k, self.keys)
+        k = self.keys_remaps.get(k, k)
         if lmax is None :
             lmax = self.get_lmax_qlm(k)
         assert lmax <= self.get_lmax_qlm(k)
@@ -170,7 +172,7 @@ class library:
         if '_bh_' in k: # Bias-hardening
             assert self.resplib is not None, 'resplib arg necessary for this'
             kQE, ksource = k.split('_bh_')
-            assert len(ksource) == 1 and ksource + kQE[1:] in self.keys, (ksource, kQE)
+            assert len(ksource) == 1, (ksource, kQE)
             assert self.get_lmax_qlm(kQE) == self.get_lmax_qlm(ksource + kQE[1:]), 'fix this (easy)'
             lmax = self.get_lmax_qlm(kQE)
             wL = self.resplib.get_response(kQE, ksource) * ut.cli(self.resplib.get_response(ksource + kQE[1:], ksource))
@@ -209,6 +211,7 @@ class library:
                 lmax: optionally reduces the lmax of the output healpy array.
 
         """
+        k = self.keys_remaps.get(k, k)
         if lmax is None:
             lmax = self.get_lmax_qlm(k)
         assert lmax <= self.get_lmax_qlm(k)
@@ -221,7 +224,7 @@ class library:
         if '_bh_' in k: # Bias-hardening
             assert self.resplib is not None, 'resplib arg necessary for this'
             kQE, ksource = k.split('_bh_')
-            assert len(ksource) == 1 and ksource + kQE[1:] in self.keys, (ksource, kQE)
+            assert len(ksource) == 1, (ksource, kQE)
             assert self.get_lmax_qlm(kQE) == self.get_lmax_qlm(ksource + kQE[1:]), 'fix this (easy)'
             lmax = self.get_lmax_qlm(kQE)
             wL = self.resplib.get_response(kQE, ksource) * ut.cli(self.resplib.get_response(ksource + kQE[1:], ksource))
