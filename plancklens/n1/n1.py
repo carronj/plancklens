@@ -129,7 +129,7 @@ class library_n1:
             os.makedirs(lib_dir)
         if not os.path.exists(os.path.join(lib_dir, 'n1_hash.pk')):
             pk.dump(self.hashdict(), open(os.path.join(lib_dir, 'n1_hash.pk'), 'wb'), protocol=2)
-        hash_check(self.hashdict(), pk.load(open(os.path.join(lib_dir, 'n1_hash.pk'), 'rb')))
+        hash_check(self.hashdict(), pk.load(open(os.path.join(lib_dir, 'n1_hash.pk'), 'rb')), fn=os.path.join(lib_dir, 'n1_hash.pk'))
         self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
         self.fldb = sql.fldb(os.path.join(lib_dir, 'fldb.db'))
 
@@ -278,8 +278,9 @@ class library_n1:
             if kA < kB:
                 return self._get_n1_L(L, kB, kA, k_ind, cl_kind, ftlB, felB, fblB, ftlA, felA, fblA, clttfid, cltefid, cleefid)
             else:
-                lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlA, felA, fblA]])
-                lmin_ftlB = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlB, felB, fblB]])
+                # print([np.min(np.where(np.abs(fal) > 0.)[0]) for fal in [ftlA, felA, fblA]])
+                lmin_ftlA = np.min([np.min(np.where(np.abs(fal) > 0.)[0]) for fal in [ftlA, felA, fblA]])
+                lmin_ftlB = np.min([np.min(np.where(np.abs(fal) > 0.)[0]) for fal in [ftlB, felB, fblB]])
                 lmax_ftl = np.max([len(fal) for fal in [ftlA, felA, fblA, ftlB, felB, fblB]]) - 1
                 assert len(clttfid) > lmax_ftl and len(self.cltt) > lmax_ftl
                 assert len(cltefid) > lmax_ftl and len(self.clte) > lmax_ftl

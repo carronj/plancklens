@@ -5,6 +5,7 @@ Collects a couple of misc. utility functions.
 """
 from __future__ import print_function
 from __future__ import division
+from ast import Raise
 
 import os
 
@@ -141,19 +142,24 @@ def joincls(cls_list):
     lmaxp1 = np.min([len(cl) for cl in cls_list])
     return np.prod(np.array([cl[:lmaxp1] for cl in cls_list]), axis=0)
 
-def hash_check(hash1, hash2, ignore=['lib_dir', 'prefix'], keychain=[]):
+def hash_check(hash1, hash2, ignore=['lib_dir', 'prefix'], keychain=[], fn=None):
     keys1 = hash1.keys()
     keys2 = hash2.keys()
-
     for key in ignore:
         if key in keys1: keys1.remove(key)
         if key in keys2: keys2.remove(key)
 
     for key in set(keys1).union(set(keys2)):
-        v1 = hash1[key]
-        v2 = hash2[key]
-
+        # v1 = hash1[key]
+        # v2 = hash2[key]
+        try:
+            v1 = hash1[key]
+            v2 = hash2[key]
+        except KeyError:
+            raise KeyError(f"Cannot find key {key} in hashdict {fn}")
+        
         def hashfail(msg=None):
+            print(f"CHECKING HASHFILE {fn}")
             print("ERROR: HASHCHECK FAIL AT KEY = " + ':'.join(keychain + [key]))
             if msg is not None:
                 print("   " + msg)
@@ -164,7 +170,7 @@ def hash_check(hash1, hash2, ignore=['lib_dir', 'prefix'], keychain=[]):
         if type(v1) != type(v2):
             hashfail('UNEQUAL TYPES')
         elif type(v2) == dict:
-            hash_check( v1, v2, ignore=ignore, keychain=keychain + [key] )
+            hash_check( v1, v2, ignore=ignore, keychain=keychain + [key], fn=fn )
         elif type(v1) == np.ndarray:
             if not np.allclose(v1, v2):
                 hashfail('UNEQUAL ARRAY')

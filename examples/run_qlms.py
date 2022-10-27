@@ -55,7 +55,7 @@ if args.ivp:
     if args.ds and args.imin >= 0: #  Make data to avoid problems with ds librairies
         jobs += [(-1, 'p')]
 for i, (idx, lab) in enumerate(jobs[mpi.rank::mpi.size]):
-    print('rank %s filtering sim %s %s, job %s in %s' % (mpi.rank, idx, lab, i, len(jobs)))
+    print('rank %s filtering sim %s %s, job %s in %s' % (mpi.rank, idx, lab, i, len(jobs[mpi.rank::mpi.size])))
     if lab == 't':
         par.ivfs.get_sim_tlm(idx)
     elif lab == 'p':
