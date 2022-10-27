@@ -314,6 +314,6 @@ def get_nhls(qe_key1, qe_key2, cls_cmb_dat, cls_cmb_filt, cls_weight, lmin, lmax
             ivf_cls = get_ivf_cls(cls_cmb_dat, cls_cmb_filt, lmin, lmax, nlevt_f, nlevp_f, nlevt_m, nlevp_m, transf, jt_tp=joint_TP)[0]
             this_nhl = nhl.get_nhl(qe_key1, qe_key2, cls_weight, ivf_cls, lmax, lmax, lmax_out=lmax_qlm)
             cacher.cache(fname, this_nhl)
-        Nhls.append(np.arrray(cacher.load(fname)))
+        Nhls.append(np.array(cacher.load(fname)))
     return np.array(Nhls)
 

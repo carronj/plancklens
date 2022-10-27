@@ -69,7 +69,7 @@ def read_map(m):
     if isinstance(m, list):
         ma = read_map(m[0])
         for m2 in m[1:]:
-            ma *= read_map(m2)
+            ma = ma * read_map(m2)
         return ma
     if not isinstance(m, str):
         return m
