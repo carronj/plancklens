@@ -9,9 +9,9 @@ class sim_lib_shuffle:
         self.sim_lib = sim_lib
         self._shuffle = shuffle_dict
 
-    def get_sim_tmap(self, idx): return self.sim_lib.get_sim_tmap(self._shuffle[idx])
+    def get_sim_tmap(self, idx): return self.sim_lib.get_sim_tmap(int(self._shuffle[idx]))
 
-    def get_sim_pmap(self, idx): return self.sim_lib.get_sim_pmap(self._shuffle[idx])
+    def get_sim_pmap(self, idx): return self.sim_lib.get_sim_pmap(int(self._shuffle[idx]))
 
     def hashdict(self):
         return {'sim_lib': self.sim_lib.hashdict(), 'shuffle': self._shuffle}
