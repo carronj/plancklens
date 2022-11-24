@@ -31,6 +31,8 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
            cls_len:dict or None =None, cls_weight:dict or None=None,
            joint_TP=True, ksource='p'):
     r"""Example function to calculates reconstruction noise levels for a bunch of quadratic estimators
+
+
         Args:
             beam_fwhm: beam fwhm in arcmin, assuming gaussian shape.
             nlev_t: T white noise level in uK-arcmin (an array of size lmax_CMB can be passed for scale-dependent noise level)
@@ -42,8 +44,12 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
             cls_weight: CMB spectra entering the QE weights (defaults to FFP10 lensed CMB spectra)
             joint_TP: if True include calculation of the N0s for the GMV estimator (incl. joint T and P filtering)
             ksource: anisotropy source to consider (defaults to 'p', lensing)
+
+
         Returns:
             N0s array for the lensing gradient and curl modes for  the T-only, P-onl and (G)MV estimators
+
+
         Prompted by AL
     """
     if nlev_p is None:
@@ -187,9 +193,11 @@ def dls2cls(dls):
 def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarray, beam_fwhm:float, cls_unl_fid:dict, lmin_cmb:int or dict, lmax_cmb: int or dict, itermax, cls_unl_dat=None,
                 lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None, ret_curl=False):
     r"""Iterative lensing-N0 estimate
-        Calculates iteratively partially lensed spectra and lensing noise levels.
-        This uses the python camb package to get the partially lensed spectra.
+
+        This calculates iteratively partially lensed spectra and lensing noise levels.
         At each iteration this takes out the resolved part of the lenses and recomputes a N0
+
+
         Args:
             qe_key: QE estimator key
             nlev_t: temperature noise level (in :math:`\mu `K-arcmin) (an array can be passed for scale-dependent noise level)
@@ -202,10 +210,15 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
             lmax_qlm(optional): maximum lensing multipole to consider. Defaults to 2 lmax_ivf
             ret_delcls(optional): returns the partially delensed CMB cls as well if set
             datnoise_cls(optional): feeds in custom noise spectra to the data. The nlevs and beam only apply to the filtering in this case
+            ret_curl(optional): also returns lensing curl N0s
+
         Returns
             Array of shape (itermax + 1, lmax_qlm + 1) with all iterated N0s. First entry is standard N0.
+
+
         Note:
-            this is requiring camb python package for the lensed spectra calc.
+            this requires camb python package for the lensed spectra calc.
+
      """
     assert qe_key in ['p_p', 'p', 'ptt'], qe_key
     try:
