@@ -111,6 +111,22 @@ module gl
         pp = n*(x*pn-p2)/(x*x-1)
         end subroutine legp
 
+        subroutine legpalln(n, nx, x, pn) ! standard 3 terms rec for Pn, returns Pn(x) for all x ann all mutlipoles below n
+        implicit none
+        double precision, intent(in) :: x(nx)  ! cos(tht)
+        integer, intent(in) :: n, nx
+        double precision, intent(out) :: pn(0:n, 1:nx)
+        double precision p2(1:nx), p3(1:nx)
+        integer j
+        pn(0, :) = 1.0d0
+        p2(:) = 0.0d0
+        do j=1,n
+            p3 = p2
+            p2 = pn(j-1, :)
+            pn(j, :) = ((2*j-1)*x*p2-(j-1)*p3)/j
+        end do
+        end subroutine legpalln
+
 end module gl
 
 subroutine get_xgwg(x1, x2, x, w, n)
@@ -610,6 +626,7 @@ end subroutine wignerpos
 
 
 subroutine wignercoeff(cl, xi, x, s1, s2, lmax, nx)
+    ! This returns 2 pi \sum_x xi d^l_s1s2(x) for l up to lmax
     use gridutils, only : symgrid
     use jacobi, only:anbncn_jacobi, rescal_jacobi
     use poly, only: pos2pol_omp, pos2pol_omp_zsym, rescal_coeff

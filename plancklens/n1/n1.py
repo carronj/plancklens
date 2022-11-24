@@ -225,8 +225,8 @@ class library_n1:
                                              cltefid, cleefid, remove_only=remove_only))
 
                 else: # entire vector from f90 openmp call
-                    lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlA, felA, fblA]])
-                    lmin_ftlB = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlB, felB, fblB]])
+                    lmin_ftlA = np.min([np.min(np.where(np.abs(fal) > 0.)[0]) for fal in [ftlA, felA, fblA]])
+                    lmin_ftlB = np.min([np.min(np.where(np.abs(fal) > 0.)[0]) for fal in [ftlB, felB, fblB]])
                     n1L = n1f.n1(Ls, cl_kind, kA, kB, k_ind, self.cltt, self.clte, self.clee,
                                  clttfid, cltefid, cleefid,  ftlA, felA, fblA, ftlB, felB, fblB,
                                   lmin_ftlA, lmin_ftlB,  self.dL, self.lps)
@@ -277,8 +277,8 @@ class library_n1:
             if kA < kB:
                 return self._get_n1_L(L, kB, kA, k_ind, cl_kind, ftlB, felB, fblB, ftlA, felA, fblA, clttfid, cltefid, cleefid)
             else:
-                lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlA, felA, fblA]])
-                lmin_ftlB = np.min([np.where(np.abs(fal) > 0.)[0] for fal in [ftlB, felB, fblB]])
+                lmin_ftlA = np.min([np.where(np.abs(fal) > 0.)[0][0] for fal in [ftlA, felA, fblA]])
+                lmin_ftlB = np.min([np.where(np.abs(fal) > 0.)[0][0] for fal in [ftlB, felB, fblB]])
                 lmax_ftl = np.max([len(fal) for fal in [ftlA, felA, fblA, ftlB, felB, fblB]]) - 1
                 assert len(clttfid) > lmax_ftl and len(self.cltt) > lmax_ftl
                 assert len(cltefid) > lmax_ftl and len(self.clte) > lmax_ftl

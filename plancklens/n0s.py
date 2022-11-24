@@ -1,39 +1,22 @@
 """This module provides convenience functions to calculate curved-sky responses and reconstruction noise curve for lensing or other estimators
-
     In plancklens a QE is often described by a short string.
-
     For example 'ptt' stands for lensing (or lensing gradient mode) from temperature x temperature.
-
     Anisotropy source keys are a one-letter string including
         'p' (lensing gradient)
-
         'x' (lensing curl)
-
         's' (point sources)
-
         'f' (modulation field)
-
         'a' (polarization rotation)
-
     Typical keys include then:
         'ptt', 'xtt', 'stt', 'ftt' for the corresponding QEs from temperature only
-
         'p_p', 'x_p', 'f_p', 'a_p' for the corresponding QEs from polarization only (combining EE EB and BB if relevant)
-
         'p', 'x', 'f', 'a', 'f' ... for the MV (or GMV) combination
-
         'p_eb', ... for the EB estimator (this is the symmetrized version  ('peb' + 'pbe') / 2  so that E and B appear each once on the gradient and inverse-variance filtered leg)
-
-
     Bias-hardening can be included by inserting '_bh_'.
         E.g. 'ptt_bh_s' is the lensing TT QE bias-hardened against point source contamination using the 'stt' estimator
-
     Responses method takes as input the QE weights (typically the lensed CMB spectra) and the filtering cls ('fals')
     which describes the filtering applied to the maps (the :math:`(C + N)^{-1}` operation)
-
-
     *get_N0_iter* calculates an estimate of the N0s for iterative lensing estimator beyond the QE
-
 """
 
 import os
@@ -44,15 +27,16 @@ from plancklens import utils, qresp, nhl
 from copy import deepcopy
 
 
-def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p=None, lmax_CMB: dict or int =3000,  lmin_CMB=100, lmax_out=None,
+def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, lmax_CMB: dict or int =3000,  lmin_CMB=100, lmax_out=None,
            cls_len:dict or None =None, cls_weight:dict or None=None,
            joint_TP=True, ksource='p'):
     r"""Example function to calculates reconstruction noise levels for a bunch of quadratic estimators
 
+
         Args:
-            beam_fwhm: beam fwhm in arcmin
+            beam_fwhm: beam fwhm in arcmin, assuming gaussian shape.
             nlev_t: T white noise level in uK-arcmin (an array of size lmax_CMB can be passed for scale-dependent noise level)
-            nlev_p: P white noise level in uK-arcmin (defaults to root(2) nlevt) (can also be an array)
+            nlev_p: P white noise level in uK-arcmin (defaults to root(2) nlevt, if None) (can also be a (non-white) array of shape (lmax_CMB), or with either polarization or E and B noise separately, in which case the array is of shape (2,lmax_CMB)), and E noise expected at first
             lmax_CMB: max. CMB multipole used in the QE (use a dict with 't' 'e' 'b' keys instead of int to set different CMB lmaxes)
             lmin_CMB: min. CMB multipole used in the QE
             lmax_out: max lensing 'L' multipole calculated
@@ -61,8 +45,10 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p=None, lmax_CMB: 
             joint_TP: if True include calculation of the N0s for the GMV estimator (incl. joint T and P filtering)
             ksource: anisotropy source to consider (defaults to 'p', lensing)
 
+
         Returns:
             N0s array for the lensing gradient and curl modes for  the T-only, P-onl and (G)MV estimators
+
 
         Prompted by AL
     """
@@ -72,12 +58,44 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p=None, lmax_CMB: 
         lmaxs_CMB = {s: lmax_CMB for s in ['t', 'e', 'b']}
     else:
         lmaxs_CMB = lmax_CMB
-        print("Seeing lmax's:")
+        print("Seeing CMB lmax's:")
         for s in lmaxs_CMB.keys():
             print(s + ': ' + str(lmaxs_CMB[s]))
 
+    # If nlev_p is arraylike
+    if isinstance(nlev_p, (np.ndarray, list)):
+        if isinstance(nlev_p, list):
+            nlev_p = np.array(nlev_p)
+
+        # e = b (scale-dependent) (catching shape=(1,lmax) and shape=(1,2))
+        if nlev_p.shape[0] == 1:
+            nlev_e = nlev_p[0]
+            nlev_b = nlev_p[0]
+        # e =/= b (scale-dependent) (catching shape=(2,lmax) and shape=(2,2))
+        elif nlev_p.shape[0] == 2:
+            nlev_e = nlev_p[0]
+            nlev_b = nlev_p[1]
+        # e = b scale-dependent noise (catching shape=lmax and shape=1)
+        else:
+            nlev_e = nlev_p
+            nlev_b = nlev_p
+
+    # If nlev_p is single number
+    elif isinstance(nlev_p, (float, int, np.float, np.int)):
+            nlev_e = nlev_p
+            nlev_b = nlev_p
+    else:
+        print("Not sure about the datatype of your nlev_p: {}".format(type(nlev_p)))
+
     lmax_ivf =  np.max(list(lmaxs_CMB.values()))
-    lmin_ivf = lmin_CMB
+    if isinstance(lmin_CMB, dict):
+        lmins_ivf = lmin_CMB
+        print("Seeing lmin's:")
+        for s in lmins_ivf.keys():
+            print(s + ': ' + str(lmins_ivf[s]))
+    else:
+        lmins_ivf = {s: max(lmin_CMB, 1) for s in ['t', 'e', 'b']}
+
     lmax_qlm = lmax_out or lmax_ivf
     cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens.__file__)), 'data', 'cls')
     cls_len = cls_len or utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
@@ -91,17 +109,19 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p=None, lmax_CMB: 
     # Simple white noise model. Can feed here something more fancy if desired
     transf = hp.gauss_beam(beam_fwhm / 60. / 180. * np.pi, lmax=lmax_ivf)
     Noise_L_T = (nlev_t / 60. / 180. * np.pi) ** 2 / transf ** 2
-    Noise_L_P = (nlev_p / 60. / 180. * np.pi) ** 2 / transf ** 2
+    Noise_L_E = (nlev_e / 60. / 180. * np.pi) ** 2 / transf ** 2
+    Noise_L_B = (nlev_b / 60. / 180. * np.pi) ** 2 / transf ** 2
 
     # Data power spectra
     cls_dat = {
         'tt': (cls_len['tt'][:lmax_ivf + 1] + Noise_L_T),
-        'ee': (cls_len['ee'][:lmax_ivf + 1] + Noise_L_P),
-        'bb': (cls_len['bb'][:lmax_ivf + 1] + Noise_L_P),
+        'ee': (cls_len['ee'][:lmax_ivf + 1] + Noise_L_E),
+        'bb': (cls_len['bb'][:lmax_ivf + 1] + Noise_L_B),
         'te': np.copy(cls_len['te'][:lmax_ivf + 1])}
 
     for s in cls_dat.keys():
         cls_dat[s][min(lmaxs_CMB[s[0]], lmaxs_CMB[s[1]]) + 1:] *= 0.
+        cls_dat[s][:max(lmins_ivf[s[0]], lmins_ivf[s[1]])] *= 0.
 
     # (C+N)^{-1} filter spectra
     # For independent T and P filtering, this is really just 1/ (C+ N), diagonal in T, E, B space
@@ -115,8 +135,8 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p=None, lmax_CMB: 
     # since cls_dat = fals, cls_ivfs = fals. If the data spectra do not match the filter, this must be changed:
     cls_ivfs_jtTP = utils.cls_dot([fal_jtTP, cls_dat, fal_jtTP], ret_dict=True)
     for cls in [fal_sepTP, fal_jtTP, cls_ivfs_sepTP, cls_ivfs_jtTP]:
-        for cl in cls.values():
-            cl[:max(1, lmin_ivf)] *= 0.
+        for cl_key, cl_val in cls.items():
+            cls[cl_key][:max(1, lmins_ivf[cl_key[0]], lmins_ivf[cl_key[1]])] *= 0.
 
     N0s = {}
     N0_curls = {}
@@ -170,19 +190,18 @@ def dls2cls(dls):
     return cls
 
 
-def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarray, beam_fwhm:float, cls_unl_fid:dict, lmin_cmb, lmax_cmb, itermax, cls_unl_dat=None,
-                lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None):
+def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarray, beam_fwhm:float, cls_unl_fid:dict, lmin_cmb:int or dict, lmax_cmb: int or dict, itermax, cls_unl_dat=None,
+                lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None, ret_curl=False):
     r"""Iterative lensing-N0 estimate
 
-        Calculates iteratively partially lensed spectra and lensing noise levels.
-        This uses the python camb package to get the partially lensed spectra.
-
+        This calculates iteratively partially lensed spectra and lensing noise levels.
         At each iteration this takes out the resolved part of the lenses and recomputes a N0
+
 
         Args:
             qe_key: QE estimator key
             nlev_t: temperature noise level (in :math:`\mu `K-arcmin) (an array can be passed for scale-dependent noise level)
-            nlev_p: polarisation noise level (in :math:`\mu `K-arcmin)(an array can be passed for scale-dependent noise level)
+            nlev_p: polarisation noise level (in :math:`\mu `K-arcmin)(an array can be passed for scale-dependent noise level) can also be for E and B noise separately, in which case the array is of shape (2,lmax_CMB)), and E noise expected at first
             beam_fwhm: Gaussian beam full width half maximum in arcmin
             cls_unl_fid(dict): unlensed CMB power spectra
             lmin_cmb: minimal CMB multipole used in the QE
@@ -191,13 +210,14 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
             lmax_qlm(optional): maximum lensing multipole to consider. Defaults to 2 lmax_ivf
             ret_delcls(optional): returns the partially delensed CMB cls as well if set
             datnoise_cls(optional): feeds in custom noise spectra to the data. The nlevs and beam only apply to the filtering in this case
+            ret_curl(optional): also returns lensing curl N0s
 
         Returns
             Array of shape (itermax + 1, lmax_qlm + 1) with all iterated N0s. First entry is standard N0.
 
 
         Note:
-            this is requiring camb python package for the lensed spectra calc.
+            this requires camb python package for the lensed spectra calc.
 
      """
     assert qe_key in ['p_p', 'p', 'ptt'], qe_key
@@ -213,23 +233,59 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
             print(s + ': ' + str(lmaxs_ivf[s]))
     else:
         lmaxs_ivf = {s: lmax_cmb for s in ['t', 'e', 'b']}
-    lmin_ivf = lmin_cmb
+
+    if isinstance(lmin_cmb, dict):
+        lmins_ivf = lmin_cmb
+        print("Seeing lmin's:")
+        for s in lmins_ivf.keys():
+            print(s + ': ' + str(lmins_ivf[s]))
+    else:
+        lmins_ivf = {s: max(lmin_cmb, 1) for s in ['t', 'e', 'b']}
+
+
     lmax_ivf = np.max(list(lmaxs_ivf.values()))
     if lmax_qlm is None:
         lmax_qlm = 2 * lmax_ivf
     lmax_qlm = min(lmax_qlm, 2 * lmax_ivf)
-    lmin_ivf = max(lmin_ivf, 1)
     transfi2 = utils.cli(hp.gauss_beam(beam_fwhm / 180. / 60. * np.pi, lmax=lmax_ivf)) ** 2
     llp2 = np.arange(lmax_qlm + 1, dtype=float) ** 2 * np.arange(1, lmax_qlm + 2, dtype=float) ** 2 / (2. * np.pi)
+
+    # If nlev_p is arraylike
+    if isinstance(nlev_p, (np.ndarray, list)):
+        if isinstance(nlev_p, list):
+            nlev_p = np.array(nlev_p)
+
+        # e = b (scale-dependent) (catching shape=(1,lmax) and shape=(1,2))
+        if nlev_p.shape[0] == 1:
+            nlev_e = nlev_p[0]
+            nlev_b = nlev_p[0]
+        # e =/= b (scale-dependent) (catching shape=(2,lmax) and shape=(2,2))
+        elif nlev_p.shape[0] == 2:
+            nlev_e = nlev_p[0]
+            nlev_b = nlev_p[1]
+        # e = b (scale-dependent) noise (catching shape=lmax and shape=1)
+        else:
+            nlev_e = nlev_p
+            nlev_b = nlev_p
+
+    # If nlev_p is single number
+    elif isinstance(nlev_p, (float, int, np.float, np.int)):
+            nlev_e = nlev_p
+            nlev_b = nlev_p
+    else:
+        print("Not sure about the datatype of your nlev_p: {}".format(type(nlev_p)))
+
     if datnoise_cls is None:
         datnoise_cls = dict()
         if qe_key in ['ptt', 'p']:
             datnoise_cls['tt'] = (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
         if qe_key in ['p_p', 'p']:
-            datnoise_cls['ee'] = (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
-            datnoise_cls['bb'] = (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
+            datnoise_cls['ee'] = (nlev_e * np.pi / 180. / 60.) ** 2 * transfi2
+            datnoise_cls['bb'] = (nlev_b * np.pi / 180. / 60.) ** 2 * transfi2
     N0s_biased = []
     N0s_unbiased = []
+    N0s_biased_cc = []
+    N0s_unbiased_cc = []
     delcls_fid = []
     delcls_true = []
 
@@ -260,8 +316,8 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
             fal['tt'] = cls_filt['tt'][:lmax_ivf + 1] + (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
             dat_delcls['tt'] = cls_plen_true['tt'][:lmax_ivf + 1] + datnoise_cls['tt']
         if qe_key in ['p_p', 'p']:
-            fal['ee'] = cls_filt['ee'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
-            fal['bb'] = cls_filt['bb'][:lmax_ivf + 1] + (nlev_p * np.pi / 180. / 60.) ** 2 * transfi2
+            fal['ee'] = cls_filt['ee'][:lmax_ivf + 1] + (nlev_e * np.pi / 180. / 60.) ** 2 * transfi2
+            fal['bb'] = cls_filt['bb'][:lmax_ivf + 1] + (nlev_b * np.pi / 180. / 60.) ** 2 * transfi2
             dat_delcls['ee'] = cls_plen_true['ee'][:lmax_ivf + 1] + datnoise_cls['ee']
             dat_delcls['bb'] = cls_plen_true['bb'][:lmax_ivf + 1] + datnoise_cls['bb']
         if qe_key in ['p']:
@@ -273,28 +329,35 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
             dat_delcls[spec][min(lmaxs_ivf[spec[0]], lmaxs_ivf[spec[1]]) + 1:] *= 0
 
         fal = utils.cl_inverse(fal)
-        for cl in fal.values():
-            cl[:lmin_ivf] *= 0.
-        for cl in dat_delcls.values():
-            cl[:lmin_ivf] *= 0.
+        for cl_key, cl_val in fal.items():
+            fal[cl_key][:max(lmins_ivf[cl_key[0]], lmins_ivf[cl_key[1]])] *= 0.
+        for cl_key, cl_val in dat_delcls.items():
+            dat_delcls[cl_key][:max(lmins_ivf[cl_key[0]], lmins_ivf[cl_key[1]])] *= 0.
         cls_ivfs = utils.cls_dot([fal, dat_delcls, fal], ret_dict=True)
         cls_w = deepcopy(cls_plen_fid)
         for spec in cls_w.keys(): # in principle not necessary
-            cls_w[spec][:lmin_ivf] *= 0.
+            cls_w[spec][:max(lmins_ivf[spec[0]], lmins_ivf[spec[1]])] *= 0.
             cls_w[spec][min(lmaxs_ivf[spec[0]], lmaxs_ivf[spec[1]]) + 1:] *= 0
 
-        n_gg = nhl.get_nhl(qe_key, qe_key, cls_w, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)[0]
-        r_gg_true = qresp.get_response(qe_key, lmax_ivf, 'p', cls_w, cls_f, fal, lmax_qlm=lmax_qlm)[0]
-        r_gg_fid = qresp.get_response(qe_key, lmax_ivf, 'p', cls_w, cls_w, fal, lmax_qlm=lmax_qlm)[0] if cls_f is not cls_w else r_gg_true
+        n_gg, n_cc = nhl.get_nhl(qe_key, qe_key, cls_w, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)[0:2]
+        r_gg_true, r_cc_true = qresp.get_response(qe_key, lmax_ivf, 'p', cls_w, cls_f, fal, lmax_qlm=lmax_qlm)[0:2]
+        (r_gg_fid, r_cc_fid) = qresp.get_response(qe_key, lmax_ivf, 'p', cls_w, cls_w, fal, lmax_qlm=lmax_qlm)[0:2] if cls_f is not cls_w else (r_gg_true, r_cc_true)
         N0_biased = n_gg * utils.cli(r_gg_fid ** 2) # N0 of possibly biased (by Rtrue / Rfid) QE estimator
         N0_unbiased = n_gg * utils.cli(r_gg_true ** 2) # N0 of QE estimator after rescaling by Rfid / Rtrue to make it unbiased
+        N0_biased_cc = n_cc * utils.cli(r_cc_fid ** 2)  # N0 of possibly biased (by Rtrue / Rfid) QE estimator
+        N0_unbiased_cc = n_cc * utils.cli(r_cc_true ** 2)  # N0 of QE estimator after rescaling by Rfid / Rtrue to make it unbiased
+
         N0s_biased.append(N0_biased)
         N0s_unbiased.append(N0_unbiased)
+        N0s_biased_cc.append(N0_biased_cc)
+        N0s_unbiased_cc.append(N0_unbiased_cc)
+
         cls_plen_true['pp'] =  cldd_true *utils.cli(np.arange(len(cldd_true)) ** 2 * np.arange(1, len(cldd_true) + 1, dtype=float) ** 2 /  (2. * np.pi))
         cls_plen_fid['pp'] =  cldd_fid *utils.cli(np.arange(len(cldd_fid)) ** 2 * np.arange(1, len(cldd_fid) + 1, dtype=float) ** 2 /  (2. * np.pi))
 
         delcls_fid.append(cls_plen_fid)
         delcls_true.append(cls_plen_true)
-
-
-    return (np.array(N0s_biased), np.array(N0s_unbiased)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), delcls_fid, delcls_true))
+    if ret_curl:
+       return (np.array(N0s_biased), np.array(N0s_unbiased), np.array(N0s_unbiased_cc), np.array(N0s_biased_cc)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), np.array(N0s_unbiased_cc), np.array(N0s_biased_cc), delcls_fid, delcls_true))
+    else:
+        return (np.array(N0s_biased), np.array(N0s_unbiased)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), delcls_fid, delcls_true))

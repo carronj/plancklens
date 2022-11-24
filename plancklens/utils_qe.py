@@ -89,7 +89,7 @@ class qe:
     def get_lmax_b(self):
         return self.leg_b.get_lmax()
 
-def qe_eval(qe_list, nside, get_alm, lmax_qlm, verbose=True):
+def qe_eval(qe_list, nside, get_alm, lmax_qlm, verbose=True, get_alm2=None):
     """Evaluation of a QE from its list of leg definitions.
 
         Args:
@@ -97,11 +97,15 @@ def qe_eval(qe_list, nside, get_alm, lmax_qlm, verbose=True):
             nside: the estimator are calculated in position space at healpy resolution nside
             get_alm: callable with 't', 'e', 'b' arguments, giving the corresponding inverse-variance filtered CMB maps
             lmax_qlm: outputs are given up to multipole lmax_qlm
+            get_alm2 : callable for second leg if different from the first (symmetrizes estimator by default)
 
         Returns:
             glm and clm healpy arrays (gradient and curl terms of the QE estimate)
 
     """
+    if get_alm2 is None:
+        get_alm2 = get_alm
+    symmetrize = not (get_alm2 is get_alm)
     qes = qe_compress(qe_list, verbose=verbose)
     qe_spin = qes[0][0].spin_ou + qes[0][1].spin_ou
     cL_out = qes[0][-1](np.arange(lmax_qlm + 1))
@@ -115,8 +119,13 @@ def qe_eval(qe_list, nside, get_alm, lmax_qlm, verbose=True):
             print("QE %s out of %s :"%(i + 1, len(qes)))
             print("in-spins 1st leg and out-spin" ,q[0].spins_in, q[0].spin_ou)
             print("in-spins 2nd leg and out-spin", q[1].spins_in, q[1].spin_ou)
-        d += q[0](get_alm, nside) * q[1](get_alm, nside)
+        d += q[0](get_alm, nside) * q[1](get_alm2, nside)
+        if symmetrize:
+            d += q[0](get_alm2, nside) * q[1](get_alm, nside)
     glm, clm = uspin.map2alm_spin((d.real, d.imag), qe_spin, lmax=lmax_qlm)
+    if symmetrize:
+        glm *= 0.5
+        clm *= 0.5
     hp.almxfl(glm, cL_out, inplace=True)
     if np.any(clm):
         hp.almxfl(clm, cL_out, inplace=True)
