@@ -185,7 +185,7 @@ def dls2cls(dls):
 
 
 def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarray, beam_fwhm:float, cls_unl_fid:dict, lmin_cmb:int or dict, lmax_cmb: int or dict, itermax, cls_unl_dat=None,
-                lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None):
+                lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None, ret_curl=False):
     r"""Iterative lensing-N0 estimate
         Calculates iteratively partially lensed spectra and lensing noise levels.
         This uses the python camb package to get the partially lensed spectra.
@@ -271,6 +271,8 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
             datnoise_cls['bb'] = (nlev_b * np.pi / 180. / 60.) ** 2 * transfi2
     N0s_biased = []
     N0s_unbiased = []
+    N0s_biased_cc = []
+    N0s_unbiased_cc = []
     delcls_fid = []
     delcls_true = []
 
@@ -324,17 +326,25 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
             cls_w[spec][:max(lmins_ivf[spec[0]], lmins_ivf[spec[1]])] *= 0.
             cls_w[spec][min(lmaxs_ivf[spec[0]], lmaxs_ivf[spec[1]]) + 1:] *= 0
 
-        n_gg = nhl.get_nhl(qe_key, qe_key, cls_w, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)[0]
-        r_gg_true = qresp.get_response(qe_key, lmax_ivf, 'p', cls_w, cls_f, fal, lmax_qlm=lmax_qlm)[0]
-        r_gg_fid = qresp.get_response(qe_key, lmax_ivf, 'p', cls_w, cls_w, fal, lmax_qlm=lmax_qlm)[0] if cls_f is not cls_w else r_gg_true
+        n_gg, n_cc = nhl.get_nhl(qe_key, qe_key, cls_w, cls_ivfs, lmax_ivf, lmax_ivf, lmax_out=lmax_qlm)[0:2]
+        r_gg_true, r_cc_true = qresp.get_response(qe_key, lmax_ivf, 'p', cls_w, cls_f, fal, lmax_qlm=lmax_qlm)[0:2]
+        (r_gg_fid, r_cc_fid) = qresp.get_response(qe_key, lmax_ivf, 'p', cls_w, cls_w, fal, lmax_qlm=lmax_qlm)[0:2] if cls_f is not cls_w else (r_gg_true, r_cc_true)
         N0_biased = n_gg * utils.cli(r_gg_fid ** 2) # N0 of possibly biased (by Rtrue / Rfid) QE estimator
         N0_unbiased = n_gg * utils.cli(r_gg_true ** 2) # N0 of QE estimator after rescaling by Rfid / Rtrue to make it unbiased
+        N0_biased_cc = n_cc * utils.cli(r_cc_fid ** 2)  # N0 of possibly biased (by Rtrue / Rfid) QE estimator
+        N0_unbiased_cc = n_cc * utils.cli(r_cc_true ** 2)  # N0 of QE estimator after rescaling by Rfid / Rtrue to make it unbiased
+
         N0s_biased.append(N0_biased)
         N0s_unbiased.append(N0_unbiased)
+        N0s_biased_cc.append(N0_biased_cc)
+        N0s_unbiased_cc.append(N0_unbiased_cc)
+
         cls_plen_true['pp'] =  cldd_true *utils.cli(np.arange(len(cldd_true)) ** 2 * np.arange(1, len(cldd_true) + 1, dtype=float) ** 2 /  (2. * np.pi))
         cls_plen_fid['pp'] =  cldd_fid *utils.cli(np.arange(len(cldd_fid)) ** 2 * np.arange(1, len(cldd_fid) + 1, dtype=float) ** 2 /  (2. * np.pi))
 
         delcls_fid.append(cls_plen_fid)
         delcls_true.append(cls_plen_true)
-
-    return (np.array(N0s_biased), np.array(N0s_unbiased)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), delcls_fid, delcls_true))
+    if ret_curl:
+       return (np.array(N0s_biased), np.array(N0s_unbiased), np.array(N0s_unbiased_cc), np.array(N0s_biased_cc)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), np.array(N0s_unbiased_cc), np.array(N0s_biased_cc), delcls_fid, delcls_true))
+    else:
+        return (np.array(N0s_biased), np.array(N0s_unbiased)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), delcls_fid, delcls_true))
