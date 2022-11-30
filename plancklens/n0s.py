@@ -358,6 +358,6 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
         delcls_fid.append(cls_plen_fid)
         delcls_true.append(cls_plen_true)
     if ret_curl:
-       return (np.array(N0s_biased), np.array(N0s_unbiased), np.array(N0s_unbiased_cc), np.array(N0s_biased_cc)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), np.array(N0s_unbiased_cc), np.array(N0s_biased_cc), delcls_fid, delcls_true))
+       return (np.array(N0s_biased), np.array(N0s_unbiased), np.array(N0s_unbiased_cc), np.array(N0s_biased_cc)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), np.array(N0s_biased_cc), np.array(N0s_unbiased_cc), delcls_fid, delcls_true))
     else:
         return (np.array(N0s_biased), np.array(N0s_unbiased)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), delcls_fid, delcls_true))
