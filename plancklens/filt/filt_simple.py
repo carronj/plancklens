@@ -456,9 +456,15 @@ class library_fullsky_alms_sepTP(library_sepTP):
         return np.copy(self.fbl)
 
     def _apply_ivf_t(self, tlm, soltn=None):
+        #if (hp.Alm.getlmax(tlm.size) + 1) > len(self.ftl):
+        #    tlm = utils.alm_copy(tlm, lmax=self.ftl)
         return hp.almxfl(tlm, self.get_ftl() * utils.cli(self.transf['t'][:len(self.ftl)]))
 
     def _apply_ivf_p(self, eblm, soltn=None):
+        #if  (hp.Alm.getlmax(eblm[0].size) + 1) > len(self.fel):
+        #    eblm[0] = utils.alm_copy(eblm[0], lmax=len(self.fel) - 1)
+        #if  (hp.Alm.getlmax(eblm[1].size) + 1) > len(self.fbl):
+        #    eblm[1] = utils.alm_copy(eblm[1], lmax=len(self.fbl) - 1)
         elm = hp.almxfl(eblm[0], self.get_fel() * utils.cli(self.transf['e'][:len(self.fel)]))
         blm = hp.almxfl(eblm[1], self.get_fbl() * utils.cli(self.transf['b'][:len(self.fbl)]))
         return elm, blm

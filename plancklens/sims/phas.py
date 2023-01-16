@@ -27,6 +27,7 @@ class rng_db:
         self.con = sqlite3.connect(fname, timeout=3600., detect_types=sqlite3.PARSE_DECLTYPES)
 
     def add(self, idx, state):
+        idx = int(idx)
         try:
             assert (self.get(idx) is None)
             keys_string = '_'.join(str(s) for s in state[1])
@@ -37,6 +38,7 @@ class rng_db:
             print("rng_db::rngdb add failed!")
 
     def get(self, idx):
+        idx = int(idx)
         cur = self.con.cursor()
         cur.execute("SELECT type, pos, has_gauss, cached_gaussian, keys FROM rngdb WHERE id=?", (idx,))
         data = cur.fetchone()
@@ -50,6 +52,7 @@ class rng_db:
             return [typ, keys, pos, has_gauss, cached_gaussian]
 
     def delete(self, idx):
+        idx = int(idx)
         try:
             if self.get(idx) is None:
                 return
