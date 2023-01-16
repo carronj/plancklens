@@ -160,6 +160,8 @@ def hash_check(hash1, hash2, ignore=['lib_dir', 'prefix'], keychain=[], fn=None)
         
         def hashfail(msg=None):
             print(f"CHECKING HASHFILE {fn}")
+            print(keychain)
+            print(key)
             print("ERROR: HASHCHECK FAIL AT KEY = " + ':'.join(keychain + [key]))
             if msg is not None:
                 print("   " + msg)

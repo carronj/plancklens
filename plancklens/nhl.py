@@ -299,7 +299,8 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
                 print('including imperfect knowledge of E in iterations')
             slic = slice(lmin_ivf, lmax_ivf + 1)
             rho_sqd_E = np.zeros(len(dls_unl_true[:, 1]))
-            rho_sqd_E[slic] = cls_unl_dat['ee'][slic] * utils.cli(cls_plen_true['ee'][slic] + datnoise_cls['ee'][slic])
+            # rho_sqd_E[slic] = cls_unl_dat['ee'][slic] * utils.cli(cls_plen_true['ee'][slic] + datnoise_cls['ee'][slic])
+            rho_sqd_E[slic] = cls_len_fid['ee'][slic] * utils.cli(cls_len_fid['ee'][slic] + datnoise_cls['ee'][slic]) # Assuming that the difference between lensed and unlensed EE can be neglected
             dls_unl_fid[:, 1] *= rho_sqd_E
             dls_unl_true[:, 1] *= rho_sqd_E
             cldd_fid *= rho_sqd_phi
@@ -352,9 +353,17 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
         N0_unbiased = n_gg * utils.cli(r_gg_true ** 2) # N0 of QE estimator after rescaling by Rfid / Rtrue to make it unbiased
         N0s_biased.append(N0_biased)
         N0s_unbiased.append(N0_unbiased)
+
         cls_plen_true['pp'] =  cldd_true *utils.cli(np.arange(len(cldd_true)) ** 2 * np.arange(1, len(cldd_true) + 1, dtype=float) ** 2 /  (2. * np.pi))
         cls_plen_fid['pp'] =  cldd_fid *utils.cli(np.arange(len(cldd_fid)) ** 2 * np.arange(1, len(cldd_fid) + 1, dtype=float) ** 2 /  (2. * np.pi))
-
+        
+        if 'wE' and it>0:
+            cls_plen_true['pp'] =  cls_plen_true['pp'] *utils.cli( rho_sqd_phi) * (1. - rho_sqd_phi) 
+            cls_plen_fid['pp'] =  cls_plen_fid['pp'] *utils.cli( rho_sqd_phi) * (1. - rho_sqd_phi) 
+        elif 'wE' and it ==0:
+            cls_plen_true['pp'] =  cls2dls(cls_unl_dat)[1] * utils.cli(np.arange(len(cldd_true)) ** 2 * np.arange(1, len(cldd_true) + 1, dtype=float) ** 2 /  (2. * np.pi))
+            cls_plen_fid['pp'] =  cls2dls(cls_unl_fid)[1] * utils.cli(np.arange(len(cldd_fid)) ** 2 * np.arange(1, len(cldd_fid) + 1, dtype=float) ** 2 /  (2. * np.pi))
+        
         if 'wN1' in version:
             if it == 0: print('Adding n1 in iterations')
             from lensitbiases import n1_fft
