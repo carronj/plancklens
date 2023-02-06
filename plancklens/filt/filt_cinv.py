@@ -573,11 +573,11 @@ class library_cinv_sepTP(filt_simple.library_sepTP):
 
     def get_emliklm(self, idx):
         assert not hasattr(self.cinv_p.cl, 'eb')
-        return  hp.almxfl(self.get_sim_elm(idx), self.cinv_t.cl['ee'])
+        return  hp.almxfl(self.get_sim_elm(idx), self.cinv_p.cl['ee'])
 
     def get_bmliklm(self, idx):
         assert not hasattr(self.cinv_p.cl, 'eb')
-        return  hp.almxfl(self.get_sim_blm(idx), self.cinv_t.cl['bb'])
+        return  hp.almxfl(self.get_sim_blm(idx), self.cinv_p.cl['bb'])
 
 class library_cinv_jTP(filt_simple.library_jTP):
     """Library to perform inverse-variance filtering of a simulation library.
