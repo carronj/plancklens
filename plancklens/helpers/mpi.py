@@ -20,7 +20,7 @@ def is_notebook() -> bool:
         return False
     
 has_key = lambda key : key in os.environ.keys()
-cond4mpi4py = not has_key('NERSC_HOST') or (has_key('NERSC_HOST') and has_key('SLURM_SUBMIT_DIR'))
+cond4mpi4py = has_key('NERSC_HOST') or (has_key('NERSC_HOST') and has_key('SLURM_SUBMIT_DIR'))
 
 if not is_notebook() and cond4mpi4py:
     try:
