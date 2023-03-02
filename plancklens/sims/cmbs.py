@@ -70,7 +70,7 @@ class sims_cmb_unl:
         # FIXME : triangularise this
         ret = hp.almxfl(self.lib_pha.get_sim(idx, idf=0), self.rmat[:, idf, 0])
         for _i in range(1,len(self.fields)):
-            if idf == self.fields.index('p'):
+            if 'p' in self.fields and idf == self.fields.index('p'):
                 if self.plm is not None:
                     if verbose: print('Use input plm for sims')
                     ret = self.plm

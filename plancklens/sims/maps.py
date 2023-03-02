@@ -188,7 +188,7 @@ class cmb_maps_harmonicspace(object):
             lib_dir(optional): hash checks will be cached, as well as possibly other things for subclasses.
 
         Note:
-            lmax's of len cmbs and noise phases must match (unchecked here)
+            lmax's of len cmbs and noise phases must match
 
 
     """
@@ -198,6 +198,8 @@ class cmb_maps_harmonicspace(object):
         self.cls_transf = cls_transf
         self.cls_noise = cls_noise
         self.phas = noise_phas
+        for k in self.cls_noise:
+            assert self.sims_cmb_len.lmax == self.phas.lmax, f"Lmax of lensed CMB and of noise phases should match, here {self.sims_cmb_len.lmax} and {self.phas.lmax}"
 
         if lib_dir is not None:
             fn_hash = os.path.join(lib_dir, 'sim_hash.pk')
@@ -205,7 +207,7 @@ class cmb_maps_harmonicspace(object):
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
             mpi.barrier()
             hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')))
-
+        
     def hashdict(self):
         ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(), 'phas':self.phas.hashdict()}
         for k in self.cls_noise:
