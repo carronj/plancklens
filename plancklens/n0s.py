@@ -28,7 +28,7 @@ from copy import deepcopy
 
 
 def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, lmax_CMB: dict or int =3000,  lmin_CMB=100, lmax_out=None,
-           cls_len:dict or None =None, cls_weight:dict or None=None,
+           cls_len:dict or None =None, cls_glen:dict or None=None, cls_weight:dict or None=None,
            joint_TP=True, ksource='p'):
     r"""Example function to calculates reconstruction noise levels for a bunch of quadratic estimators
 
@@ -40,7 +40,8 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
             lmax_CMB: max. CMB multipole used in the QE (use a dict with 't' 'e' 'b' keys instead of int to set different CMB lmaxes)
             lmin_CMB: min. CMB multipole used in the QE
             lmax_out: max lensing 'L' multipole calculated
-            cls_len: CMB spectra entering the sky response to the anisotropy (defaults to FFP10 lensed CMB spectra)
+            cls_len: CMB spectra entering the filtering of the data maps (defaults to FFP10 lensed CMB spectra)
+            cls_glen: CMB spectra entering the sky response to the anisotropy (defaults to FFP10 lensed CMB spectra, though the grad len spectra can be better)
             cls_weight: CMB spectra entering the QE weights (defaults to FFP10 lensed CMB spectra)
             joint_TP: if True include calculation of the N0s for the GMV estimator (incl. joint T and P filtering)
             ksource: anisotropy source to consider (defaults to 'p', lensing)
@@ -81,7 +82,7 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
             nlev_b = nlev_p
 
     # If nlev_p is single number
-    elif isinstance(nlev_p, (float, int, np.float, np.int)):
+    elif isinstance(nlev_p, (float, int)):
             nlev_e = nlev_p
             nlev_b = nlev_p
     else:
@@ -100,6 +101,7 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
     cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens.__file__)), 'data', 'cls')
     cls_len = cls_len or utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
     cls_weight = cls_weight or utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
+    cls_glen = cls_glen or utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
 
     # We consider here TT, Pol-only and the GMV comb if joint_TP is set
     qe_keys = [ksource + 'tt', ksource + '_p']
@@ -146,7 +148,7 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
         NG, NC, NGC, NCG = nhl.get_nhl(qe_key, qe_key, cls_weight, cls_ivfs_sepTP, lmax_ivf, lmax_ivf,
                                        lmax_out=lmax_qlm)
         # Calculation of the G to G, C to C, G to C and C to G QE responses (again, cross-terms are typically zero)
-        RG, RC, RGC, RCG = qresp.get_response(qe_key, lmax_ivf, ksource, cls_weight, cls_len, fal_sepTP,
+        RG, RC, RGC, RCG = qresp.get_response(qe_key, lmax_ivf, ksource, cls_weight, cls_glen, fal_sepTP,
                                               lmax_qlm=lmax_qlm)
 
         # Gradient and curl noise terms
@@ -156,7 +158,7 @@ def get_N0(beam_fwhm=1.4, nlev_t:float or np.ndarray=5., nlev_p:np.array=None, l
     if joint_TP:
         NG, NC, NGC, NCG = nhl.get_nhl(ksource, ksource, cls_weight, cls_ivfs_jtTP, lmax_ivf, lmax_ivf,
                                        lmax_out=lmax_qlm)
-        RG, RC, RGC, RCG = qresp.get_response(ksource, lmax_ivf, ksource, cls_weight, cls_len, fal_jtTP,
+        RG, RC, RGC, RCG = qresp.get_response(ksource, lmax_ivf, ksource, cls_weight, cls_glen, fal_jtTP,
                                               lmax_qlm=lmax_qlm)
         N0s[ksource] = utils.cli(RG ** 2) * NG
         N0_curls[ksource] = utils.cli(RC ** 2) * NC
@@ -269,7 +271,7 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
             nlev_b = nlev_p
 
     # If nlev_p is single number
-    elif isinstance(nlev_p, (float, int, np.float, np.int)):
+    elif isinstance(nlev_p, (float, int)):
             nlev_e = nlev_p
             nlev_b = nlev_p
     else:
