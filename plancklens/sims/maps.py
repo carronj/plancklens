@@ -212,7 +212,7 @@ class cmb_maps_harmonicspace(object):
             hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')))
         
     def hashdict(self):
-        ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(), 'phas':self.phas.hashdict(), 'nside':self.nside,}
+        ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(), 'phas':self.phas.hashdict()}
         for k in self.cls_noise:
             ret['noise' + k] = clhash(self.cls_noise[k])
         for k in self.cls_transf:
