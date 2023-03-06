@@ -148,7 +148,6 @@ def hash_check(hash1, hash2, ignore=['lib_dir', 'prefix'], keychain=[], fn=None)
     for key in ignore:
         if key in keys1: keys1.remove(key)
         if key in keys2: keys2.remove(key)
-
     for key in set(keys1).union(set(keys2)):
         # v1 = hash1[key]
         # v2 = hash2[key]
@@ -160,17 +159,18 @@ def hash_check(hash1, hash2, ignore=['lib_dir', 'prefix'], keychain=[], fn=None)
         
         def hashfail(msg=None):
             print(f"CHECKING HASHFILE {fn}")
-            print(keychain)
-            print(key)
-            print("ERROR: HASHCHECK FAIL AT KEY = " + ':'.join(keychain + [key]))
+            print(f"ERROR: HASHCHECK FAIL AT KEY {key}")
             if msg is not None:
                 print("   " + msg)
             print("   ", "V1 = ", v1)
             print("   ", "V2 = ", v2)
+            print(keys1)
+            print(keys2)
+
             assert 0
 
         if type(v1) != type(v2):
-            hashfail('UNEQUAL TYPES')
+            hashfail(f'UNEQUAL TYPES: type(v1) = {type(v1)}, type(v2)={type(v2)}')
         elif type(v2) == dict:
             hash_check( v1, v2, ignore=ignore, keychain=keychain + [key], fn=fn )
         elif type(v1) == np.ndarray:
