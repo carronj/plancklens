@@ -140,7 +140,7 @@ class library(object):
         if not os.path.exists(tfname) or recache:
             stats_qcl = utils.stats(self.get_lmaxqcl(k1, k2) + 1, docov=False)
             for i, idx in utils.enumerate_progress(mc_sims, label='sim_stats qcl (k1,k2)=' + str((k1, k2))):
-                stats_qcl.add(self.get_sim_qcl(k1, int(idx), k2=k2))
+                stats_qcl.add(self.get_sim_qcl(k1, idx, k2=k2))
             pk.dump(stats_qcl, open(tfname, 'wb'), protocol=2)
         return pk.load(open(tfname, 'rb'))
 

@@ -161,7 +161,7 @@ class library:
                 lmax: optionally reduces the lmax of the output healpy array.
 
         """
-        idx = int(idx)
+        # idx = int(idx)
         k = self.keys_remaps.get(k, k)
         if lmax is None :
             lmax = self.get_lmax_qlm(k)
