@@ -121,7 +121,7 @@ class sims_cmb_len:
             verbose(defaults to True): lenspyx timing info printout
 
     """
-    def __init__(self, lib_dir, lmax, cls_unl, lib_pha=None
+    def __init__(self, lib_dir, lmax, cls_unl, lib_pha=None,
                  dlmax=1024, nside_lens=4096, facres=0, nbands=16, verbose=True):
         if not os.path.exists(lib_dir) and mpi.rank == 0:
             os.makedirs(lib_dir)
@@ -226,7 +226,6 @@ class sims_cmb_len:
         if not os.path.exists(fname):
             self._cache_eblm(idx)
         return hp.read_alm(fname)
-
 
 
 class sims_cmb_unl_fixed_phi(sims_cmb_unl):

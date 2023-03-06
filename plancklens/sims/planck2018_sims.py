@@ -12,7 +12,6 @@ import os
 from os.path import join as opj
 import healpy as hp
 import numpy as np
-import os 
 
 from plancklens import utils
 
