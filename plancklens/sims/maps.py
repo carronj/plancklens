@@ -201,8 +201,7 @@ class cmb_maps_harmonicspace(object):
         self.phas = noise_phas
         self.nside = nside
 
-        for k in self.cls_noise:
-            assert self.sims_cmb_len.lmax == self.phas.lmax, f"Lmax of lensed CMB and of noise phases should match, here {self.sims_cmb_len.lmax} and {self.phas.lmax}"
+        assert self.sims_cmb_len.lmax == self.phas.lmax, f"Lmax of lensed CMB and of noise phases should match, here {self.sims_cmb_len.lmax} and {self.phas.lmax}"
 
         if lib_dir is not None:
             fn_hash = os.path.join(lib_dir, 'sim_hash.pk')
@@ -212,7 +211,7 @@ class cmb_maps_harmonicspace(object):
             hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')))
         
     def hashdict(self):
-        ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(), 'phas':self.phas.hashdict(), 'nside':self.nside,}
+        ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(), 'phas':self.phas.hashdict()}
         for k in self.cls_noise:
             ret['noise' + k] = clhash(self.cls_noise[k])
         for k in self.cls_transf:
@@ -226,7 +225,8 @@ class cmb_maps_harmonicspace(object):
                 idx: simulation index
 
             Returns:
-                healpy map
+                Temperature alm's 
+                or Temperature healpy map if nside is given
 
         """
         assert 't' in self.cls_transf
@@ -245,7 +245,7 @@ class cmb_maps_harmonicspace(object):
 
             Returns:
                 Elm and Blm
-                 or Q and U healpy maps if return_maps
+                 or Q and U healpy maps if nside is given
 
         """
         assert 'e' in self.cls_transf
@@ -257,7 +257,7 @@ class cmb_maps_harmonicspace(object):
         hp.almxfl(blm, self.cls_transf['b'], inplace=True)
         elm += self.get_sim_enoise(idx)
         blm += self.get_sim_bnoise(idx)
-        if self.nside:
+        if self.nside is not None:
             return hp.alm2map_spin([elm,blm], self.nside, 2, hp.Alm.getlmax(elm.size))
         return elm, blm 
 
