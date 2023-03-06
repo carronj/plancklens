@@ -201,8 +201,7 @@ class cmb_maps_harmonicspace(object):
         self.phas = noise_phas
         self.nside = nside
 
-        for k in self.cls_noise:
-            assert self.sims_cmb_len.lmax == self.phas.lmax, f"Lmax of lensed CMB and of noise phases should match, here {self.sims_cmb_len.lmax} and {self.phas.lmax}"
+        assert self.sims_cmb_len.lmax == self.phas.lmax, f"Lmax of lensed CMB and of noise phases should match, here {self.sims_cmb_len.lmax} and {self.phas.lmax}"
 
         if lib_dir is not None:
             fn_hash = os.path.join(lib_dir, 'sim_hash.pk')
@@ -210,7 +209,7 @@ class cmb_maps_harmonicspace(object):
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
             mpi.barrier()
             hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')))
-        
+
     def hashdict(self):
         ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(), 'phas':self.phas.hashdict()}
         for k in self.cls_noise:
