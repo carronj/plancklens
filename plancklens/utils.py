@@ -5,7 +5,6 @@ Collects a couple of misc. utility functions.
 """
 from __future__ import print_function
 from __future__ import division
-from ast import Raise
 
 import os
 
