@@ -211,7 +211,7 @@ class resp_lib_simple:
             if not os.path.exists(fn_hash):
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
         mpi.barrier()
-        ut.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
+        ut.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict(), fn=fn_hash)
         self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
 
     def hashdict(self):

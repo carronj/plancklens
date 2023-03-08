@@ -80,7 +80,7 @@ class sim_lib(object):
         mpi.barrier()
 
         hsh = pk.load(open(fn_hash, 'rb'))
-        utils.hash_check(hsh, self.hashdict(), ignore=['lib_dir'])
+        utils.hash_check(hsh, self.hashdict(), ignore=['lib_dir'], fn=fn_hash)
 
         self._rng_db = rng_db(os.path.join(lib_dir, 'rngdb.db'), idtype='INTEGER')
         self._get_rng_state = get_state_func
