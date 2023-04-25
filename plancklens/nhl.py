@@ -375,4 +375,4 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
         N1s_biased.append(N1_biased)
         N1s_unbiased.append(N1_unbiased)
 
-    return (np.array(N0s_biased), np.array(N0s_unbiased)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), delcls_fid, delcls_true))
+    return (np.array(N0s_biased), np.array(N0s_unbiased)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), np.array(N1s_biased), np.array(N1s_unbiased), delcls_fid, delcls_true))
