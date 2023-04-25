@@ -316,7 +316,7 @@ def get_N0_iter(qe_key:str, nlev_t:float or np.ndarray, nlev_p:float or np.ndarr
         dat_delcls = {}
         if qe_key in ['ptt', 'p']:
             fal['tt'] = cls_filt['tt'][:lmax_ivf + 1] + (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
-            dat_delcls['tt'] = cls_plen_true['tt'][:lmax_ivf + 1] + datnoise_cls['tt']
+            dat_delcls['tt'] = cls_plen_true['tt'][:lmax_ivf + 1] + datnoise_cls['tt'][:lmax_ivf + 1]
         if qe_key in ['p_p', 'p']:
             fal['ee'] = cls_filt['ee'][:lmax_ivf + 1] + (nlev_e * np.pi / 180. / 60.) ** 2 * transfi2
             fal['bb'] = cls_filt['bb'][:lmax_ivf + 1] + (nlev_b * np.pi / 180. / 60.) ** 2 * transfi2
