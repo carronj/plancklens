@@ -194,7 +194,7 @@ class cinv_t(cinv):
             
     def apply_ivf(self, tmap, soltn=None):
         if soltn is None:
-            talm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
+            talm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
         else:
             talm = soltn.copy()
         self.chain.solve(talm, tmap)
@@ -486,9 +486,9 @@ class cinv_tp:
     def apply_ivf(self, tqumap, soltn=None, apply_fini=''):
         assert (len(tqumap) == 3)
         if soltn is None:
-            ttlm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
-            telm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
-            tblm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
+            ttlm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
+            telm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
+            tblm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
         else:
             ttlm, telm, tblm = soltn
             hp.almxfl(ttlm, self.rescal_cl['t'], inplace=True)
