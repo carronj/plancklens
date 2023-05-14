@@ -129,7 +129,7 @@ class library_n1:
             os.makedirs(lib_dir)
         if not os.path.exists(os.path.join(lib_dir, 'n1_hash.pk')):
             pk.dump(self.hashdict(), open(os.path.join(lib_dir, 'n1_hash.pk'), 'wb'), protocol=2)
-        hash_check(self.hashdict(), pk.load(open(os.path.join(lib_dir, 'n1_hash.pk'), 'rb')))
+        hash_check(self.hashdict(), pk.load(open(os.path.join(lib_dir, 'n1_hash.pk'), 'rb')), fn=os.path.join(lib_dir, 'n1_hash.pk'))
         self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
         self.fldb = sql.fldb(os.path.join(lib_dir, 'fldb.db'))
 
@@ -216,13 +216,14 @@ class library_n1:
                 if sglLmode:
                     n1L = np.zeros(len(Ls), dtype=float)
                     for i, L in enumerate(Ls[mpi.rank::mpi.size]):
-                        print("n1: doing L %s kA %s kB %s kind %s" % (L, kA, kB, k_ind))
+                        print("n1: rank %s doing L %s kA %s kB %s kind %s" % (mpi.rank, L, kA, kB, k_ind))
                         n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid, cltefid, cleefid, remove_only=remove_only))
                     if mpi.size > 1:
                         mpi.barrier()
                         for i, L in enumerate(Ls): # reoading cached n1L's
                             n1L[i] = (self._get_n1_L(L, kA, kB, k_ind, cl_kind, ftlA, felA, fblA, ftlB, felB, fblB, clttfid,
                                              cltefid, cleefid, remove_only=remove_only))
+                        mpi.barrier()
 
                 else: # entire vector from f90 openmp call
                     lmin_ftlA = np.min([np.min(np.where(np.abs(fal) > 0.)[0]) for fal in [ftlA, felA, fblA]])
