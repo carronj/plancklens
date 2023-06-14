@@ -112,7 +112,7 @@ def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = N
     if not joint_TP:
         qe_keys.append(ksource)
 
-    # Simple white noise model. Can feed here something more fancy if desired
+    # Simple noise model. Can feed here something more fancy if desired
     transf = hp.gauss_beam(beam_fwhm / 60. / 180. * np.pi, lmax=lmax_ivf)
     Noise_L_T = (nlev_t / 60. / 180. * np.pi) ** 2 / transf ** 2
     Noise_L_E = (nlev_e / 60. / 180. * np.pi) ** 2 / transf ** 2
@@ -141,7 +141,8 @@ def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = N
 
     # For joint TP filtering, fals is matrix inverse
     fal_jtTP = utils.cl_inverse(cls_filter)
-    # since cls_dat = fals, cls_ivfs = fals. If the data spectra do not match the filter, this must be changed:
+    # When cls_dat = fals, then the filtered map spectra cls_ivfs is the same as fals. 
+    # However, if the data spectra do not match the filter, this becomes:
     cls_ivfs_jtTP = utils.cls_dot([fal_jtTP, cls_dat, fal_jtTP], ret_dict=True)
     for cls in [fal_sepTP, fal_jtTP, cls_ivfs_sepTP, cls_ivfs_jtTP]:
         for cl_key, cl_val in cls.items():
