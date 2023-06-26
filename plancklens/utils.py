@@ -28,7 +28,7 @@ def alm_copy(alm, lmax=None):
     if (alm_lmax == lmax) or (lmax is None):
         ret = np.copy(alm)
     else:
-        ret = np.zeros((lmax + 1) * (lmax + 2) // 2, dtype=np.complex)
+        ret = np.zeros((lmax + 1) * (lmax + 2) // 2, dtype=complex)
         for m in range(0, lmax + 1):
             ret[((m * (2 * lmax + 1 - m) // 2) + m):(m * (2 * lmax + 1 - m) // 2 + lmax + 1)] \
                 = alm[(m * (2 * alm_lmax + 1 - m) // 2 + m):(m * (2 * alm_lmax + 1 - m) // 2 + lmax + 1)]

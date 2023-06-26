@@ -7,8 +7,14 @@ import os
 verbose = False
 has_key = lambda key : key in os.environ.keys()
 
-cond4mpi4py = not has_key('NERSC_HOST') or (has_key('NERSC_HOST') and has_key('SLURM_SUBMIT_DIR'))
-use =  has_key('USE_PLANCKLENS_MPI') and os.environ['USE_PLANCKLENS_MPI']
+# cond4mpi4py = not has_key('NERSC_HOST') or (has_key('NERSC_HOST') and has_key('SLURM_SUBMIT_DIR'))
+
+if has_key('USE_PLANCKLENS_MPI'):
+    use = os.environ['USE_PLANCKLENS_MPI']
+else:
+    use = True
+
+cond4mpi4py = 'srun' in os.environ['_'] or 'mpirun' in os.environ['_']
 
 if cond4mpi4py and use:
     try:
