@@ -7,8 +7,10 @@ import os
 
 verbose = False
 
-has_key = lambda key : key in os.environ.keys()
-cond4mpi4py = not has_key('NERSC_HOST') or (has_key('NERSC_HOST') and has_key('SLURM_SUBMIT_DIR'))
+# has_key = lambda key : key in os.environ.keys()
+# cond4mpi4py = not has_key('NERSC_HOST') or (has_key('NERSC_HOST') and has_key('SLURM_SUBMIT_DIR'))
+
+cond4mpi4py = 'srun' in os.environ['_']
 
 if cond4mpi4py:
     try:
