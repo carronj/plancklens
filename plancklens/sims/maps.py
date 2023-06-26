@@ -272,4 +272,4 @@ class cmb_maps_harmonicspace(object):
 
     def get_sim_bnoise(self, idx):
         assert 'b' in self.cls_noise
-        return hp.almxfl(self.phas.get_sim(idx, 1), np.sqrt(self.cls_noise['b']))
+        return hp.almxfl(self.phas.get_sim(idx, 2), np.sqrt(self.cls_noise['b']))
