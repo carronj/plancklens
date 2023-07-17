@@ -13,7 +13,8 @@ from plancklens.helpers import mpi, sql
 
 
 def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
-            lmax_out=None, lmax_ivf12=None, lmax_ivf22=None, cls_weights2=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
+            lmax_out=None, lmax_ivf12=None, lmax_ivf22=None, cls_weights2=None,
+            cls_ivfs_bb=None, cls_ivfs_ab=None, cls_ivfs_ba=None):
     """(Semi-)Analytical noise level calculation for the cross-spectrum of two QE keys.
 
         Args:
@@ -39,9 +40,9 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
     qes2 = qresp.get_qes(qe_key2, lmax_ivf2, cls_weights2, lmax2=lmax_ivf22)
     if lmax_out is None:
         lmax_out = max(lmax_ivf1, lmax_ivf12) + max(lmax_ivf2, lmax_ivf22)
-    return  _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab)
+    return  _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab, cls_ivfs_ba=cls_ivfs_ba)
 
-def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None, ret_terms=False):
+def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None, cls_ivfs_ba=None, ret_terms=False):
     GG_N0 = np.zeros(lmax_out + 1, dtype=float)
     CC_N0 = np.zeros(lmax_out + 1, dtype=float)
     GC_N0 = np.zeros(lmax_out + 1, dtype=float)
@@ -50,7 +51,7 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None,
     cls_ivfs_aa = cls_ivfs
     cls_ivfs_bb = cls_ivfs if cls_ivfs_bb is None else cls_ivfs_bb
     cls_ivfs_ab = cls_ivfs if cls_ivfs_ab is None else cls_ivfs_ab
-    cls_ivfs_ba = cls_ivfs_ab
+    cls_ivfs_ba = cls_ivfs if cls_ivfs_ba is None else cls_ivfs_ba
     if ret_terms:
         terms = []
     for qe1 in qes1:
