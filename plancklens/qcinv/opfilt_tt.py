@@ -13,7 +13,11 @@ import hashlib
 import numpy  as np
 import healpy as hp
 
-from healpy import alm2map, map2alm
+try:
+    import lenspyx
+    HASLENSPYX = True
+except ImportError:
+    from healpy import alm2map, map2alm
 #: Exporting these two methods so that they can be easily customized / optimized.
 
 from plancklens.utils import clhash, enumerate_progress

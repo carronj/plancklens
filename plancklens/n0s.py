@@ -29,9 +29,10 @@ from copy import deepcopy
 
 def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = None, lmax_CMB: dict or int = 3000,
            lmin_CMB=100, lmax_out=None,
-           cls_len: dict or None = None, cls_weight: dict or None = None,
-           joint_TP=True, ksource='p',
-           wfleg_Tcut=None):
+           cls_len: dict or None = None,
+           cls_weight: dict or None = None,
+           cls_sky: dict or None = None,
+           joint_TP=True, ksource='p',wfleg_Tcut=None):
     r"""Example function to calculates reconstruction noise levels for a bunch of quadratic estimators
 
 
@@ -42,8 +43,10 @@ def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = N
             lmax_CMB: max. CMB multipole used in the QE (use a dict with 't' 'e' 'b' keys instead of int to set different CMB lmaxes)
             lmin_CMB: min. CMB multipole used in the QE
             lmax_out: max lensing 'L' multipole calculated
-            cls_len: CMB spectra entering the sky response to the anisotropy (defaults to FFP10 lensed CMB spectra)
-            cls_weight: CMB spectra entering the QE weights (defaults to FFP10 lensed CMB spectra)
+            cls_len: CMB spectra entering the sky response to the anisotropy
+                     (defaults to FFP10 lensed CMB spectra, in general should be the lensed gradient spectra)
+            cls_sky: actual spectra of the measured CMB (without noise); defaults to cls_lens
+            cls_weight: CMB spectra entering the QE weights (defaults to FFP10 lensed CMB spectra; optimally, gradient spectra)
             joint_TP: if True include calculation of the N0s for the GMV estimator (incl. joint T and P filtering)
             ksource: anisotropy source to consider (defaults to 'p', lensing)
             wfleg_Tcut: high-l cut on the T gradient leg if set
@@ -103,32 +106,36 @@ def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = N
     cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens.__file__)), 'data', 'cls')
     cls_len = cls_len or utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
     cls_weight = cls_weight or utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
+    cls_sky = cls_sky or cls_len
 
     # We consider here TT, Pol-only and the GMV comb if joint_TP is set
     qe_keys = [ksource + 'tt', ksource + '_p']
     if not joint_TP:
         qe_keys.append(ksource)
 
-    # Simple white noise model. Can feed here something more fancy if desired
+    # Simple noise model. Can feed here something more fancy if desired
     transf = hp.gauss_beam(beam_fwhm / 60. / 180. * np.pi, lmax=lmax_ivf)
     Noise_L_T = (nlev_t / 60. / 180. * np.pi) ** 2 / transf ** 2
     Noise_L_E = (nlev_e / 60. / 180. * np.pi) ** 2 / transf ** 2
     Noise_L_B = (nlev_b / 60. / 180. * np.pi) ** 2 / transf ** 2
 
-    # Data power spectra
-    cls_dat = {
-        'tt': (cls_len['tt'][:lmax_ivf + 1] + Noise_L_T),
-        'ee': (cls_len['ee'][:lmax_ivf + 1] + Noise_L_E),
-        'bb': (cls_len['bb'][:lmax_ivf + 1] + Noise_L_B),
-        'te': np.copy(cls_len['te'][:lmax_ivf + 1])}
+    cls_dat = {}
+    cls_filter = {}
+    for cls, source in ((cls_dat, cls_sky), (cls_filter, cls_len)):
+        # Data power spectra
+        cls.update({
+            'tt': (source['tt'][:lmax_ivf + 1] + Noise_L_T),
+            'ee': (source['ee'][:lmax_ivf + 1] + Noise_L_E),
+            'bb': (source['bb'][:lmax_ivf + 1] + Noise_L_B),
+            'te': np.copy(source['te'][:lmax_ivf + 1])})
 
-    for s in cls_dat.keys():
-        cls_dat[s][min(lmaxs_CMB[s[0]], lmaxs_CMB[s[1]]) + 1:] *= 0.
-        cls_dat[s][:max(lmins_ivf[s[0]], lmins_ivf[s[1]])] *= 0.
+        for s in cls.keys():
+            cls[s][min(lmaxs_CMB[s[0]], lmaxs_CMB[s[1]]) + 1:] *= 0.
+            cls[s][:max(lmins_ivf[s[0]], lmins_ivf[s[1]])] *= 0.
 
     # (C+N)^{-1} filter spectra
     # For independent T and P filtering, this is really just 1/ (C+ N), diagonal in T, E, B space
-    fal_sepTP = {spec: utils.cli(cls_dat[spec]) for spec in ['tt', 'ee', 'bb']}
+    fal_sepTP = {spec: utils.cli(cls_filter[spec]) for spec in ['tt', 'ee', 'bb']}
     # Spectra of the inverse-variance filtered maps
     # In general cls_ivfs = fal * dat_cls * fal^t, with a matrix product in T, E, B space
     cls_ivfs_sepTP = utils.cls_dot([fal_sepTP, cls_dat, fal_sepTP], ret_dict=True)
@@ -136,8 +143,9 @@ def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = N
 
 
     # For joint TP filtering, fals is matrix inverse
-    fal_jtTP = utils.cl_inverse(cls_dat)
-    # since cls_dat = fals, cls_ivfs = fals. If the data spectra do not match the filter, this must be changed:
+    fal_jtTP = utils.cl_inverse(cls_filter)
+    # When cls_dat = fals, then the filtered map spectra cls_ivfs is the same as fals.
+    # However, if the data spectra do not match the filter, this becomes:
     cls_ivfs_jtTP = utils.cls_dot([fal_jtTP, cls_dat, fal_jtTP], ret_dict=True)
     if wfleg_Tcut is not None and wfleg_Tcut < lmaxs_CMB['t']: # Applying high-l cut on T Wiener-filtered leg
         fal_sepTP_b = deepcopy(fal_sepTP)
