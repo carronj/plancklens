@@ -46,6 +46,7 @@ def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = N
             cls_weight: CMB spectra entering the QE weights (defaults to FFP10 lensed CMB spectra)
             joint_TP: if True include calculation of the N0s for the GMV estimator (incl. joint T and P filtering)
             ksource: anisotropy source to consider (defaults to 'p', lensing)
+            wfleg_Tcut: high-l cut on the T gradient leg if set
 
 
         Returns:
