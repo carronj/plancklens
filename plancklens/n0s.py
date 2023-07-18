@@ -29,6 +29,7 @@ from copy import deepcopy
 
 def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = None, lmax_CMB: dict or int = 3000,
            lmin_CMB=100, lmax_out=None,
+           cls_filt: dict or None =None,
            cls_len: dict or None = None,
            cls_weight: dict or None = None,
            cls_sky: dict or None = None,
@@ -43,9 +44,10 @@ def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = N
             lmax_CMB: max. CMB multipole used in the QE (use a dict with 't' 'e' 'b' keys instead of int to set different CMB lmaxes)
             lmin_CMB: min. CMB multipole used in the QE
             lmax_out: max lensing 'L' multipole calculated
+            cls_filt: set of spectra used for the filtering, defaults to FFP10 lensed CMB spectra
             cls_len: CMB spectra entering the sky response to the anisotropy
                      (defaults to FFP10 lensed CMB spectra, in general should be the lensed gradient spectra)
-            cls_sky: actual spectra of the measured CMB (without noise); defaults to cls_lens
+            cls_sky: actual spectra of the measured CMB (without noise); defaults to FFP10 lensed CMB spectra
             cls_weight: CMB spectra entering the QE weights (defaults to FFP10 lensed CMB spectra; optimally, gradient spectra)
             joint_TP: if True include calculation of the N0s for the GMV estimator (incl. joint T and P filtering)
             ksource: anisotropy source to consider (defaults to 'p', lensing)
@@ -106,7 +108,8 @@ def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = N
     cls_path = os.path.join(os.path.dirname(os.path.abspath(plancklens.__file__)), 'data', 'cls')
     cls_len = cls_len or utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
     cls_weight = cls_weight or utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
-    cls_sky = cls_sky or cls_len
+    cls_sky = cls_sky or utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
+    cls_filt = cls_filt or utils.camb_clfile(os.path.join(cls_path, 'FFP10_wdipole_lensedCls.dat'))
 
     # We consider here TT, Pol-only and the GMV comb if joint_TP is set
     qe_keys = [ksource + 'tt', ksource + '_p']
@@ -121,7 +124,7 @@ def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = N
 
     cls_dat = {}
     cls_filter = {}
-    for cls, source in ((cls_dat, cls_sky), (cls_filter, cls_len)):
+    for cls, source in ((cls_dat, cls_sky), (cls_filter, cls_filt)):
         # Data power spectra
         cls.update({
             'tt': (source['tt'][:lmax_ivf + 1] + Noise_L_T),
