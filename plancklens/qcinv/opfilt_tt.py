@@ -15,7 +15,18 @@ import healpy as hp
 
 try:
     import lenspyx
+    from lenspyx import utils_hp
+    from lenspyx.remapping import utils_geom
     HASLENSPYX = True
+    print('Using lenspyx alm2map')
+    def alm2map(alm, nside):
+        geom = utils_geom.Geom.get_healpix_geometry(nside)
+        return geom.alm2map(alm = alm, lmax=utils_hp.Alm.get_lmax(alm.size, None)).squezze()
+    def map2alm(m, lmax, **kwargs):
+        nside = int(np.round(np.sqrt(m.size // 12)))
+        assert 12 *  nside ** 2 == m.size, (m.size, 12 * nside ** 2)
+        geom = utils_geom.Geom.get_healpix_geometry(nside)
+        return geom.map2alm(m=m, lmax=lmax).squeeze()
 except ImportError:
     from healpy import alm2map, map2alm
 #: Exporting these two methods so that they can be easily customized / optimized.
