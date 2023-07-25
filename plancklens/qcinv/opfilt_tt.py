@@ -24,7 +24,7 @@ try:
         geom = utils_geom.Geom.get_healpix_geometry(nside)
         nthreads = int(os.environ.get('OMP_NUM_THREADS', 0))
         lmax = utils_hp.Alm.getlmax(alm.size, None)
-        return geom.alm2map(gclm=alm, lmax=lmax, mmax=lmax, nthreads=nthreads).squezze()
+        return geom.alm2map(gclm=alm, lmax=lmax, mmax=lmax, nthreads=nthreads).squeeze()
     def map2alm(m, lmax, **kwargs):
         nside = int(np.round(np.sqrt(m.size // 12)))
         assert 12 *  nside ** 2 == m.size, (m.size, 12 * nside ** 2)
