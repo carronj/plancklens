@@ -12,6 +12,7 @@ from __future__ import print_function
 import hashlib
 import numpy  as np
 import healpy as hp
+import os
 
 try:
     import lenspyx
@@ -21,12 +22,15 @@ try:
     print('Using lenspyx alm2map')
     def alm2map(alm, nside):
         geom = utils_geom.Geom.get_healpix_geometry(nside)
-        return geom.alm2map(alm = alm, lmax=utils_hp.Alm.get_lmax(alm.size, None)).squezze()
+        nthreads = int(os.environ.get('OMP_NUM_THREADS', 0))
+        lmax = utils_hp.Alm.get_lmax(alm.size, None)
+        return geom.alm2map(alm=alm, lmax=lmax, mmax=lmax, nthreads=nthreads).squezze()
     def map2alm(m, lmax, **kwargs):
         nside = int(np.round(np.sqrt(m.size // 12)))
         assert 12 *  nside ** 2 == m.size, (m.size, 12 * nside ** 2)
         geom = utils_geom.Geom.get_healpix_geometry(nside)
-        return geom.map2alm(m=m, lmax=lmax).squeeze()
+        nthreads = int(os.environ.get('OMP_NUM_THREADS', 0))
+        return geom.map2alm(m=m, lmax=lmax, mmax=lmax, nthreads=nthreads).squeeze()
 except ImportError:
     from healpy import alm2map, map2alm
 #: Exporting these two methods so that they can be easily customized / optimized.
