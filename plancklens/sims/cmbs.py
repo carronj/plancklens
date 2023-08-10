@@ -26,7 +26,7 @@ class sims_cmb_unl:
     """Unlensed CMB skies simulation library.
     
     """
-    def __init__(self, cls_unl, lib_pha):
+    def __init__(self, cls_unl, lib_pha:phas.lib_phas):
         lmax = lib_pha.lmax
         lmin = 0
         fields = _get_fields(cls_unl)
