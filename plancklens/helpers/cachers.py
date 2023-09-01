@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pickle as pk
 
 class cacher(object):
     def cache(self, fn, obj):
@@ -57,3 +58,29 @@ class cacher_mem(cacher):
 
     def is_cached(self, fn):
         return fn in self._cache.keys()
+
+class cacher_pk(object):
+    def __init__(self, lib_dir, verbose=False):
+        if not os.path.exists(lib_dir):
+            os.makedirs(lib_dir)
+        self.lib_dir = lib_dir
+        self.verbose = verbose
+
+    def _path(self, fn):
+        return os.path.join(self.lib_dir, fn + '.pk')
+
+    def cache(self, fn, obj):
+        assert '.pk' not in fn
+        pk.dump(obj, open(os.path.join(self.lib_dir, fn + '.pk'), 'wb'))
+        if self.verbose: print("Cached " + fn + '.pk')
+
+    def load(self, fn):
+        assert '.pk' not in fn
+        p = self._path(fn)
+        assert os.path.exists(p)
+        if self.verbose:
+            print("Loading " + fn + '.pk')
+        return pk.load(open(p, 'rb'))
+
+    def is_cached(self, fn):
+        return os.path.exists(self._path(fn))

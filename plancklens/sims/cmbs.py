@@ -194,8 +194,10 @@ class sims_cmb_len:
 
         lmaxd = hp.Alm.getlmax(dlm.size)
         hp.almxfl(dlm, np.sqrt(np.arange(lmaxd + 1, dtype=float) * np.arange(1, lmaxd + 2)), inplace=True)
-        Qlen, Ulen = self.lens_module.alm2lenmap_spin([elm, blm], [dlm, None], self.nside_lens, 2,
-                                                nband=self.nbands, facres=self.facres, verbose=self.verbose)
+        # Qlen, Ulen = self.lens_module.alm2lenmap_spin([elm, blm], [dlm, None], self.nside_lens, 2,
+        #                                         nband=self.nbands, facres=self.facres, verbose=self.verbose)
+        geom_info = ('healpix', {'nside':self.nside_lens})
+        Qlen, Ulen = self.lens_module.alm2lenmap_spin([elm, blm], dlm, 2, geometry=geom_info, verbose=1)
         elm, blm = hp.map2alm_spin([Qlen, Ulen], 2, lmax=self.lmax)
         del Qlen, Ulen
         hp.write_alm(os.path.join(self.lib_dir, 'sim_%04d_elm.fits' % idx), elm)
@@ -211,8 +213,10 @@ class sims_cmb_len:
 
             lmaxd = hp.Alm.getlmax(dlm.size)
             hp.almxfl(dlm, np.sqrt(np.arange(lmaxd + 1, dtype=float) * np.arange(1, lmaxd + 2)), inplace=True)
-            Tlen = self.lens_module.alm2lenmap(tlm, [dlm, None], self.nside_lens,
-                                               facres=self.facres, nband=self.nbands, verbose=self.verbose)
+            # Tlen = self.lens_module.alm2lenmap(tlm, [dlm, None], self.nside_lens,
+            #                                    facres=self.facres, nband=self.nbands, verbose=self.verbose)
+            geom_info = ('healpix', {'nside':self.nside_lens}) 
+            Tlen = self.lens_module.alm2lenmap(tlm, dlm,  geometry=geom_info, verbose=1)
             hp.write_alm(fname, hp.map2alm(Tlen, lmax=self.lmax, iter=0))
         return hp.read_alm(fname)
 

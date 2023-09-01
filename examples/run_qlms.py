@@ -19,7 +19,7 @@
 
 import argparse
 import numpy as np
-import imp
+from importlib.machinery import SourceFileLoader
 from plancklens.helpers import mpi
 
 parser = argparse.ArgumentParser(description='Planck 2018 QE calculation example')
@@ -42,7 +42,7 @@ parser.add_argument('-kN', dest='kN', action='store', default=[], nargs='+', hel
 
 
 args = parser.parse_args()
-par = imp.load_source('run_qlms_parfile', args.parfile[0])
+par = SourceFileLoader('run_qlms_parfile', args.parfile[0]).load_module()
 
 #--- filtering
 jobs = []
