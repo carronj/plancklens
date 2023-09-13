@@ -243,6 +243,8 @@ class resp_lib_simple:
             ret = self.get_response(kQE, ksource, recache=recache)
             ret -= wL * self.get_response(bhksource + kQE[1:], ksource, recache=recache)
             return ret
+        if k in ['xmtt', 'pmtt']:
+            return self.get_response(k[0], ksource, recache=recache) - self.get_response(k[0] + 'tt', ksource, recache=recache)
         s, GorC, sins, ksp = qe_spin_data(k)
         assert s >= 0, s
         if s == 0: assert GorC == 'G', (s, GorC)
