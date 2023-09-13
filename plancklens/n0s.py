@@ -188,7 +188,7 @@ def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = N
         NG, NC, NGC, NCG = nhl.get_nhl(qe_key, qe_key, cls_weight, cls_ivfs_sepTP, lmax_ivf, lmax_ivf,
                                        lmax_out=lmax_qlm, cls_ivfs_ab=cls_ivfs_sepTP_ab, cls_ivfs_bb=cls_ivfs_sepTP_bb, cls_ivfs_ba=cls_ivfs_sepTP_ba)
         # Calculation of the G to G, C to C, G to C and C to G QE responses (again, cross-terms are typically zero)
-        RG, RC, RGC, RCG = qresp.get_response(qe_key, lmax_ivf, ksource, cls_weight, cls_len, fal_sepTP,
+        RG, RC, RGC, RCG = qresp.get_response(qe_key, lmax_ivf, ksource, cls_weight, cls_glen, fal_sepTP,
                                               lmax_qlm=lmax_qlm, fal_leg2=fal_sepTP_b)
 
         # Gradient and curl noise terms
@@ -389,7 +389,7 @@ def get_N0_iter(qe_key: str, nlev_t: float or np.ndarray, nlev_p: float or np.nd
         dat_delcls = {}
         if qe_key in ['ptt', 'p']:
             fal['tt'] = cls_filt['tt'][:lmax_ivf + 1] + (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
-            dat_delcls['tt'] = cls_plen_true['tt'][:lmax_ivf + 1] + datnoise_cls['tt']
+            dat_delcls['tt'] = cls_plen_true['tt'][:lmax_ivf + 1] + datnoise_cls['tt'][:lmax_ivf + 1]
         if qe_key in ['p_p', 'p']:
             fal['ee'] = cls_filt['ee'][:lmax_ivf + 1] + (nlev_e * np.pi / 180. / 60.) ** 2 * transfi2
             fal['bb'] = cls_filt['bb'][:lmax_ivf + 1] + (nlev_b * np.pi / 180. / 60.) ** 2 * transfi2

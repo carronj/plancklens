@@ -36,6 +36,7 @@ from __future__ import print_function
 import os
 import numpy as np
 import pickle as pk
+from scipy.special import gammaln
 
 from plancklens import utils as ut, utils_spin as uspin, utils_qe as uqe
 from plancklens.helpers import mpi, sql
@@ -211,7 +212,7 @@ class resp_lib_simple:
             if not os.path.exists(fn_hash):
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
         mpi.barrier()
-        ut.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
+        ut.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict(), fn=fn_hash)
         self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
 
     def hashdict(self):
@@ -417,7 +418,7 @@ def _get_response(qes, source, cls_cmb, fal_leg1, lmax_qlm, fal_leg2=None):
     return RGG, RCC, RGC, RCG
 
 
-def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
+def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, retterms=False):
     """Deflection-induced mean-field response calculation.
 
     See Carron & Lewis 2019 in prep.
@@ -452,13 +453,13 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     # Build remaining fisher term II:
     FisherGII = np.zeros(lmax_out + 1, dtype=float)
     FisherCII = np.zeros(lmax_out + 1, dtype=float)
-
-    for s1 in spins:
+    terms = {'GK':np.zeros(lmax_out + 1, dtype=float), 'GxiK':np.zeros(lmax_out + 1, dtype=float)}
+    for s1 in spins: # (xi K xi - xi) ) (K) like terms
         for s2 in spins:
             cl1 = uspin.spin_cls(s1, s2, cls_ivfs)[:lmax_qe + 1] * (0.5 ** (s1 != 0) * 0.5 ** (s2 != 0))
             # These 1/2 factor from the factor 1/2 in each B of B Covi B^dagger, where B maps spin-fields to T E B.
             cl2 = np.copy(uspin.spin_cls(s2, s1, cls_cmb)[:lmax_cmb + 1])
-            cl2[:lmax_qe + 1] -= uspin.spin_cls(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1]
+            cl2[:lmax_qe + 1] -= uspin.spin_cls(s2, s1, cl_cmbtoticmb)[:lmax_qe + 1] # must subtract here other unstable
             if np.any(cl1) and np.any(cl2):
                 for a in [-1, 1]:
                     ai = uspin.get_spin_lower(s2, lmax_cmb) if a == - 1 else uspin.get_spin_raise(s2, lmax_cmb)
@@ -469,7 +470,7 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
                         CL += (-1) * hL
 
     # Build remaining Fisher term II:
-    for s1 in spins:
+    for s1 in spins: # (xi K) (xi K) like terms
         for s2 in spins:
             cl1 = uspin.spin_cls(s2, s1, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s1 != 0))
             cl2 = uspin.spin_cls(s1, s2, cl_cmbtoti)[:lmax_qe + 1] * (0.5 ** (s2 != 0))
@@ -481,8 +482,12 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
                         hL = 2 * (-1) ** (s1 + s2) * uspin.wignerc(cl1 * ai, cl2 * aj, -s2 - a, -s1, s2, s1 - b, lmax_out=lmax_out)
                         FisherGII += (- a * b) * hL
                         FisherCII += (-1) * hL
+
+    terms['GK'] += GL
+    terms['GxiK'] -= FisherGII
     GL -= FisherGII
     CL -= FisherCII
+    terms['Gcons'] = -np.ones_like(GL) * CL[1]
     print("CL[1] ",CL[1])
     print("GL[1] (before subtraction) ", GL[1])
     print("GL[1] (after subtraction) ", GL[1] - CL[1])
@@ -491,4 +496,224 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out):
     CL -= CL[1]
     GL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
     CL *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
-    return GL, CL
+    for term in terms.values():
+        term *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
+    return (GL, CL) if not retterms else (GL, CL, terms)
+
+
+def w3j_000_j(L:int, j:int, kmax:int, kmin:int=0, lng=None):
+    """Squared spin-0 Wigner 3j symbols for zero magnetic moments (integral of Legendre poly)
+
+            :math:`\begin{pmatrix}l_1 & l_2 & L \\ 0 & 0 & 0 \end{pmatrix}^2`
+
+        Args:
+            L: multipole
+            j: the Wigners are calculated for all entries along the diagonal :math:`l_1 - l_2 = L - j`
+               (others are zero)
+
+        Returns:
+            array of size kmax + 1 with k'th entry corresponding to :math:`l_1 = k + j, l_2 = L + k - j`
+
+        Note:
+            One could feed in l1max, l2max
+
+    """
+    assert 0 <= j <= L, (j, L)  # invalid input (or could return zeros)
+    if lng is None:
+        from scipy.special import gammaln
+        lng = gammaln(np.arange(1, 2 * L + 2 * kmax + 3, dtype=float))  # FIXME: cumul. sum of ln n
+    k = np.arange(kmin, kmax + 1, dtype=int)
+    g = L + k
+    w = lng[2 * (L - j)] + lng[2 * j] + lng[2 * k] - lng[2 * g + 1] + 2 * (lng[g] - lng[L - j] - lng[j] - lng[k])
+    return np.exp(w)  # FIXME: need the exp ?
+
+
+lmax2kmax = lambda L, lmax: lmax + L // 2 + L % 2
+
+
+class spin0_resp:
+    def __init__(self, ftl1, ftl2, cl_w:np.ndarray, cl_r:np.ndarray):
+        """
+
+            Note:
+                We try and follow PL2015 conventions
+
+                Def. of QE weights in Qu et al 2022 (g) differs by a factor 1/2 from PL2015 (W).
+
+
+        """
+
+        nz1, nz2 = np.nonzero(ftl1)[0], np.nonzero(ftl2)[0]
+        l1min, l1max = nz1[0], nz1[-1]
+        l2min, l2max = nz2[0], nz2[-1]
+        Lmax = l1max + l2max
+
+        self.l2p1_ftl1 = ftl1 *  (2 * np.arange(len(ftl1)) + 1)
+        self.l2p1_ftl2 = ftl2 *  (2 * np.arange(len(ftl2)) + 1)
+
+        self.ftl1 = ftl1
+        self.ftl2 = ftl2
+
+        self.lmins = [min(l1min, l2min), l1min, l2min]
+        self.lmaxs = [max(l1max, l2max), l1max, l2max]
+
+        self.Lmax = Lmax
+        self.cl_w = cl_w # spectrum used in QE weights
+        self.cl_r = cl_r # CMB sky response cl
+
+        # dln Cl / dln l (only used for shear estimator)
+        ls = np.arange(1, self.lmaxs[0] + 3)
+        dlnCldlnl = ls[:-1] * np.diff(np.log(cl_w[ls])) # This might give trouble
+        self.dlncldlnl = dlnCldlnl
+
+        self.w2s = np.arange(Lmax + 1) * np.arange(1, Lmax + 2, dtype=float)
+        self.lng = gammaln(np.arange(1, 2 * Lmax + 3, dtype=float)) # ln n! starting from 0
+
+    def __call__(self, L, qe_key, source_key):
+        return self._eval_resp(L, qe_key, source_key)
+
+
+    def _fl1l2L_ptt(self, L:int, j:int, kmin:int, kmax:int, cl=None):
+        """Lensing gradient response kernel in j, k parametrization, exclusive of wigner3j and root 2l+1 factors.
+
+            Args:
+                L: multipole
+                j: the response if obtained for all pairs of multipoles such that :math:`l_1 - l_2 = L - j`
+                   (others are zero by the triangle conditions)
+
+            Returns:
+                array of size kmax - kmin + 1 with k'th entry corresponding to :math:`l_1 = kmin + k + j, l_2 = L + kmin + k + - j`
+
+            Note: allowed by triangle conditions are 0 <= j <= L and 0 <= k <= infty
+
+        """
+        if cl is None:
+            cl = self.cl_r
+        l1 = slice(kmin + j, kmax + j + 1)
+        l2 = slice(kmin + L - j, kmax + L - j + 1)
+        ret  = (self.w2s[L] + self.w2s[l2] - self.w2s[l1]) * cl[l2]
+        ret += (self.w2s[L] + self.w2s[l1] - self.w2s[l2]) * cl[l1]
+        return 0.5 * ret
+
+    def _qel1l2L_ptt(self, L:int, j:int, kmin:int, kmax:int):
+        return self._fl1l2L_ptt(L, j, kmin, kmax, cl=self.cl_w)
+
+    def _qel1l2L_gtt(self, L:int, j:int, kmin:int, kmax:int, scal1=None, scal2=None):
+        """Shear estimator from Qu et al 2022 (for which the pos. space implementation seems unstable at low-L)
+
+            Note:
+                the weights are defined here acting on filtered maps, unlike that paper
+                we identify the inverse filter with the data spectrum
+
+        """
+        if L < 2:
+            return 0. # Shear spin 2
+        l1 = slice(kmin + j, kmax + j + 1)
+        l2 = slice(kmin + L - j, kmax + L - j + 1)
+        w2dif = self.w2s[L] + self.w2s[l1] - self.w2s[l2]
+        cos2tht = w2dif * (w2dif - 2) / (2 * self.w2s[L] * self.w2s[l1]) - 1
+        ret1 = self.w2s[L] * self.dlncldlnl[l1] * self.cl_w[l1] * self.ftl1[l1] * cos2tht * _clinv(self.ftl2[l2])
+
+        # symmetrization
+        w2dif = self.w2s[L] + self.w2s[l2] - self.w2s[l1]
+        cos2tht = w2dif * (w2dif - 2) / (2 * self.w2s[L] * self.w2s[l2]) - 1
+        ret2 = self.w2s[L] * self.dlncldlnl[l2] * self.cl_w[l2] * self.ftl1[l2] * cos2tht * _clinv(self.ftl2[l1])
+        return  0.5 * (ret1 + ret2)
+
+    def _qel1l2L_gtt2(self, L:int, j:int, kmin:int, kmax:int):
+        """Shear estimator from Qu et al 2022 (for which the pos. space implementation seems unstable at low-L)
+
+            Note:
+                the weights are defined here acting on filtered maps, unlike that paper
+                we identify the inverse filter with the data spectrum
+
+        """
+        if L < 2:
+            return 0. # Shear spin 2
+        l1 = slice(kmin + j, kmax + j + 1)
+        l2 = slice(kmin + L - j, kmax + L - j + 1)
+        w2dif = self.w2s[L] + self.w2s[l1] - self.w2s[l2]
+        cos2tht = w2dif * (w2dif - 2) / (2 * self.w2s[L] * self.w2s[l1]) - 1
+        ret1 = self.w2s[L] * self.dlncldlnl[l1] * self.cl_w[l1]  * cos2tht
+
+        # symmetrization
+        w2dif = self.w2s[L] + self.w2s[l2] - self.w2s[l1]
+        cos2tht = w2dif * (w2dif - 2) / (2 * self.w2s[L] * self.w2s[l2]) - 1
+        ret2 = self.w2s[L] * self.dlncldlnl[l2] * self.cl_w[l2]  * cos2tht
+        return  0.5 * (ret1 + ret2)
+
+    def _qel1l2L_stt(self, L:int, j:int, kmin:int, kmax:int):
+        """Point source anisotropy weights"""
+        return self._fl1l2L_stt(L, j, kmin, kmax)
+
+    @staticmethod
+    def _fl1l2L_stt(L: int, j: int, kmin: int, kmax: int):
+        """Point source anisotropy weights"""
+        return np.full(kmax - kmin + 1, -1., dtype=float)
+
+    def _3legP(self, L:int, j:int, kmin:int, kmax:int):
+        """Squared wigner 3j for multipoles L, l1 and l2, and zero magnetic moments
+            (twice the integral of 3 Legendre polynomials)
+
+            Arguments are such that  l1 = k + j and l2 = L + k - j
+
+            Note: allowed by triangle conditions are 0 <= j <= L and 0 <= k <= infty
+
+            TODO: improve this
+
+        """
+        k = np.arange(kmin, kmax + 1, dtype=int)
+        g = L + k
+        w  = self.lng[2 * (L - j)] + self.lng[2 * j] + self.lng[2 * k] - self.lng[2 * g + 1]
+        w += 2 * (self.lng[g] - self.lng[L - j] - self.lng[j] - self.lng[k])
+        return np.exp(w)
+
+    def _eval_resp(self, L, qe_key, source_key):
+        if L > self.Lmax:
+            return 0.
+        resp_weights = getattr(self, '_fl1l2L_' + source_key)
+        qe12_weights = getattr(self, '_qel1l2L_' + qe_key)
+        R = 0.
+        for j in range(L + 1):  # could in principle speed that up since only half the loop is needed owing to sym
+            kmax = min(self.lmaxs[1] - j, self.lmaxs[2] + j - L)  # l1 = k + j, l2 = L + 2k - l2 = L + k - j
+            kmin = max(max(self.lmins[1] - j, self.lmins[2] + j - L), 0)
+            if kmax >= kmin:
+                l1 = slice(kmin + j, kmax + j + 1)
+                l2 = slice(kmin + L - j, kmax + L - j + 1)
+                sky_w = resp_weights(L, j, kmin, kmax) # weights exluding of wigner 3j and 2l + 1 / 4pi factors
+                if qe12_weights is not resp_weights:
+                    qe_w = qe12_weights(L, j, kmin, kmax) # weights exluding of wigner 3j and 2l + 1 / 4pi factors
+                else:
+                    qe_w = sky_w
+                wig = self._3legP(L, j, kmin, kmax)  # wig3j with zero magnetic number squared
+                #: 1/2 of the exec time
+                R += np.sum(self.l2p1_ftl1[l1] * self.l2p1_ftl2[l2] * sky_w * qe_w * wig)
+        return R / (8 * np.pi)  # 1/8 because 1/2 / (4 pi) (See PL2015 app A)
+
+    def _eval_nhl(self, L, qe1_key, qe2_key):
+        """Gaussian noise bias, Eq A30 PL2015.
+
+            We use here l1 + l2 + L always even (wigners with zero magnetic moments) and only symmetric QEs
+
+        """
+        if L > self.Lmax:
+            return 0.
+        qe12_weights = getattr(self, '_qel1l2L_' + qe1_key)
+        qe34_weights = getattr(self, '_qel1l2L_' + qe2_key)
+        R = 0.
+        for j in range(L + 1):  # could in principle speed that up since only half the loop is needed owing to sym
+            kmax = min(self.lmaxs[1] - j, self.lmaxs[2] + j - L)  # l1 = k + j, l2 = L + 2k - l2 = L + k - j
+            kmin = max(max(self.lmins[1] - j, self.lmins[2] + j - L), 0)
+            if kmax >= kmin:
+                l1 = slice(kmin + j, kmax + j + 1)
+                l2 = slice(kmin + L - j, kmax + L - j + 1)
+                qe1_w = qe12_weights(L, j, kmin, kmax) # weights exluding of wigner 3j and 2l + 1 / 4pi factors
+                if qe12_weights is not qe34_weights:
+                    qe2_w = qe34_weights(L, j, kmin, kmax) # weights exluding of wigner 3j and 2l + 1 / 4pi factors
+                else:
+                    qe2_w = qe1_w
+                wig = self._3legP(L, j, kmin, kmax)  # wig3j with zero magnetic number squared
+                #: 1/2 of the exec time
+                R += np.sum(self.l2p1_ftl1[l1] * self.l2p1_ftl2[l2] * qe1_w * qe2_w * wig)
+                # ftl is spectrum of filtered data for fid matching data
+        return R / (8 * np.pi)

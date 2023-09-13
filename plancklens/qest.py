@@ -80,7 +80,7 @@ class library:
             pk.dump(self.hashdict(), open(fnhash, 'wb'), protocol=2)
         mpi.barrier()
 
-        ut.hash_check(pk.load(open(fnhash, 'rb')), self.hashdict())
+        ut.hash_check(pk.load(open(fnhash, 'rb')), self.hashdict(), fn=fnhash)
         if mpi.rank == 0:
             if not os.path.exists(os.path.join(lib_dir, 'fskies.dat')):
                 print("Caching sky fractions...")
@@ -381,14 +381,16 @@ class library:
         xfilt2 = {f: (k[-1] == f) * np.ones(10000) for f in ['t', 'e', 'b']}
 
         G, C = self._get_sim_Pgclm(idx, 'p', xfilt1=xfilt1, xfilt2=xfilt2)
-        if not self.f2map1.ivfs == self.f2map2.ivfs or k[-1] != k[-2]:
+        if not self.f2map1.ivfs == self.f2map2.ivfs:# or k[-1] != k[-2]:
+            #FIXME: not sure why the second condition was here, dont think the intention was to symmetrize here, double the work
             _G, _C = self._get_sim_Pgclm(idx, 'p', xfilt1=xfilt1, xfilt2=xfilt2, swapped=True)
             G = 0.5 * (G + _G)
             del _G
             C = 0.5 * (C + _C)
             del _C
         GT, CT = self._get_sim_Tgclm(idx, 'p', xfilt1=xfilt1, xfilt2=xfilt2)
-        if not self.f2map1.ivfs == self.f2map2.ivfs or k[-1] != k[-2]:
+        if not self.f2map1.ivfs == self.f2map2.ivfs:# or k[-1] != k[-2]:
+            #FIXME: not sure why the second condition was here, dont think the intention was to symmetrize here, double the work
             _G, _C = self._get_sim_Tgclm(idx, 'p', xfilt1=xfilt1, xfilt2=xfilt2, swapped=True)
             GT = 0.5 * (GT + _G)
             del _G

@@ -24,9 +24,9 @@ def _get_fields(cls):
 
 class sims_cmb_unl:
     """Unlensed CMB skies simulation library.
-
+    
     """
-    def __init__(self, cls_unl, lib_pha):
+    def __init__(self, cls_unl, lib_pha:phas.lib_phas):
         lmax = lib_pha.lmax
         lmin = 0
         fields = _get_fields(cls_unl)
@@ -135,7 +135,6 @@ class sims_cmb_len:
             assert lib_pha.lmax == lmax + dlmax
         mpi.barrier()
 
-
         self.lmax = lmax
         self.dlmax = dlmax
         # lenspyx parameters:
@@ -151,7 +150,7 @@ class sims_cmb_len:
         if mpi.rank == 0 and not os.path.exists(fn_hash) :
             pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
         mpi.barrier()
-        utils.hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')))
+        utils.hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')), fn=fn_hash)
         try:
             import lenspyx
         except ImportError:
@@ -195,8 +194,10 @@ class sims_cmb_len:
 
         lmaxd = hp.Alm.getlmax(dlm.size)
         hp.almxfl(dlm, np.sqrt(np.arange(lmaxd + 1, dtype=float) * np.arange(1, lmaxd + 2)), inplace=True)
-        Qlen, Ulen = self.lens_module.alm2lenmap_spin([elm, blm], [dlm, None], self.nside_lens, 2,
-                                                nband=self.nbands, facres=self.facres, verbose=self.verbose)
+        # Qlen, Ulen = self.lens_module.alm2lenmap_spin([elm, blm], [dlm, None], self.nside_lens, 2,
+        #                                         nband=self.nbands, facres=self.facres, verbose=self.verbose)
+        geom_info = ('healpix', {'nside':self.nside_lens})
+        Qlen, Ulen = self.lens_module.alm2lenmap_spin([elm, blm], dlm, 2, geometry=geom_info, verbose=1)
         elm, blm = hp.map2alm_spin([Qlen, Ulen], 2, lmax=self.lmax)
         del Qlen, Ulen
         hp.write_alm(os.path.join(self.lib_dir, 'sim_%04d_elm.fits' % idx), elm)
@@ -212,8 +213,10 @@ class sims_cmb_len:
 
             lmaxd = hp.Alm.getlmax(dlm.size)
             hp.almxfl(dlm, np.sqrt(np.arange(lmaxd + 1, dtype=float) * np.arange(1, lmaxd + 2)), inplace=True)
-            Tlen = self.lens_module.alm2lenmap(tlm, [dlm, None], self.nside_lens,
-                                               facres=self.facres, nband=self.nbands, verbose=self.verbose)
+            # Tlen = self.lens_module.alm2lenmap(tlm, [dlm, None], self.nside_lens,
+            #                                    facres=self.facres, nband=self.nbands, verbose=self.verbose)
+            geom_info = ('healpix', {'nside':self.nside_lens}) 
+            Tlen = self.lens_module.alm2lenmap(tlm, dlm,  geometry=geom_info, verbose=1)
             hp.write_alm(fname, hp.map2alm(Tlen, lmax=self.lmax, iter=0))
         return hp.read_alm(fname)
 
@@ -228,3 +231,50 @@ class sims_cmb_len:
         if not os.path.exists(fname):
             self._cache_eblm(idx)
         return hp.read_alm(fname)
+
+
+class sims_cmb_unl_fixed_phi(sims_cmb_unl):
+    """Simumaltion library for unlensed CMB with fixed lensing potential field.
+    
+    By default the lensing potential field is the one from the simulation index 0.
+    """
+
+    def __init__(self, cls_unl, lib_pha, plm=None):
+        super(sims_cmb_unl_fixed_phi, self).__init__(cls_unl, lib_pha) 
+        
+        if plm is None: 
+            self.fixed_plm = super(sims_cmb_unl_fixed_phi, self)._get_sim_alm(0, self.fields.index('p'))
+        else:
+            self.fixed_plm = plm
+
+
+    def _get_sim_alm(self, idx, idf):
+        
+        if idf == self.fields.index('p'):
+            ret = self.fixed_plm
+        else:
+            ret = hp.almxfl(self.lib_pha.get_sim(idx, idf=0), self.rmat[:, idf, 0])
+            for _i in range(1,len(self.fields)):
+                ret += hp.almxfl(self.lib_pha.get_sim(idx, idf=_i), self.rmat[:, idf, _i])
+            
+        return ret
+
+
+class sims_cmb_len_fixed_phi(sims_cmb_len):
+    """Simumaltion library for lensed CMB with fixed lensing potential field.
+    """
+
+    def __init__(self, lib_dir, lmax, cls_unl, plm=None, lib_pha=None,
+                 dlmax=1024, nside_lens=4096, facres=0, nbands=16, verbose=True):
+
+        fields = _get_fields(cls_unl)
+        if lib_pha is None and mpi.rank == 0:
+            lib_pha = phas.lib_phas(os.path.join(lib_dir, 'phas'), len(fields), lmax + dlmax)
+        else:  # Check that the lib_alms are compatible :
+            assert lib_pha.lmax == lmax + dlmax
+        mpi.barrier()
+        
+        super(sims_cmb_len_fixed_phi, self).__init__(lib_dir, lmax, cls_unl, lib_pha,
+                 dlmax, nside_lens, facres, nbands, verbose)         
+
+        self.unlcmbs = sims_cmb_unl_fixed_phi(cls_unl, lib_pha, plm)

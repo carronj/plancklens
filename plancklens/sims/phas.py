@@ -27,6 +27,7 @@ class rng_db:
         self.con = sqlite3.connect(fname, timeout=3600., detect_types=sqlite3.PARSE_DECLTYPES)
 
     def add(self, idx, state):
+        idx = int(idx)
         try:
             assert (self.get(idx) is None)
             keys_string = '_'.join(str(s) for s in state[1])
@@ -37,6 +38,7 @@ class rng_db:
             print("rng_db::rngdb add failed!")
 
     def get(self, idx):
+        idx = int(idx)
         cur = self.con.cursor()
         cur.execute("SELECT type, pos, has_gauss, cached_gaussian, keys FROM rngdb WHERE id=?", (idx,))
         data = cur.fetchone()
@@ -50,6 +52,7 @@ class rng_db:
             return [typ, keys, pos, has_gauss, cached_gaussian]
 
     def delete(self, idx):
+        idx = int(idx)
         try:
             if self.get(idx) is None:
                 return
@@ -77,7 +80,7 @@ class sim_lib(object):
         mpi.barrier()
 
         hsh = pk.load(open(fn_hash, 'rb'))
-        utils.hash_check(hsh, self.hashdict(), ignore=['lib_dir'])
+        utils.hash_check(hsh, self.hashdict(), ignore=['lib_dir'], fn=fn_hash)
 
         self._rng_db = rng_db(os.path.join(lib_dir, 'rngdb.db'), idtype='INTEGER')
         self._get_rng_state = get_state_func
