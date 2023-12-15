@@ -18,8 +18,8 @@ def get_patchy_N0s(qekey_in, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_
         Args:
             qekey_in: QE anisotroy key
             npatches: the variance map will be split into this number of regions of equal sky areas
-            pixivmap_t: inverse temperature noise pixel variance map
-            pixivmap_p: inverse polarization noise pixel variance map
+            pixivmap_t: inverse temperature noise pixel variance map used for the T. filtering
+            pixivmap_p: inverse polarization noise pixel variance map used for the Pol. filtering
             cls_unl: unlensed CMB dict
             cls_cmb_dat: CMB spectra dict entering the data maps
             cls_cmb_filt: CMB spectra dict entering the filtering steps
