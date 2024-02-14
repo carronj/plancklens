@@ -85,11 +85,25 @@ class sim_lib(object):
         self._rng_db = rng_db(os.path.join(lib_dir, 'rngdb.db'), idtype='INTEGER')
         self._get_rng_state = get_state_func
 
+    @staticmethod
+    def get_state(idx):
+        """Returns a random number generator state from a seed. """
+        #sg = np.random.SeedSequence(idx)
+        #mt19937 = np.random.MT19937(sg)
+        #rs = np.random.RandomState(mt19937)
+        rs = np.random.Generator(np.random.MT19937())
+        dictionary = rs.__getstate__()
+        l = [dictionary[k] for k in dictionary.keys()]
+        return [l[0], l[1]['key'], l[1]['pos'], 0, 0.0]
+        #return rs.get_state()
+
     def get_sim(self, idx, **kwargs):
         """Returns sim number idx and caches random number generator state. """
         if self.has_nmax(): assert idx < self.nmax
+
         if not self.is_stored(idx):
-            self._rng_db.add(idx, self._get_rng_state())
+            #self._rng_db.add(idx, self._get_rng_state())
+            self._rng_db.add(idx, self.get_state(idx))
         return self._build_sim_from_rng(self._rng_db.get(idx), **kwargs)
 
     def has_nmax(self):
@@ -193,3 +207,4 @@ class lib_phas:
 
     def hashdict(self):
         return {'nfields': self.nfields, 'lmax':self.lmax}
+    
