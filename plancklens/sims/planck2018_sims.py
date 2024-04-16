@@ -17,7 +17,7 @@ from plancklens import utils
 
 has_key = lambda key : key in os.environ.keys()
 
-assert has_key('NERSC_HOST'), "Maps are stored on NERSC"
+#assert has_key('NERSC_HOST'), "Maps are stored on NERSC"
 
 class smica_dx12:
     r""" SMICA 2018 release simulation and data library at NERSC in uK.
