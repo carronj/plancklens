@@ -14,7 +14,7 @@ if has_key('USE_PLANCKLENS_MPI'):
 else:
     use = True
 
-cond4mpi4py = 'srun' in os.environ['_'] or 'mpirun' in os.environ['_']
+cond4mpi4py = 'srun' in os.environ.get('_', '') or 'mpirun' in os.environ.get('_', '')
 
 if cond4mpi4py and use:
     try:
