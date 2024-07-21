@@ -9,7 +9,6 @@ This now allows for template projection in polarization, and differing E and B-m
 
 """
 
-import hashlib
 import numpy  as np
 import healpy as hp
 
