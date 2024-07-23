@@ -89,7 +89,7 @@ def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = N
             nlev_b = nlev_p
 
     # If nlev_p is single number
-    elif isinstance(nlev_p, (float, int, np.float, np.int)):
+    elif isinstance(nlev_p, (float, int)):
         nlev_e = nlev_p
         nlev_b = nlev_p
     else:
@@ -188,7 +188,7 @@ def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = N
         NG, NC, NGC, NCG = nhl.get_nhl(qe_key, qe_key, cls_weight, cls_ivfs_sepTP, lmax_ivf, lmax_ivf,
                                        lmax_out=lmax_qlm, cls_ivfs_ab=cls_ivfs_sepTP_ab, cls_ivfs_bb=cls_ivfs_sepTP_bb, cls_ivfs_ba=cls_ivfs_sepTP_ba)
         # Calculation of the G to G, C to C, G to C and C to G QE responses (again, cross-terms are typically zero)
-        RG, RC, RGC, RCG = qresp.get_response(qe_key, lmax_ivf, ksource, cls_weight, cls_glen, fal_sepTP,
+        RG, RC, RGC, RCG = qresp.get_response(qe_key, lmax_ivf, ksource, cls_weight, cls_len, fal_sepTP,
                                               lmax_qlm=lmax_qlm, fal_leg2=fal_sepTP_b)
 
         # Gradient and curl noise terms
@@ -313,7 +313,7 @@ def get_N0_iter(qe_key: str, nlev_t: float or np.ndarray, nlev_p: float or np.nd
             nlev_b = nlev_p
 
     # If nlev_p is single number
-    elif isinstance(nlev_p, (float, int, np.float, np.int)):
+    elif isinstance(nlev_p, (float, int)):
         nlev_e = nlev_p
         nlev_b = nlev_p
     else:
