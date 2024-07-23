@@ -121,6 +121,8 @@ def clhash(cl, dtype=np.float16):
 
 
     """
+    if np.isscalar(cl):
+        return hashlib.sha1(np.array([cl])).hexdigest()
     return hashlib.sha1(np.copy(cl.astype(dtype), order='C')).hexdigest()
 
 def mchash(cl):

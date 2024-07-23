@@ -117,7 +117,8 @@ class cinv_t(cinv):
 
         n_inv_filt = util.jit(opfilt_tt.alm_filter_ninv, ninv, transf_dl,
                         marge_monopole=marge_monopole, marge_dipole=marge_dipole, marge_maps=marge_maps)
-        self.chain = util.jit(multigrid.multigrid_chain, opfilt_tt, chain_descr, dl, n_inv_filt)
+        self.chain_descr = chain_descr
+        self.chain = util.jit(multigrid.multigrid_chain, opfilt_tt, self.chain_descr, dl, n_inv_filt)
         if mpi.rank == 0:
             if not os.path.exists(lib_dir):
                 os.makedirs(lib_dir)

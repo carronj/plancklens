@@ -12,14 +12,15 @@ def _read_map(m):
 
 def get_patchy_N0s(qekey_in, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_dat, cls_cmb_filt, cls_weight, lmin_ivf, lmax_ivf, lmax_qlm, transf,
                   rvmap_uKamin_t_data=None, rvmap_uKamin_p_data=None, joint_TP=False,
-                  nlevt_fid=None, nlevp_fid=None, cacher=cachers.cacher_mem(), source='p', patch_method='percentiles'):
+                   nlev_t_add:float or np.ndarray =0., nlev_p_add:float or np.ndarray =0.,lknee_T=None, alpha_T=None, lknee_P=None, alpha_P=None,
+                  nlevt_fid=None, nlevp_fid=None, cacher=cachers.cacher_mem(), source='p', patch_method='percentiles', verbose=False):
     """Collects the effective reconstruction noise levels for different filtering and spectrum weighting schemes
 
         Args:
             qekey_in: QE anisotroy key
             npatches: the variance map will be split into this number of regions of equal sky areas
-            pixivmap_t: inverse temperature noise pixel variance map
-            pixivmap_p: inverse polarization noise pixel variance map
+            pixivmap_t: inverse temperature noise pixel variance map used for the T. filtering
+            pixivmap_p: inverse polarization noise pixel variance map used for the Pol. filtering
             cls_unl: unlensed CMB dict
             cls_cmb_dat: CMB spectra dict entering the data maps
             cls_cmb_filt: CMB spectra dict entering the filtering steps
@@ -48,19 +49,45 @@ def get_patchy_N0s(qekey_in, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_
     qe_key = 'p' + qekey_in[1:]
 
     if (not joint_TP) and qe_key == 'ptt': # dont need pol partitioning here
-        nlevst_ftl, nlevst_data, _nlevt_fid, fskiest, masks = mk_patches(npatches, pixivmap_t, rvmap_uKamin_data=rvmap_uKamin_t_data, method=patch_method)
+        nlevst_ftl, nlevst_data, _nlevt_fid, fskiest, masks = mk_patches(npatches, pixivmap_t, rvmap_uKamin_data=rvmap_uKamin_t_data, method=patch_method, verbose=verbose)
         nlevsp_ftl, nlevsp_data, _nlevp_fid, fskiesp = (1e30 * np.ones_like(nlevst_ftl), 1e30 * np.copy(nlevst_data), 1e30, fskiest.copy())
     elif (not joint_TP) and qe_key == 'p_p':# dont need T  here
-        nlevsp_ftl, nlevsp_data, _nlevp_fid, fskiesp, masks = mk_patches(npatches, pixivmap_p, rvmap_uKamin_data=rvmap_uKamin_p_data, method=patch_method)
+        nlevsp_ftl, nlevsp_data, _nlevp_fid, fskiesp, masks = mk_patches(npatches, pixivmap_p, rvmap_uKamin_data=rvmap_uKamin_p_data, method=patch_method, verbose=verbose)
         nlevst_ftl, nlevst_data, _nlevt_fid, fskiest = (1e30 * np.ones_like(nlevsp_ftl), 1e30 * np.copy(nlevsp_data), 1e30, fskiesp.copy())
     else:
-        nlevst_ftl, nlevst_data, _nlevt_fid, fskiest, masks = mk_patches(npatches, pixivmap_t, rvmap_uKamin_data=rvmap_uKamin_t_data, method=patch_method)
-        nlevsp_ftl, nlevsp_data, _nlevp_fid, fskiesp, masks = mk_patches(npatches, pixivmap_p, rvmap_uKamin_data=rvmap_uKamin_p_data, method=patch_method)
+        nlevst_ftl, nlevst_data, _nlevt_fid, fskiest, masks = mk_patches(npatches, pixivmap_t, rvmap_uKamin_data=rvmap_uKamin_t_data, method=patch_method, verbose=verbose)
+        nlevsp_ftl, nlevsp_data, _nlevp_fid, fskiesp, masks = mk_patches(npatches, pixivmap_p, rvmap_uKamin_data=rvmap_uKamin_p_data, method=patch_method, verbose=verbose)
     if nlevt_fid is None: nlevt_fid = _nlevt_fid
     if nlevp_fid is None: nlevp_fid = _nlevp_fid
 
-    assert np.allclose(fskiest, fskiesp, atol=1e-6), (np.array(fskiest)-np.array(fskiesp), fskiesp)
+    assert np.allclose(fskiest, fskiesp, atol=1e-5), (np.array(fskiest)-np.array(fskiesp), fskiesp)
     fskies = fskiest
+    if alpha_T is not None and (lknee_T is not None and lknee_T > 0):
+        assert (alpha_T <= 0) and (lknee_T > 0)
+        ls = np.arange(lmax_ivf + 1)
+        nlevst_ftl = [ nlev * (1. + (ls / lknee_T) ** alpha_T) for nlev in nlevst_ftl]
+        nlevst_data = [nlev * (1. + (ls / lknee_T) ** alpha_T) for nlev in nlevst_data]
+        nlevt_fid = nlevt_fid * (1. + (ls / lknee_T) ** alpha_T)
+
+    if alpha_P is not None and(lknee_P is not None and lknee_P > 0):
+        assert (alpha_P <= 0) and (lknee_P > 0)
+        ls = np.arange(lmax_ivf + 1)
+        nlevsp_ftl = [ nlev * (1. + (ls / lknee_P) ** alpha_P) for nlev in nlevsp_ftl]
+        nlevsp_data = [nlev * (1. + (ls / lknee_P) ** alpha_P) for nlev in nlevsp_data]
+        nlevp_fid = nlevp_fid * (1. + (ls / lknee_P) ** alpha_P)
+
+    if nlev_t_add is None: nlev_t_add = 0
+    if nlev_p_add is None: nlev_p_add = 0
+
+    nlevst_ftl = [nlev_t_add + nlev for nlev in nlevst_ftl]
+    nlevt_fid = nlev_t_add + nlevt_fid
+    nlevst_data = [nlev_t_add + nlev for nlev in nlevst_data]
+
+    nlevsp_ftl = [nlev_p_add + nlev for nlev in nlevsp_ftl]
+    nlevp_fid = nlev_p_add + nlevp_fid
+    nlevsp_data = [nlev_p_add + nlev for nlev in nlevsp_data]
+    #if nlev_p_add is not None:
+    #    nlevsp_ftl += nlev_p_add
 
     cpp = cls_unl['pp'][:lmax_qlm+1]
     rid = 0 if qekey_in[0] == 'p' else 1
@@ -83,7 +110,7 @@ def get_patchy_N0s(qekey_in, npatches, pixivmap_t, pixivmap_p, cls_unl, cls_cmb_
 
     fsky_tot = np.sum(fskies)
     print('total observed sky area %.3f'%fsky_tot)
-    print('Using nlev fids %.3f %.3f'%(nlevt_fid, nlevp_fid))
+    #print('Using nlev fids at lmax %.3f %.3f'%(np.mean(nlevt_fid, nlevp_fid))
 
     rfidi = utils.cli(rfid[rid])
 
@@ -128,10 +155,16 @@ def mk_patches(Np, pix_ivmap, rvmap_uKamin_data=None, ret_masks=False, method='p
     npix = mask.size
     nside = hp.npix2nside(npix)
     nlev_map = utils.cli(np.sqrt(_read_map(pix_ivmap))) * np.sqrt(hp.nside2pixarea(nside)) / np.pi * 60 * 180.
+    nlev_map_mask = nlev_map # map used to define the sky areas
+    if np.unique(nlev_map_mask[np.where(mask)]).size <= 1 :
+        assert rvmap_uKamin_data is not None, ('uniform map ? this wont work')
+        nlev_map_mask = _read_map(rvmap_uKamin_data)
+        mask = _read_map(nlev_map_mask) > 0
+        assert np.unique(nlev_map_mask[np.where(mask)]).size > 1
     if method == 'percentiles':
-        edges = np.percentile(nlev_map[np.where(mask)], np.linspace(0, 100, Np + 1))
+        edges = np.percentile(nlev_map_mask[np.where(mask)], np.linspace(0, 100, Np + 1))
     elif method == 'linear':
-        edges = np.linspace(np.min(nlev_map[np.where(mask)]), np.max(nlev_map[np.where(mask)]), Np + 1)
+        edges = np.linspace(np.min(nlev_map_mask[np.where(mask)]), np.max(nlev_map_mask[np.where(mask)]), Np + 1)
     elif method == 'linear_vmap':
         ninv = _read_map(pix_ivmap)
         edges = np.linspace(np.min(ninv[np.where(mask)]), np.max(ninv[np.where(mask)]), Np + 1)
@@ -270,7 +303,9 @@ def get_responses(qe_key, cls_cmb_dat, cls_cmb_filt, cls_weight, lmin, lmax, lma
     """
     resps = []
     for i, (nlevt_f, nlevp_f) in utils.enumerate_progress(list(zip(nlevts_filt, nlevps_filt)), 'collecting responses'):
-        fname = 'vmapresps%s_%s_%s' % ('jTP' * joint_TP, qe_key, qe_key) + utils.clhash(np.array([nlevt_f, nlevp_f]), dtype=np.float32)
+        thash = utils.clhash(nlevt_f)
+        phash = utils.clhash(nlevp_f)
+        fname = 'vmapresps%s_%s_%s' % ('jTP' * joint_TP, qe_key, qe_key) + thash + phash
         if not cacher.is_cached(fname):
             cls_filt_i = get_ivf_cls(cls_cmb_dat, cls_cmb_filt, lmin, lmax, nlevt_f, nlevp_f, nlevt_f, nlevp_f, transf, jt_tp=joint_TP)[1]
             this_resp =  qresp.get_response(qe_key, lmax, source, cls_weight, cls_cmb_dat, cls_filt_i, lmax_qlm=lmax_qlm)
@@ -309,7 +344,11 @@ def get_nhls(qe_key1, qe_key2, cls_cmb_dat, cls_cmb_filt, cls_weight, lmin, lmax
     """
     Nhls = []
     for i, (nlevt_f, nlevt_m, nlevp_f, nlevp_m) in utils.enumerate_progress(list(zip(nlevts_filt, nlevts_map, nlevps_filt, nlevps_map)), 'collecting nhls'):
-        fname = 'vmapnhl%s_%s_%s' % ('jTP' * joint_TP, qe_key1, qe_key2) + utils.clhash(np.array([nlevt_f, nlevt_m, nlevp_f, nlevp_m]))
+        fthash = utils.clhash(nlevt_f)
+        mthash = utils.clhash(nlevt_m)
+        fphash = utils.clhash(nlevp_f)
+        mphash = utils.clhash(nlevp_m)
+        fname = 'vmapnhl%s_%s_%s' % ('jTP' * joint_TP, qe_key1, qe_key2) + fthash + mthash + fphash + mphash
         if not cacher.is_cached(fname):
             ivf_cls = get_ivf_cls(cls_cmb_dat, cls_cmb_filt, lmin, lmax, nlevt_f, nlevp_f, nlevt_m, nlevp_m, transf, jt_tp=joint_TP)[0]
             this_nhl = nhl.get_nhl(qe_key1, qe_key2, cls_weight, ivf_cls, lmax, lmax, lmax_out=lmax_qlm)
