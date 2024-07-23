@@ -540,6 +540,16 @@ class library_cinv_sepTP(filt_simple.library_sepTP):
         mpi.barrier()
         utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict(), fn=os.path.join(lib_dir, "filt_hash.pk"))
 
+    def __call__(self, maps:dict):
+        ret_alms = dict()
+        if 't' in maps:
+            ret_alms['t'] = self._apply_ivf_t(maps['t'])
+        if 'qu' in maps:
+            ret_alms['qu'] = self._apply_ivf_p(maps['qu'])
+        if 'p' in maps:
+            ret_alms['p'] = self._apply_ivf_p(maps['p'])
+        return ret_alms
+
     def hashdict(self):
         return {'cinv_t': self.cinv_t.hashdict(),
                 'cinv_p': self.cinv_p.hashdict(),
