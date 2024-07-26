@@ -79,7 +79,7 @@ class cinv_t(cinv):
         super(cinv_t, self).__init__(lib_dir, lmax)
 
 
-        if rescal_cl in ['default', None]:
+        if not isinstance(rescal_cl, np.ndarray) and rescal_cl in ['default', None]:
             default_rescal = True
             rescal_cl = np.sqrt(np.arange(lmax + 1, dtype=float) * np.arange(1, lmax + 2, dtype=float) / 2. / np.pi)
         else:
