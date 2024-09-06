@@ -37,7 +37,8 @@ estimator_keys = ['ptt', 'pte', 'pet', 'pee', 'peb', 'pbe', 'ptb', 'pbt',
                   'stt', 'ftt']
 estimator_keys_derived = ['p', 'p_p', 'p_tp', 'p_eb', 'p_te', 'p_tb',
                           'f', 'f_p', 'f_tp', 'f_eb', 'f_te', 'f_tb',
-                          'x', 'x_p', 'x_tp', 'x_eb', 'x_te', 'x_tb']
+                          'x', 'x_p', 'x_tp', 'x_eb', 'x_te', 'x_tb',
+                          'a_p']
 
 
 def _calc_n1L_sTP(L, cl_kind, kA, kB, k_ind, cltt, clte, clee, clttw, cltew, cleew,
@@ -68,7 +69,7 @@ def _get_est_derived(k, lmax):
         ret = [('%stt' % g, clo),
                ('%see' % g, clo),
                ('%seb' % g, 2. * clo)]
-    elif k in ['p_p', 'x_p', 'f_p']:
+    elif k in ['p_p', 'x_p', 'f_p', 'a_p']:
         g = k[0]
         ret = [('%see' % g, clo),
                ('%seb' % g, 2. * clo)]
