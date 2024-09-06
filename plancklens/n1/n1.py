@@ -34,7 +34,7 @@ except:
 
 estimator_keys = ['ptt', 'pte', 'pet', 'pee', 'peb', 'pbe', 'ptb', 'pbt',
                   'xtt', 'xte', 'xet', 'xee', 'xeb', 'xbe', 'xtb', 'xbt',
-                  'stt', 'ftt']
+                  'stt', 'ftt', 'aee', 'aeb', 'abe']
 estimator_keys_derived = ['p', 'p_p', 'p_tp', 'p_eb', 'p_te', 'p_tb',
                           'f', 'f_p', 'f_tp', 'f_eb', 'f_te', 'f_tb',
                           'x', 'x_p', 'x_tp', 'x_eb', 'x_te', 'x_tb',
