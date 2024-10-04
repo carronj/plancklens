@@ -15,7 +15,7 @@ def configuration(parent_package='', top_path=''):
                          extra_link_args=['-lgomp'], libraries=['gomp'], extra_f90_compile_args=['-fopenmp', '-w'])
     return config
 
-setup(
+setuptools.setup(
     name='plancklens',
     version='0.0.1',
     packages=['plancklens', 'plancklens.n1', 'plancklens.filt', 'plancklens.sims', 'plancklens.helpers',
