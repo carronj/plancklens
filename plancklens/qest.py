@@ -113,7 +113,7 @@ class library:
                                       'ptt_bh_s', 'ptt_bh_f', 'ptt_bh_d', 'dtt_bh_p', 'stt_bh_p', 'ftt_bh_d',
                                       'p_bh_s', 'p_bh_n']
         #TODO: remove self.keys
-        self.keys_remaps = {'s':'stt'} # equivalent keys
+        self.keys_remaps = {'s':'stt', 'n':'ntt'} # equivalent keys
 
     def hashdict(self):
         return {'f2map1': self.f2map1.hashdict(),
