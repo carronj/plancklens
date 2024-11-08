@@ -170,7 +170,7 @@ def qe_spin_data(qe_key):
         unordered list of unique spins (>= 0) input to the estimator, and the spin-1 qe key.
 
     """
-    if qe_key in ['ntt']:
+    if qe_key in ['ntt', 'n']:
         return 0, 'G', [0], 'n'
     qes = get_qes(qe_key.split('_bh_')[0], 10, {k:np.ones(11 + 4, dtype=float) for k in ['tt', 'te', 'ee', 'bb']}) #Hack
     spins_out = [qe.leg_a.spin_ou + qe.leg_b.spin_ou for qe in qes]
