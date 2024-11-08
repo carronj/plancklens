@@ -85,7 +85,7 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None, transf=None):
             return uqe.qe_simplify(uqe.qe_proj(qes, qe_key[2], qe_key[3]) + uqe.qe_proj(qes, qe_key[3], qe_key[2]))
         else:
             assert 0, 'qe key %s  not recognized'%qe_key
-    elif qe_key in ['ntt']:
+    elif qe_key in ['ntt', 'n']:
         lega = uqe.qeleg(0, 0, 1   * _clinv(transf[:lmax + 1]))
         legb = uqe.qeleg(0, 0, 0.5 * _clinv(transf[:lmax + 1]))  # Weird norm to match PS case for no beam
         qes = [uqe.qe(lega, legb, lambda L: np.ones(len(L), dtype=float))]
