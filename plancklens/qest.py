@@ -106,12 +106,12 @@ class library:
 
         self.resplib = resplib
 
-        self.keys_fund = ['ptt', 'xtt', 'p_p', 'x_p', 'p', 'x', 'stt', 's', 'ftt','f_p', 'f','dtt', 'ntt', 'a_p',
+        self.keys_fund = ['ptt', 'xtt', 'p_p', 'x_p', 'p', 'x', 'stt', 's', 'ftt','f_p', 'f','dtt', 'ntt','n', 'a_p',
                           'pte', 'pet', 'ptb', 'pbt', 'pee', 'peb', 'pbe', 'pbb',
                           'xte', 'xet', 'xtb', 'xbt', 'xee', 'xeb', 'xbe', 'xbb']
         self.keys = self.keys_fund + ['p_tp', 'x_tp', 'p_te', 'p_tb', 'p_eb', 'x_te', 'x_tb', 'x_eb', 'ptt_bh_n',
                                       'ptt_bh_s', 'ptt_bh_f', 'ptt_bh_d', 'dtt_bh_p', 'stt_bh_p', 'ftt_bh_d',
-                                      'p_bh_s']
+                                      'p_bh_s', 'p_bh_n']
         #TODO: remove self.keys
         self.keys_remaps = {'s':'stt'} # equivalent keys
 
