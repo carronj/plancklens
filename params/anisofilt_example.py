@@ -25,7 +25,7 @@ import healpy as hp
 import numpy as np
 
 import plancklens
-from plancklens.filt import filt_simple, filt_util
+from plancklens.filt import filt_util
 from plancklens import utils
 from plancklens import qest, qecl, qresp
 from plancklens import nhl

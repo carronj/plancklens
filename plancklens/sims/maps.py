@@ -8,7 +8,7 @@ import plancklens.sims.phas
 
 from plancklens.utils import clhash, hash_check
 from plancklens.helpers import mpi
-from plancklens.sims import phas, cmbs
+from plancklens.sims import phas
 
 class cmb_maps(object):
     r"""CMB simulation library combining a lensed CMB library and a transfer function.

@@ -36,7 +36,6 @@ from __future__ import print_function
 import os
 import numpy as np
 import pickle as pk
-from scipy.special import gammaln
 
 from plancklens import utils as ut, utils_spin as uspin, utils_qe as uqe
 from plancklens.helpers import mpi, sql
