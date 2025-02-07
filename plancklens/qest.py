@@ -432,7 +432,7 @@ class library:
     def _build_sim_a_p(self, idx):
         fLM = self._get_sim_a_p(idx)
         if not self.f2map1.ivfs == self.f2map2.ivfs:
-            _fLM = self._get_sim_f_p(idx,swapped=True)
+            _fLM = self._get_sim_a_p(idx,swapped=True)
             fLM = 0.5 * (fLM + _fLM)
             del _fLM
         _write_alm(os.path.join(self.lib_dir, 'sim_a_p_%04d.fits'%idx if idx != -1 else 'dat_a_p.fits'), fLM)
