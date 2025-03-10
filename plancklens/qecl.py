@@ -54,7 +54,7 @@ class library(object):
                     os.makedirs(self.lib_dir)
                 pk.dump(self.hashdict(), open(hname, 'wb'), protocol=2)
         mpi.barrier()
-        utils.hash_check(pk.load(open(hname, 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(hname, 'rb')), self.hashdict(), fn=hname)
         self.npdb = sql.npdb(os.path.join(lib_dir, 'cldb.db'))
         fskies = {}
         with open(fsname) as f:
@@ -166,7 +166,7 @@ class average:
             if not os.path.exists(hname):
                 pk.dump(self.hashdict(), open(hname, 'wb'), protocol=2)
         mpi.barrier()
-        utils.hash_check(pk.load(open(hname, 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(hname, 'rb')), self.hashdict(), fn=hname)
         self.mc_sims_mf = np.sort(np.unique(np.concatenate([qcl.mc_sims_mf for qcl in self.qclibs])))
 
     def hashdict(self):

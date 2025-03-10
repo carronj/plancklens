@@ -39,7 +39,7 @@ class library_sepTP(object):
             if not os.path.exists(fn_hash):
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
         mpi.barrier()
-        utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict(), fn=fn_hash)
 
     def hashdict(self):
         assert 0, 'override this'
@@ -210,7 +210,7 @@ class library_jTP(object):
             if not os.path.exists(fn_hash):
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
         mpi.barrier()
-        utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict(), fn=fn_hash)
 
     def hashdict(self):
         assert 0, 'override this'
@@ -456,9 +456,15 @@ class library_fullsky_alms_sepTP(library_sepTP):
         return np.copy(self.fbl)
 
     def _apply_ivf_t(self, tlm, soltn=None):
+        #if (hp.Alm.getlmax(tlm.size) + 1) > len(self.ftl):
+        #    tlm = utils.alm_copy(tlm, lmax=self.ftl)
         return hp.almxfl(tlm, self.get_ftl() * utils.cli(self.transf['t'][:len(self.ftl)]))
 
     def _apply_ivf_p(self, eblm, soltn=None):
+        #if  (hp.Alm.getlmax(eblm[0].size) + 1) > len(self.fel):
+        #    eblm[0] = utils.alm_copy(eblm[0], lmax=len(self.fel) - 1)
+        #if  (hp.Alm.getlmax(eblm[1].size) + 1) > len(self.fbl):
+        #    eblm[1] = utils.alm_copy(eblm[1], lmax=len(self.fbl) - 1)
         elm = hp.almxfl(eblm[0], self.get_fel() * utils.cli(self.transf['e'][:len(self.fel)]))
         blm = hp.almxfl(eblm[1], self.get_fbl() * utils.cli(self.transf['b'][:len(self.fbl)]))
         return elm, blm

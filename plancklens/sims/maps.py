@@ -4,10 +4,11 @@ import os
 import pickle as pk
 import healpy as hp
 import numpy as np
+import plancklens.sims.phas
 
 from plancklens.utils import clhash, hash_check
 from plancklens.helpers import mpi
-from plancklens.sims import phas
+from plancklens.sims import phas, cmbs
 
 class cmb_maps(object):
     r"""CMB simulation library combining a lensed CMB library and a transfer function.
@@ -34,7 +35,7 @@ class cmb_maps(object):
             if mpi.rank == 0 and not os.path.exists(fn_hash):
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
             mpi.barrier()
-            hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')))
+            hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')), fn=fn_hash)
 
     def hashdict(self):
         ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(),'nside':self.nside,'cl_transf':clhash(self.cl_transf_T)}
@@ -172,5 +173,183 @@ class cmb_maps_nlev(cmb_maps):
         return self.nlev_p / vamin * self.pix_lib_phas.get_sim(idx, idf=2)
 
 
+class cmb_maps_anisonoise(cmb_maps):
+    r"""CMB simulation library with anisotropic noise.
+        The noise map comes from an anisotropic maps, which is rescaled to have the same vairaince as the Gaussian noise level 
+        in temperature and polarisation. 
+       
+       Args:
+            sims_cmb_len: lensed CMB library (e.g. *plancklens.sims.planck2018_sims.cmb_len_ffp10*)
+            cl_transf: CMB transfer function, identical in temperature and polarization
+            fn_noise_map: File name of the noise map to use
+            nlev_t: temperature noise level in :math:`\mu K`-arcmin
+            nlev_p: polarization noise level in :math:`\mu K`-arcmin
+            nside: healpy resolution of the maps
+            lib_dir(optional): noise maps random phases will be cached there. Only relevant if *pix_lib_phas is not set*
+            pix_lib_phas(optional): random phases library for the noise maps (from *plancklens.sims.phas.py*).
+                                    If not set, *lib_dir* arg must be set.
 
 
+    """
+    def __init__(self, sims_cmb_len, cl_transf, fn_noise_map, nlev_t, nlev_p, nside, lib_dir=None):
+        
+        self.noisemap = fn_noise_map
+        self.nlev_t = nlev_t
+        self.nlev_p = nlev_p
+
+        super(cmb_maps_anisonoise, self).__init__(sims_cmb_len, cl_transf, nside=nside, lib_dir=lib_dir)
+
+
+    def hashdict(self):
+        ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(),
+                'nside':self.nside,'cl_transf':clhash(self.cl_transf_T),
+                'nlev_t':self.nlev_t,'nlev_p':self.nlev_p, 'fn_noisemap':self.noisemap}
+        if not (np.all(self.cl_transf_P == self.cl_transf_T)):
+            ret['cl_transf_P'] = clhash(self.cl_transf_P)
+        return ret
+
+    def get_sim_tnoise(self,idx):
+        """Returns noise temperature map for a simulation
+
+            Args:
+                idx: simulation index
+
+            Returns:
+                healpy map
+
+        """
+        vamin = np.sqrt(hp.nside2pixarea(self.nside, degrees=True)) * 60
+        tmap = hp.read_map(self.noisemap, field=0, dtype=np.float64)
+        assert hp.npix2nside(len(tmap)) == self.nside
+        return self.nlev_t / vamin /np.std(tmap) * tmap
+
+    def get_sim_qnoise(self, idx):
+        """Returns noise Q-polarization map for a simulation
+
+            Args:
+                idx: simulation index
+
+            Returns:
+                healpy map
+
+        """
+        vamin = np.sqrt(hp.nside2pixarea(self.nside, degrees=True)) * 60
+        qmap = hp.read_map(self.noisemap, field=1, dtype=np.float64)
+        assert hp.npix2nside(len(qmap)) == self.nside
+        return self.nlev_p / vamin /np.std(qmap) * qmap
+
+    def get_sim_unoise(self, idx):
+        """Returns noise U-polarization map for a simulation
+
+            Args:
+                idx: simulation index
+
+            Returns:
+                healpy map
+
+        """
+        vamin = np.sqrt(hp.nside2pixarea(self.nside, degrees=True)) * 60
+        umap = hp.read_map(self.noisemap, field=2, dtype=np.float64)
+        assert hp.npix2nside(len(umap)) == self.nside
+        return self.nlev_p / vamin /np.std(umap) * umap
+
+
+class cmb_maps_harmonicspace(object):
+    r"""CMB simulation library combining a lensed CMB library and a transfer function
+
+        Note:
+            In this version, maps are directly produced in harmonic space with possibly non-white but stat. isotropic noise
+
+        Args:
+            sims_cmb_len: lensed CMB library (e.g. *plancklens.sims.planck2018_sims.cmb_len_ffp10*)
+            cls_transf: dict with transfer function for 't' 'e' and 'b' CMB fields
+            cls_noise: dict with noise spectra for 't' 'e' and 'b'
+            noise_phas: *plancklens.sims.phas.lib-phas* with at least 3 fields for the random phase library for the noise generation
+            lib_dir(optional): hash checks will be cached, as well as possibly other things for subclasses.
+            nside: If provided, maps are returned in pixel space instead of harmonic space
+
+        Note:
+            lmax's of len cmbs and noise phases must match
+
+
+    """
+    def __init__(self, sims_cmb_len, cls_transf:dict, cls_noise:dict, noise_phas:plancklens.sims.phas.lib_phas, lib_dir=None, nside=None):
+        assert noise_phas.nfields >= 3, noise_phas.nfields
+        self.sims_cmb_len = sims_cmb_len
+        self.cls_transf = cls_transf
+        self.cls_noise = cls_noise
+        self.phas = noise_phas
+        self.nside = nside
+
+        if hasattr(sims_cmb_len, 'lmax'):
+            assert self.sims_cmb_len.lmax == self.phas.lmax, f"Lmax of lensed CMB and of noise phases should match, here {self.sims_cmb_len.lmax} and {self.phas.lmax}"
+
+        if lib_dir is not None:
+            fn_hash = os.path.join(lib_dir, 'sim_hash.pk')
+            if mpi.rank == 0 and not os.path.exists(fn_hash):
+                pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
+            mpi.barrier()
+            hash_check(self.hashdict(), pk.load(open(fn_hash, 'rb')))
+
+    def hashdict(self):
+        ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(), 'phas':self.phas.hashdict()}
+        for k in self.cls_noise:
+            ret['noise' + k] = clhash(self.cls_noise[k])
+        for k in self.cls_transf:
+            ret['transf' + k] = clhash(self.cls_transf[k])
+        return ret
+
+    def get_sim_tmap(self,idx):
+        """Returns temperature healpy map for a simulation
+
+            Args:
+                idx: simulation index
+
+            Returns:
+                Temperature alm's 
+                or Temperature healpy map if nside is given
+
+        """
+        assert 't' in self.cls_transf
+        tlm = self.sims_cmb_len.get_sim_tlm(idx)
+        hp.almxfl(tlm,self.cls_transf['t'],inplace=True)
+        tlm +=  self.get_sim_tnoise(idx)
+        if self.nside:
+            return hp.alm2map(tlm, self.nside)
+        return tlm 
+
+    def get_sim_pmap(self,idx):
+        """Returns polarization healpy maps for a simulation
+
+            Args:
+                idx: simulation index
+
+            Returns:
+                Elm and Blm
+                 or Q and U healpy maps if nside is given
+
+        """
+        assert 'e' in self.cls_transf
+        assert 'b' in self.cls_transf
+
+        elm = self.sims_cmb_len.get_sim_elm(idx)
+        blm = self.sims_cmb_len.get_sim_blm(idx)
+        hp.almxfl(elm, self.cls_transf['e'], inplace=True)
+        hp.almxfl(blm, self.cls_transf['b'], inplace=True)
+        elm += self.get_sim_enoise(idx)
+        blm += self.get_sim_bnoise(idx)
+        if self.nside is not None:
+            return hp.alm2map_spin([elm,blm], self.nside, 2, hp.Alm.getlmax(elm.size))
+        return elm, blm 
+
+    def get_sim_tnoise(self,idx):
+        assert 't' in self.cls_noise
+        return hp.almxfl(self.phas.get_sim(idx, 0), np.sqrt(self.cls_noise['t']))
+
+    def get_sim_enoise(self, idx):
+        assert 'e' in self.cls_noise
+        return hp.almxfl(self.phas.get_sim(idx, 1), np.sqrt(self.cls_noise['e']))
+
+    def get_sim_bnoise(self, idx):
+        assert 'b' in self.cls_noise
+        return hp.almxfl(self.phas.get_sim(idx, 2), np.sqrt(self.cls_noise['b']))

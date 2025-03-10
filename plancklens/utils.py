@@ -28,7 +28,7 @@ def alm_copy(alm, lmax=None):
     if (alm_lmax == lmax) or (lmax is None):
         ret = np.copy(alm)
     else:
-        ret = np.zeros((lmax + 1) * (lmax + 2) // 2, dtype=np.complex)
+        ret = np.zeros((lmax + 1) * (lmax + 2) // 2, dtype=complex)
         for m in range(0, lmax + 1):
             ret[((m * (2 * lmax + 1 - m) // 2) + m):(m * (2 * lmax + 1 - m) // 2 + lmax + 1)] \
                 = alm[(m * (2 * alm_lmax + 1 - m) // 2 + m):(m * (2 * alm_lmax + 1 - m) // 2 + lmax + 1)]
@@ -141,30 +141,37 @@ def joincls(cls_list):
     lmaxp1 = np.min([len(cl) for cl in cls_list])
     return np.prod(np.array([cl[:lmaxp1] for cl in cls_list]), axis=0)
 
-def hash_check(hash1, hash2, ignore=['lib_dir', 'prefix'], keychain=[]):
+def hash_check(hash1, hash2, ignore=['lib_dir', 'prefix'], keychain=[], fn=None):
     keys1 = hash1.keys()
     keys2 = hash2.keys()
-
     for key in ignore:
         if key in keys1: keys1.remove(key)
         if key in keys2: keys2.remove(key)
-
     for key in set(keys1).union(set(keys2)):
-        v1 = hash1[key]
-        v2 = hash2[key]
-
+        # v1 = hash1[key]
+        # v2 = hash2[key]
+        try:
+            v1 = hash1[key]
+            v2 = hash2[key]
+        except KeyError:
+            raise KeyError(f"Cannot find key {key} in hashdict {fn}")
+        
         def hashfail(msg=None):
-            print("ERROR: HASHCHECK FAIL AT KEY = " + ':'.join(keychain + [key]))
+            print(f"CHECKING HASHFILE {fn}")
+            print(f"ERROR: HASHCHECK FAIL AT KEY {key}")
             if msg is not None:
                 print("   " + msg)
             print("   ", "V1 = ", v1)
             print("   ", "V2 = ", v2)
+            print(keys1)
+            print(keys2)
+
             assert 0
 
         if type(v1) != type(v2):
-            hashfail('UNEQUAL TYPES')
+            hashfail(f'UNEQUAL TYPES: type(v1) = {type(v1)}, type(v2)={type(v2)}')
         elif type(v2) == dict:
-            hash_check( v1, v2, ignore=ignore, keychain=keychain + [key] )
+            hash_check( v1, v2, ignore=ignore, keychain=keychain + [key], fn=fn )
         elif type(v1) == np.ndarray:
             if not np.allclose(v1, v2):
                 hashfail('UNEQUAL ARRAY')

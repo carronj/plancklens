@@ -34,12 +34,19 @@ def map2alm_spin(maps, spin, lmax=None, mmax=None):
         return -hp.map2alm(maps[0], lmax=lmax, mmax=mmax, iter=0), 0.
 
 try:
-    from plancklens.wigners import wigners  # fortran 90 shared object
+    from lenspyx.wigners import wigners
     HASWIGNER = True
-except:
-    HASWIGNER = False
-    print("could not load wigners.so fortran shared object")
-    print('try f2py -c -m wigners wigners.f90 from the command line in wigners directory ?')
+    HASWIGNER_LPYX = True
+except ImportError:
+    try:
+        from plancklens.wigners import wigners  # fortran 90 shared object
+        HASWIGNER = True
+        HASWIGNER_LPYX = False
+    except ImportError:
+        HASWIGNER = False
+        HASWIGNER_LPYX = False
+        print("could not load wigners.so fortran shared object")
+        print('try f2py -c -m wigners wigners.f90 from the command line in wigners directory ?')
 
 GL_cache = {}
 def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
@@ -57,9 +64,13 @@ def wignerc(cl1, cl2, sp1, s1, sp2, s2, lmax_out=None):
     so = s1 + s2
     if np.any(cl1) and np.any(cl2):
         N = (lmaxtot + 2 - lmaxtot % 2) // 2
-        if not 'xg wg %s' % N in GL_cache.keys():
-            GL_cache['xg wg %s' % N] = wigners.get_xgwg(-1., 1., N)
-        xg, wg = GL_cache['xg wg %s' % N]
+        fn = 'tht wg %s' % N if HASWIGNER_LPYX else 'xg wg %s' % N
+        if not fn in GL_cache.keys():
+            if HASWIGNER_LPYX:  # lenspyx use tht in place of xg = cos tht
+                GL_cache[fn] = wigners.get_thgwg(N)
+            else:
+                GL_cache[fn] = wigners.get_xgwg(-1., 1., N)
+        xg, wg = GL_cache[fn]
         if HASWIGNER:
             if np.iscomplexobj(cl1):
                 xi1 = wigners.wignerpos(np.real(cl1), xg, sp1, s1) + 1j * wigners.wignerpos(np.imag(cl1), xg, sp1, s1)

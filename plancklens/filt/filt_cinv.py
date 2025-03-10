@@ -117,7 +117,8 @@ class cinv_t(cinv):
 
         n_inv_filt = util.jit(opfilt_tt.alm_filter_ninv, ninv, transf_dl,
                         marge_monopole=marge_monopole, marge_dipole=marge_dipole, marge_maps=marge_maps)
-        self.chain = util.jit(multigrid.multigrid_chain, opfilt_tt, chain_descr, dl, n_inv_filt)
+        self.chain_descr = chain_descr
+        self.chain = util.jit(multigrid.multigrid_chain, opfilt_tt, self.chain_descr, dl, n_inv_filt)
         if mpi.rank == 0:
             if not os.path.exists(lib_dir):
                 os.makedirs(lib_dir)
@@ -135,7 +136,7 @@ class cinv_t(cinv):
                 hp.write_map(os.path.join(self.lib_dir, "fmask.fits.gz"), self._calc_mask())
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict(), fn=os.path.join(lib_dir, "filt_hash.pk"))
 
     def _ninv_hash(self):
         ret = []
@@ -144,6 +145,8 @@ class cinv_t(cinv):
                 ret.append(utils.clhash(ninv_comp))
             else:
                 ret.append(ninv_comp)
+                # Get only filename (useful for runs on different scratch systems of NERSC)
+                # ret.append(os.path.basename(ninv_comp))
         return ret
 
     def _calc_ftl(self):
@@ -158,7 +161,7 @@ class cinv_t(cinv):
         if s_cls['tt'][0] == 0.: assert self.chain.n_inv_filt.marge_monopole
         if s_cls['tt'][1] == 0.: assert self.chain.n_inv_filt.marge_dipole
 
-        ftl = utils.cli(s_cls['tt'][0:self.lmax + 1] + (NlevT_uKamin * np.pi / 180. / 60.) ** 2 / b_transf[0:self.lmax + 1] ** 2)
+        ftl = utils.cli(s_cls['tt'][0:self.lmax + 1] + (NlevT_uKamin * np.pi / 180. / 60.) ** 2 *utils.cli(b_transf[0:self.lmax + 1] ** 2))
         if self.chain.n_inv_filt.marge_monopole: ftl[0] = 0.0
         if self.chain.n_inv_filt.marge_dipole: ftl[1] = 0.0
 
@@ -192,7 +195,7 @@ class cinv_t(cinv):
             
     def apply_ivf(self, tmap, soltn=None):
         if soltn is None:
-            talm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
+            talm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
         else:
             talm = soltn.copy()
         self.chain.solve(talm, tmap)
@@ -257,7 +260,7 @@ class cinv_p(cinv):
                 hp.write_map(os.path.join(self.lib_dir,  "fmask.fits.gz"),  self._calc_mask())
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict(), fn=os.path.join(lib_dir, "filt_hash.pk"))
 
     def hashdict(self):
         return {'lmax': self.lmax,
@@ -422,7 +425,7 @@ class cinv_tp:
                 hp.write_map(os.path.join(self.lib_dir,  "fmask.fits.gz"), fmask)
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir,  "filt_hash.pk"), 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(os.path.join(lib_dir,  "filt_hash.pk"), 'rb')), self.hashdict(), fn=os.path.join(lib_dir, "filt_hash.pk"))
 
     def hashdict(self):
         ret = {'lmax': self.lmax,
@@ -484,9 +487,9 @@ class cinv_tp:
     def apply_ivf(self, tqumap, soltn=None, apply_fini=''):
         assert (len(tqumap) == 3)
         if soltn is None:
-            ttlm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
-            telm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
-            tblm = np.zeros(hp.Alm.getsize(self.lmax), dtype=np.complex)
+            ttlm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
+            telm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
+            tblm = np.zeros(hp.Alm.getsize(self.lmax), dtype=complex)
         else:
             ttlm, telm, tblm = soltn
             hp.almxfl(ttlm, self.rescal_cl['t'], inplace=True)
@@ -536,7 +539,7 @@ class library_cinv_sepTP(filt_simple.library_sepTP):
                 hp.write_map(fname_mask, fmask)
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict(), fn=os.path.join(lib_dir, "filt_hash.pk"))
 
     def hashdict(self):
         return {'cinv_t': self.cinv_t.hashdict(),
@@ -573,11 +576,11 @@ class library_cinv_sepTP(filt_simple.library_sepTP):
 
     def get_emliklm(self, idx):
         assert not hasattr(self.cinv_p.cl, 'eb')
-        return  hp.almxfl(self.get_sim_elm(idx), self.cinv_t.cl['ee'])
+        return  hp.almxfl(self.get_sim_elm(idx), self.cinv_p.cl['ee'])
 
     def get_bmliklm(self, idx):
         assert not hasattr(self.cinv_p.cl, 'eb')
-        return  hp.almxfl(self.get_sim_blm(idx), self.cinv_t.cl['bb'])
+        return  hp.almxfl(self.get_sim_blm(idx), self.cinv_p.cl['bb'])
 
 class library_cinv_jTP(filt_simple.library_jTP):
     """Library to perform inverse-variance filtering of a simulation library.
@@ -606,7 +609,7 @@ class library_cinv_jTP(filt_simple.library_jTP):
                 hp.write_map(fname_mask, fmask)
 
         mpi.barrier()
-        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict(), fn=os.path.join(lib_dir, "filt_hash.pk"))
 
     def hashdict(self):
         return {'cinv_tp': self.cinv_tp.hashdict(),

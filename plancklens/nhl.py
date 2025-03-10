@@ -13,7 +13,8 @@ from plancklens.helpers import mpi, sql
 
 
 def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
-            lmax_out=None, lmax_ivf12=None, lmax_ivf22=None, cls_weights2=None, cls_ivfs_bb=None, cls_ivfs_ab=None):
+            lmax_out=None, lmax_ivf12=None, lmax_ivf22=None, cls_weights2=None,
+            cls_ivfs_bb=None, cls_ivfs_ab=None, cls_ivfs_ba=None):
     """(Semi-)Analytical noise level calculation for the cross-spectrum of two QE keys.
 
         Args:
@@ -39,9 +40,9 @@ def get_nhl(qe_key1, qe_key2, cls_weights, cls_ivfs, lmax_ivf1, lmax_ivf2,
     qes2 = qresp.get_qes(qe_key2, lmax_ivf2, cls_weights2, lmax2=lmax_ivf22)
     if lmax_out is None:
         lmax_out = max(lmax_ivf1, lmax_ivf12) + max(lmax_ivf2, lmax_ivf22)
-    return  _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab)
+    return  _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=cls_ivfs_bb, cls_ivfs_ab=cls_ivfs_ab, cls_ivfs_ba=cls_ivfs_ba)
 
-def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None, ret_terms=False):
+def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None, cls_ivfs_ba=None, ret_terms=False):
     GG_N0 = np.zeros(lmax_out + 1, dtype=float)
     CC_N0 = np.zeros(lmax_out + 1, dtype=float)
     GC_N0 = np.zeros(lmax_out + 1, dtype=float)
@@ -50,7 +51,7 @@ def _get_nhl(qes1, qes2, cls_ivfs, lmax_out, cls_ivfs_bb=None, cls_ivfs_ab=None,
     cls_ivfs_aa = cls_ivfs
     cls_ivfs_bb = cls_ivfs if cls_ivfs_bb is None else cls_ivfs_bb
     cls_ivfs_ab = cls_ivfs if cls_ivfs_ab is None else cls_ivfs_ab
-    cls_ivfs_ba = cls_ivfs_ab
+    cls_ivfs_ba = cls_ivfs if cls_ivfs_ba is None else cls_ivfs_ba
     if ret_terms:
         terms = []
     for qe1 in qes1:
@@ -119,7 +120,7 @@ class nhl_lib_simple:
             if not os.path.exists(fn_hash):
                 pk.dump(self.hashdict(), open(fn_hash, 'wb'), protocol=2)
         mpi.barrier()
-        utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict())
+        utils.hash_check(pk.load(open(fn_hash, 'rb')), self.hashdict(), fn=fn_hash)
 
         self.lib_dir = lib_dir
         self.npdb = sql.npdb(os.path.join(lib_dir, 'npdb.db'))
@@ -214,7 +215,7 @@ def dls2cls(dls):
 
 
 def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl_fid:dict, lmin_ivf, lmax_ivf, itermax, cls_unl_dat=None,
-                lmax_qlm=None, ret_delcls=False, datnoise_cls:dict or None=None, unlQE=False, version='1'):
+                lmax_qlm=None, ret_delcls=False, ret_resp=False, datnoise_cls:dict or None=None, unlQE=False, version='1'):
     """Iterative lensing-N0 estimate
 
         Calculates iteratively partially lensed spectra and lensing noise levels.
@@ -233,6 +234,7 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
             itermax: number of iterations to perform
             lmax_qlm(optional): maximum lensing multipole to consider. Defaults to :math:`2 lmax_ivf`
             ret_delcls(optional): returns the partially delensed CMB cls as well if set
+            ret_resp(optional): returns the iterative response
             datnoise_cls(optional): feeds in custom noise spectra to the data. The nlevs and beam only apply to the filtering in this case
 
         Returns
@@ -298,7 +300,8 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
                 print('including imperfect knowledge of E in iterations')
             slic = slice(lmin_ivf, lmax_ivf + 1)
             rho_sqd_E = np.zeros(len(dls_unl_true[:, 1]))
-            rho_sqd_E[slic] = cls_unl_dat['ee'][slic] * utils.cli(cls_plen_true['ee'][slic] + datnoise_cls['ee'][slic])
+            # rho_sqd_E[slic] = cls_unl_dat['ee'][slic] * utils.cli(cls_plen_true['ee'][slic] + datnoise_cls['ee'][slic])
+            rho_sqd_E[slic] = cls_len_fid['ee'][slic] * utils.cli(cls_len_fid['ee'][slic] + datnoise_cls['ee'][slic]) # Assuming that the difference between lensed and unlensed EE can be neglected
             dls_unl_fid[:, 1] *= rho_sqd_E
             dls_unl_true[:, 1] *= rho_sqd_E
             cldd_fid *= rho_sqd_phi
@@ -332,6 +335,7 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
             fal['te'] = np.copy(cls_filt['te'][:lmax_ivf + 1])
             dat_delcls['te'] = np.copy(cls_plen_true['te'][:lmax_ivf + 1])
         fal = utils.cl_inverse(fal)
+        # TODO: Should update if we use different lmin_ivf for T, E and B ?
         for cl in fal.values():
             cl[:lmin_ivf] *= 0.
         for cl in dat_delcls.values():
@@ -350,9 +354,18 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
         N0_unbiased = n_gg * utils.cli(r_gg_true ** 2) # N0 of QE estimator after rescaling by Rfid / Rtrue to make it unbiased
         N0s_biased.append(N0_biased)
         N0s_unbiased.append(N0_unbiased)
+
         cls_plen_true['pp'] =  cldd_true *utils.cli(np.arange(len(cldd_true)) ** 2 * np.arange(1, len(cldd_true) + 1, dtype=float) ** 2 /  (2. * np.pi))
         cls_plen_fid['pp'] =  cldd_fid *utils.cli(np.arange(len(cldd_fid)) ** 2 * np.arange(1, len(cldd_fid) + 1, dtype=float) ** 2 /  (2. * np.pi))
-
+        
+        if 'wE' and it>0:
+            # In case we have E noise in the iterations, then the rho is defined differently. 
+            cls_plen_true['pp'] =  cls_plen_true['pp'] *utils.cli( rho_sqd_phi) * (1. - rho_sqd_phi) 
+            cls_plen_fid['pp'] =  cls_plen_fid['pp'] *utils.cli( rho_sqd_phi) * (1. - rho_sqd_phi) 
+        elif 'wE' and it ==0:
+            cls_plen_true['pp'] =  cls2dls(cls_unl_dat)[1] * utils.cli(np.arange(len(cldd_true)) ** 2 * np.arange(1, len(cldd_true) + 1, dtype=float) ** 2 /  (2. * np.pi))
+            cls_plen_fid['pp'] =  cls2dls(cls_unl_fid)[1] * utils.cli(np.arange(len(cldd_fid)) ** 2 * np.arange(1, len(cldd_fid) + 1, dtype=float) ** 2 /  (2. * np.pi))
+        
         if 'wN1' in version:
             if it == 0: print('Adding n1 in iterations')
             from lensitbiases import n1_fft
@@ -374,5 +387,11 @@ def get_N0_iter(qe_key:str, nlev_t:float, nlev_p:float, beam_fwhm:float, cls_unl
 
         N1s_biased.append(N1_biased)
         N1s_unbiased.append(N1_unbiased)
-
-    return (np.array(N0s_biased), np.array(N0s_unbiased)) if not ret_delcls else ((np.array(N0s_biased), np.array(N0s_unbiased), delcls_fid, delcls_true))
+    ret = (np.array(N0s_biased), np.array(N0s_unbiased))
+    if ret_delcls:
+        ret += (delcls_fid, delcls_true)
+    if ret_resp:
+        ret += (r_gg_fid, r_gg_true)
+    if 'wN1' in version:
+        ret+= (N1s_biased, N1s_unbiased)
+    return ret
