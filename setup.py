@@ -1,11 +1,11 @@
 import sys
 
 # Flag to check if Fortran extensions should be skipped
-skip_fortran = '--without-fortran' in sys.argv
+skip_fortran = '--no-fortran' in sys.argv
 
-# Remove '--without-fortran' from sys.argv so that the install command runs normally
+# Remove '--no-fortran' from sys.argv so that the install command runs normally
 if skip_fortran:
-    sys.argv.remove('--without-fortran')
+    sys.argv.remove('--no-fortran')
 
 # Use the correct setup method depending on whether Fortran is included
 if skip_fortran:
