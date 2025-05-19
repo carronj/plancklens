@@ -1,4 +1,5 @@
 import sys
+import os
 
 # Flag to check if Fortran extensions should be skipped
 skip_fortran = '--no-fortran' in sys.argv
@@ -12,9 +13,13 @@ if skip_fortran:
     import setuptools
     from setuptools import setup
 
+    # Read the long description from README.md
+    with open("README.md", "r", encoding="utf-8") as fh:
+        long_description = fh.read()
+
     setup(
         name='plancklens',
-        version='0.0.1',
+        version='0.1.0',  # Updated version
         packages=setuptools.find_packages(),
         data_files=[('plancklens/data/cls', ['plancklens/data/cls/FFP10_wdipole_lensedCls.dat',
                                              'plancklens/data/cls/FFP10_wdipole_lenspotentialCls.dat',
@@ -23,18 +28,31 @@ if skip_fortran:
         author='Julien Carron',
         author_email='to.jcarron@gmail.com',
         description='Planck lensing python pipeline',
-        install_requires=['numpy', 'healpy', 'six', 'scipy'],
-        long_description=open("README.md", "r").read(),
+        install_requires=['numpy>=1.20.0', 'healpy>=1.15.0', 'six', 'scipy>=1.7.0'],
+        python_requires='>=3.8',
+        long_description=long_description,
         long_description_content_type="text/markdown",
         classifiers=[
             "Programming Language :: Python :: 3",
+            "Programming Language :: Python :: 3.8",
+            "Programming Language :: Python :: 3.9",
+            "Programming Language :: Python :: 3.10",
+            "Programming Language :: Python :: 3.11",
+            "Programming Language :: Python :: 3.12",
             "License :: OSI Approved :: MIT License",
             "Operating System :: OS Independent",
         ],
     )
 else:
-    from numpy.distutils.core import setup
+    # For NumPy 2.0+, we need to use setuptools with numpy.distutils
+    import setuptools
+    from setuptools import setup
+    from numpy.distutils.core import Extension
     from numpy.distutils.misc_util import Configuration
+
+    # Read the long description from README.md
+    with open("README.md", "r", encoding="utf-8") as fh:
+        long_description = fh.read()
 
     def configuration(parent_package='', top_path=''):
         config = Configuration('', parent_package, top_path)
@@ -46,7 +64,7 @@ else:
 
     setup(
         name='plancklens',
-        version='0.0.1',
+        version='0.1.0',  # Updated version
         packages=['plancklens', 'plancklens.n1', 'plancklens.filt', 'plancklens.sims', 'plancklens.helpers',
                   'plancklens.qcinv', 'plancklens.wigners', 'tests'],
         data_files=[('plancklens/data/cls', ['plancklens/data/cls/FFP10_wdipole_lensedCls.dat',
@@ -56,8 +74,19 @@ else:
         author='Julien Carron',
         author_email='to.jcarron@gmail.com',
         description='Planck lensing python pipeline',
-        install_requires=['numpy', 'healpy', 'six', 'scipy'],
-        requires=['numpy', 'healpy', 'six', 'scipy'],
-        long_description=open("README.md", "r").read(),
+        install_requires=['numpy>=1.20.0', 'healpy>=1.15.0', 'six', 'scipy>=1.7.0'],
+        python_requires='>=3.8',
+        long_description=long_description,
+        long_description_content_type="text/markdown",
+        classifiers=[
+            "Programming Language :: Python :: 3",
+            "Programming Language :: Python :: 3.8",
+            "Programming Language :: Python :: 3.9",
+            "Programming Language :: Python :: 3.10",
+            "Programming Language :: Python :: 3.11",
+            "Programming Language :: Python :: 3.12",
+            "License :: OSI Approved :: MIT License",
+            "Operating System :: OS Independent",
+        ],
         configuration=configuration
     )

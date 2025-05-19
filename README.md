@@ -15,7 +15,15 @@ After cloning the repository, build an editable installation with
     
     pip install -e . [--user]
 
-The –-user is required only if you don’t have write permission to your main python installation. A fortran compiler is required for a successful installation.
+The –-user is required only if you don't have write permission to your main python installation. 
+
+**Requirements:**
+- A Fortran compiler (gfortran) is required for a successful installation with Fortran extensions.
+- If you don't have a Fortran compiler, you can install without the Fortran extensions using:
+  ```
+  pip install -e . --no-fortran [--user]
+  ```
+- Compatible with Python 3.8+ and NumPy 1.20.0+ (including NumPy 2.0).
 
 Alternatively, you can use the Dockerfile to install the code in a separate container (see below).
 
