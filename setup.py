@@ -1,5 +1,11 @@
-import sys
 import os
+import sys
+import importlib.machinery
+import importlib.util
+import subprocess
+import setuptools
+from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext
 
 # Flag to check if Fortran extensions should be skipped
 skip_fortran = '--no-fortran' in sys.argv
@@ -8,85 +14,89 @@ skip_fortran = '--no-fortran' in sys.argv
 if skip_fortran:
     sys.argv.remove('--no-fortran')
 
-# Use the correct setup method depending on whether Fortran is included
-if skip_fortran:
-    import setuptools
-    from setuptools import setup
+# Read the long description from README.md
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
 
-    # Read the long description from README.md
-    with open("README.md", "r", encoding="utf-8") as fh:
-        long_description = fh.read()
+# Custom build_ext command for Fortran extensions
+class CustomBuildExt(build_ext):
+    def run(self):
+        # Run the build_extensions method
+        self.build_extensions()
 
-    setup(
-        name='plancklens',
-        version='0.1.0',  # Updated version
-        packages=setuptools.find_packages(),
-        data_files=[('plancklens/data/cls', ['plancklens/data/cls/FFP10_wdipole_lensedCls.dat',
-                                             'plancklens/data/cls/FFP10_wdipole_lenspotentialCls.dat',
-                                             'plancklens/data/cls/FFP10_wdipole_params.ini'])],
-        url='https://github.com/carronj/plancklens',
-        author='Julien Carron',
-        author_email='to.jcarron@gmail.com',
-        description='Planck lensing python pipeline',
-        install_requires=['numpy>=1.20.0', 'healpy>=1.15.0', 'six', 'scipy>=1.7.0'],
-        python_requires='>=3.8',
-        long_description=long_description,
-        long_description_content_type="text/markdown",
-        classifiers=[
-            "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.8",
-            "Programming Language :: Python :: 3.9",
-            "Programming Language :: Python :: 3.10",
-            "Programming Language :: Python :: 3.11",
-            "Programming Language :: Python :: 3.12",
-            "License :: OSI Approved :: MIT License",
-            "Operating System :: OS Independent",
-        ],
-    )
-else:
-    # For NumPy 2.0+, we need to use setuptools with numpy.distutils
-    import setuptools
-    from setuptools import setup
-    from numpy.distutils.core import Extension
-    from numpy.distutils.misc_util import Configuration
+    def build_extension(self, ext):
+        if ext.name in ['plancklens.wigners.wigners', 'plancklens.n1.n1f']:
+            # Check if the extension is already built by the build_extensions.py script
+            ext_path = self.get_ext_fullpath(ext.name)
+            ext_dir = os.path.dirname(ext_path)
+            module_name = os.path.splitext(os.path.basename(ext.sources[0]))[0]
 
-    # Read the long description from README.md
-    with open("README.md", "r", encoding="utf-8") as fh:
-        long_description = fh.read()
+            # Look for the extension with the platform-specific suffix
+            ext_suffix = importlib.machinery.EXTENSION_SUFFIXES[0]
+            built_ext = os.path.join(os.path.dirname(ext.sources[0]), f"{module_name}{ext_suffix}")
 
-    def configuration(parent_package='', top_path=''):
-        config = Configuration('', parent_package, top_path)
-        config.add_extension('plancklens.wigners.wigners', ['plancklens/wigners/wigners.f90'],
-                             extra_link_args=['-lgomp'], libraries=['gomp'], extra_f90_compile_args=['-fopenmp', '-w'])
-        config.add_extension('plancklens.n1.n1f', ['plancklens/n1/n1f.f90'],
-                             extra_link_args=['-lgomp'], libraries=['gomp'], extra_f90_compile_args=['-fopenmp', '-w'])
-        return config
+            if os.path.exists(built_ext):
+                # If the extension is already built, copy it to the build directory
+                os.makedirs(ext_dir, exist_ok=True)
+                import shutil
+                shutil.copy2(built_ext, ext_path)
+                print(f"Copied existing extension {built_ext} to {ext_path}")
+            else:
+                # If the extension is not built, use the build_extensions.py script
+                try:
+                    subprocess.check_call([sys.executable, 'build_extensions.py'])
 
-    setup(
-        name='plancklens',
-        version='0.1.0',  # Updated version
-        packages=['plancklens', 'plancklens.n1', 'plancklens.filt', 'plancklens.sims', 'plancklens.helpers',
-                  'plancklens.qcinv', 'plancklens.wigners', 'tests'],
-        data_files=[('plancklens/data/cls', ['plancklens/data/cls/FFP10_wdipole_lensedCls.dat',
-                                             'plancklens/data/cls/FFP10_wdipole_lenspotentialCls.dat',
-                                             'plancklens/data/cls/FFP10_wdipole_params.ini'])],
-        url='https://github.com/carronj/plancklens',
-        author='Julien Carron',
-        author_email='to.jcarron@gmail.com',
-        description='Planck lensing python pipeline',
-        install_requires=['numpy>=1.20.0', 'healpy>=1.15.0', 'six', 'scipy>=1.7.0'],
-        python_requires='>=3.8',
-        long_description=long_description,
-        long_description_content_type="text/markdown",
-        classifiers=[
-            "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.8",
-            "Programming Language :: Python :: 3.9",
-            "Programming Language :: Python :: 3.10",
-            "Programming Language :: Python :: 3.11",
-            "Programming Language :: Python :: 3.12",
-            "License :: OSI Approved :: MIT License",
-            "Operating System :: OS Independent",
-        ],
-        configuration=configuration
-    )
+                    # Check if the extension was built successfully
+                    if os.path.exists(built_ext):
+                        # Copy the extension to the build directory
+                        os.makedirs(ext_dir, exist_ok=True)
+                        import shutil
+                        shutil.copy2(built_ext, ext_path)
+                        print(f"Copied built extension {built_ext} to {ext_path}")
+                    else:
+                        # If the extension was not built, raise an error
+                        raise RuntimeError(f"Failed to build extension {ext.name}")
+                except Exception as e:
+                    print(f"Warning: Failed to build extension {ext.name}: {e}")
+                    print("Continuing without Fortran extensions...")
+        else:
+            # Use the default build_extension for other extensions
+            super().build_extension(ext)
+
+# Define the extensions
+extensions = []
+if not skip_fortran:
+    extensions = [
+        Extension('plancklens.wigners.wigners', ['plancklens/wigners/wigners.f90']),
+        Extension('plancklens.n1.n1f', ['plancklens/n1/n1f.f90']),
+    ]
+
+# Setup configuration
+setup(
+    name='plancklens',
+    version='0.1.0',
+    packages=setuptools.find_packages(),
+    data_files=[('plancklens/data/cls', ['plancklens/data/cls/FFP10_wdipole_lensedCls.dat',
+                                         'plancklens/data/cls/FFP10_wdipole_lenspotentialCls.dat',
+                                         'plancklens/data/cls/FFP10_wdipole_params.ini'])],
+    url='https://github.com/carronj/plancklens',
+    author='Julien Carron',
+    author_email='to.jcarron@gmail.com',
+    description='Planck lensing python pipeline',
+    install_requires=['numpy>=1.20.0', 'healpy>=1.15.0', 'six', 'scipy>=1.7.0'],
+    python_requires='>=3.8',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
+    ext_modules=extensions if not skip_fortran else [],
+    cmdclass={'build_ext': CustomBuildExt} if not skip_fortran else {},
+)
