@@ -21,12 +21,30 @@ with open("README.md", "r", encoding="utf-8") as fh:
 # Custom build_ext command for Fortran extensions
 class CustomBuildExt(build_ext):
     def run(self):
+        # Build the Fortran extensions first
+        if not skip_fortran:
+            try:
+                # Ensure meson and ninja are installed
+                try:
+                    import meson
+                except ImportError:
+                    print("Installing meson and ninja...")
+                    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'meson', 'ninja'])
+                    print("Meson and ninja installed successfully.")
+
+                print("Building Fortran extensions using build_extensions.py...")
+                subprocess.check_call([sys.executable, 'build_extensions.py'])
+                print("Fortran extensions built successfully.")
+            except Exception as e:
+                print(f"Warning: Failed to build Fortran extensions: {e}")
+                print("Continuing without Fortran extensions...")
+
         # Run the build_extensions method
         self.build_extensions()
 
     def build_extension(self, ext):
         if ext.name in ['plancklens.wigners.wigners', 'plancklens.n1.n1f']:
-            # Check if the extension is already built by the build_extensions.py script
+            # Get the extension path
             ext_path = self.get_ext_fullpath(ext.name)
             ext_dir = os.path.dirname(ext_path)
             module_name = os.path.splitext(os.path.basename(ext.sources[0]))[0]
@@ -40,25 +58,11 @@ class CustomBuildExt(build_ext):
                 os.makedirs(ext_dir, exist_ok=True)
                 import shutil
                 shutil.copy2(built_ext, ext_path)
-                print(f"Copied existing extension {built_ext} to {ext_path}")
+                print(f"Copied extension {built_ext} to {ext_path}")
             else:
-                # If the extension is not built, use the build_extensions.py script
-                try:
-                    subprocess.check_call([sys.executable, 'build_extensions.py'])
-
-                    # Check if the extension was built successfully
-                    if os.path.exists(built_ext):
-                        # Copy the extension to the build directory
-                        os.makedirs(ext_dir, exist_ok=True)
-                        import shutil
-                        shutil.copy2(built_ext, ext_path)
-                        print(f"Copied built extension {built_ext} to {ext_path}")
-                    else:
-                        # If the extension was not built, raise an error
-                        raise RuntimeError(f"Failed to build extension {ext.name}")
-                except Exception as e:
-                    print(f"Warning: Failed to build extension {ext.name}: {e}")
-                    print("Continuing without Fortran extensions...")
+                # If the extension was not built, raise a warning
+                print(f"Warning: Extension {ext.name} not found at {built_ext}")
+                print("Continuing without this extension...")
         else:
             # Use the default build_extension for other extensions
             super().build_extension(ext)
@@ -76,6 +80,11 @@ setup(
     name='plancklens',
     version='0.1.0',
     packages=setuptools.find_packages(),
+    package_data={
+        'plancklens.wigners': ['*.so'],
+        'plancklens.n1': ['*.so'],
+        'plancklens.data.cls': ['*.dat', '*.ini'],
+    },
     data_files=[('plancklens/data/cls', ['plancklens/data/cls/FFP10_wdipole_lensedCls.dat',
                                          'plancklens/data/cls/FFP10_wdipole_lenspotentialCls.dat',
                                          'plancklens/data/cls/FFP10_wdipole_params.ini'])],
@@ -99,4 +108,5 @@ setup(
     ],
     ext_modules=extensions if not skip_fortran else [],
     cmdclass={'build_ext': CustomBuildExt} if not skip_fortran else {},
+    include_package_data=True,
 )

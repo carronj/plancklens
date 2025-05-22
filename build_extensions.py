@@ -7,10 +7,10 @@ def build_extension(source_file, output_dir):
     """Build a Fortran extension using f2py."""
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
-    
+
     # Get the module name from the source file
     module_name = os.path.splitext(os.path.basename(source_file))[0]
-    
+
     # Build the extension
     cmd = [
         'f2py',
@@ -22,7 +22,7 @@ def build_extension(source_file, output_dir):
     ]
     print(f"Running: {' '.join(cmd)}")
     subprocess.check_call(cmd)
-    
+
     # Move the extension to the output directory
     extension_file = f"{module_name}{get_extension_suffix()}"
     if os.path.exists(extension_file):
@@ -38,11 +38,22 @@ def get_extension_suffix():
     return sysconfig.get_config_var('EXT_SUFFIX')
 
 def main():
-    # Build the wigners extension
-    build_extension('plancklens/wigners/wigners.f90', 'plancklens/wigners')
-    
-    # Build the n1f extension
-    build_extension('plancklens/n1/n1f.f90', 'plancklens/n1')
+    # Get the script directory
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Change to the script directory
+    original_dir = os.getcwd()
+    os.chdir(script_dir)
+
+    try:
+        # Build the wigners extension
+        build_extension('plancklens/wigners/wigners.f90', 'plancklens/wigners')
+
+        # Build the n1f extension
+        build_extension('plancklens/n1/n1f.f90', 'plancklens/n1')
+    finally:
+        # Change back to the original directory
+        os.chdir(original_dir)
 
 if __name__ == '__main__':
     main()
