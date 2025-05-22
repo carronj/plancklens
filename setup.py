@@ -24,25 +24,17 @@ class CustomBuildExt(build_ext):
         # Build the Fortran extensions first
         if not skip_fortran:
             try:
-                # Try to ensure meson and ninja are installed
+                # Ensure meson and ninja are installed
                 try:
                     import meson
                 except ImportError:
-                    try:
-                        print("Installing meson and ninja...")
-                        subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'meson', 'ninja'])
-                        print("Meson and ninja installed successfully.")
-                    except Exception as e:
-                        print(f"Warning: Failed to install meson and ninja: {e}")
-                        print("You may need to install them manually with 'pip install meson ninja'")
+                    print("Installing meson and ninja...")
+                    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'meson', 'ninja'])
+                    print("Meson and ninja installed successfully.")
 
                 print("Building Fortran extensions using build_extensions.py...")
-                try:
-                    subprocess.check_call([sys.executable, 'build_extensions.py'])
-                    print("Fortran extensions built successfully.")
-                except subprocess.CalledProcessError as e:
-                    print(f"Warning: Failed to build Fortran extensions: {e}")
-                    print("Continuing without Fortran extensions...")
+                subprocess.check_call([sys.executable, 'build_extensions.py'])
+                print("Fortran extensions built successfully.")
             except Exception as e:
                 print(f"Warning: Failed to build Fortran extensions: {e}")
                 print("Continuing without Fortran extensions...")
