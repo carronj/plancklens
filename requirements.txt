@@ -1,5 +1,0 @@
-healpy
-six
-scipy
-numpy<1.23
-setuptools<65.0
