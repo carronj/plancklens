@@ -1,15 +1,19 @@
 [build-system]
 requires = [
-    "setuptools>=42.0.0",
-    "wheel",
-    "numpy>=1.20.0",
-    "scikit-build-core>=0.4.7",
+    "scikit-build-core",
+    "numpy"
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "plancklens"
 version = "0.1.0"
+dependencies = [
+    "numpy",
+    "healpy",
+    "six",
+    "scipy",
+]
 description = "Planck lensing python pipeline"
 readme = "README.md"
 authors = [
@@ -18,22 +22,16 @@ authors = [
 license = {text = "MIT"}
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-requires-python = ">=3.8"
-dependencies = [
-    "numpy>=1.20.0",
-    "healpy>=1.15.0",
-    "six",
-    "scipy>=1.7.0",
-]
+
+[project.optional-dependencies]
+dev = ["pytest"]
 
 [project.urls]
 "Homepage" = "https://github.com/carronj/plancklens"
 "Bug Tracker" = "https://github.com/carronj/plancklens/issues"
+
+[tool.scikit-build]
+wheel.packages = ["plancklens", "plancklens/n1", "plancklens/wigners"]

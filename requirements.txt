@@ -1,5 +1,0 @@
-healpy>=1.15.0
-six
-scipy>=1.7.0
-numpy>=1.20.0
-setuptools>=42.0.0
