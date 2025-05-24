@@ -173,6 +173,86 @@ class cmb_maps_nlev(cmb_maps):
         return self.nlev_p / vamin * self.pix_lib_phas.get_sim(idx, idf=2)
 
 
+class cmb_maps_anisonoise(cmb_maps):
+    r"""CMB simulation library with anisotropic noise.
+        The noise map comes from an anisotropic maps, which is rescaled to have the same vairaince as the Gaussian noise level 
+        in temperature and polarisation. 
+       
+       Args:
+            sims_cmb_len: lensed CMB library (e.g. *plancklens.sims.planck2018_sims.cmb_len_ffp10*)
+            cl_transf: CMB transfer function, identical in temperature and polarization
+            fn_noise_map: File name of the noise map to use
+            nlev_t: temperature noise level in :math:`\mu K`-arcmin
+            nlev_p: polarization noise level in :math:`\mu K`-arcmin
+            nside: healpy resolution of the maps
+            lib_dir(optional): noise maps random phases will be cached there. Only relevant if *pix_lib_phas is not set*
+            pix_lib_phas(optional): random phases library for the noise maps (from *plancklens.sims.phas.py*).
+                                    If not set, *lib_dir* arg must be set.
+
+
+    """
+    def __init__(self, sims_cmb_len, cl_transf, fn_noise_map, nlev_t, nlev_p, nside, lib_dir=None):
+        
+        self.noisemap = fn_noise_map
+        self.nlev_t = nlev_t
+        self.nlev_p = nlev_p
+
+        super(cmb_maps_anisonoise, self).__init__(sims_cmb_len, cl_transf, nside=nside, lib_dir=lib_dir)
+
+
+    def hashdict(self):
+        ret = {'sims_cmb_len':self.sims_cmb_len.hashdict(),
+                'nside':self.nside,'cl_transf':clhash(self.cl_transf_T),
+                'nlev_t':self.nlev_t,'nlev_p':self.nlev_p, 'fn_noisemap':self.noisemap}
+        if not (np.all(self.cl_transf_P == self.cl_transf_T)):
+            ret['cl_transf_P'] = clhash(self.cl_transf_P)
+        return ret
+
+    def get_sim_tnoise(self,idx):
+        """Returns noise temperature map for a simulation
+
+            Args:
+                idx: simulation index
+
+            Returns:
+                healpy map
+
+        """
+        vamin = np.sqrt(hp.nside2pixarea(self.nside, degrees=True)) * 60
+        tmap = hp.read_map(self.noisemap, field=0, dtype=np.float64)
+        assert hp.npix2nside(len(tmap)) == self.nside
+        return self.nlev_t / vamin /np.std(tmap) * tmap
+
+    def get_sim_qnoise(self, idx):
+        """Returns noise Q-polarization map for a simulation
+
+            Args:
+                idx: simulation index
+
+            Returns:
+                healpy map
+
+        """
+        vamin = np.sqrt(hp.nside2pixarea(self.nside, degrees=True)) * 60
+        qmap = hp.read_map(self.noisemap, field=1, dtype=np.float64)
+        assert hp.npix2nside(len(qmap)) == self.nside
+        return self.nlev_p / vamin /np.std(qmap) * qmap
+
+    def get_sim_unoise(self, idx):
+        """Returns noise U-polarization map for a simulation
+
+            Args:
+                idx: simulation index
+
+            Returns:
+                healpy map
+
+        """
+        vamin = np.sqrt(hp.nside2pixarea(self.nside, degrees=True)) * 60
+        umap = hp.read_map(self.noisemap, field=2, dtype=np.float64)
+        assert hp.npix2nside(len(umap)) == self.nside
+        return self.nlev_p / vamin /np.std(umap) * umap
+
 
 class cmb_maps_harmonicspace(object):
     r"""CMB simulation library combining a lensed CMB library and a transfer function
