@@ -27,12 +27,12 @@ from plancklens import utils, qresp, nhl
 from copy import deepcopy
 
 
-def get_N0(beam_fwhm=1.4, nlev_t: float or np.ndarray = 5., nlev_p: np.array = None, lmax_CMB: dict or int = 3000,
+def get_N0(beam_fwhm=1.4, nlev_t: float | np.ndarray = 5., nlev_p: np.ndarray = None, lmax_CMB: dict | int = 3000,
            lmin_CMB=100, lmax_out=None,
-           cls_filt: dict or None =None,
-           cls_len: dict or None = None,
-           cls_weight: dict or None = None,
-           cls_sky: dict or None = None,
+           cls_filt: dict | None = None,
+           cls_len: dict | None = None,
+           cls_weight: dict | None = None,
+           cls_sky: dict | None = None,
            joint_TP=True, ksource='p',wfleg_Tcut=None):
     r"""Example function to calculates reconstruction noise levels for a bunch of quadratic estimators
 
@@ -233,10 +233,10 @@ def dls2cls(dls):
     return cls
 
 
-def get_N0_iter(qe_key: str, nlev_t: float or np.ndarray, nlev_p: float or np.ndarray, beam_fwhm: float,
-                cls_unl_fid: dict, lmin_cmb: int or dict, lmax_cmb: int or dict, itermax, cls_unl_dat=None,
-                lmax_qlm=None, ret_delcls=False, datnoise_cls: dict or None = None, ret_curl=False,
-                rho_sqd_ext: float or np.ndarray = 0, filter_E=False):
+def get_N0_iter(qe_key: str, nlev_t: float | np.ndarray, nlev_p: float | np.ndarray, beam_fwhm: float,
+                cls_unl_fid: dict, lmin_cmb: int | dict, lmax_cmb: int | dict, itermax, cls_unl_dat=None,
+                lmax_qlm=None, ret_delcls=False, datnoise_cls: dict | None = None, ret_curl=False,
+                rho_sqd_ext: float | np.ndarray = 0, filter_E=False):
     r"""Iterative lensing-N0 estimate
 
         This calculates iteratively partially lensed spectra and lensing noise levels.
