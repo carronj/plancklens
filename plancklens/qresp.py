@@ -422,9 +422,9 @@ def get_nmf_response(qe_key, lmax_ivf, cls_weight, fal, transf, lmax_qlm):
 
     Args:
         qe_key (str): quadratic estimator key (e.g., ptt, p_p, ... )
-        fal_leg1 (dict): filtering cls for the first leg.
+        fal (dict): filtering cls
         lmax_qlm (int): responses are calculated up to this multipole.
-        fal_leg2 (dict, optional): Same as *fal_leg1* but for the second leg, if different.
+        transf: beam transfer function (or other transfer function) of the CMB map
 
     Returns:
         RGG: response array for the spin-0 noise variance map.
