@@ -438,7 +438,7 @@ def get_nmf_response(qe_key, lmax_ivf, cls_weight, fal, transf, lmax_qlm):
     return _get_nmf_response(qes, fal, lmax_qlm, transfi)
 
 
-def _get_nmf_response(qes, fal_leg1, lmax_qlm, transfi):
+def _get_nmf_response(qes, fal_leg1, lmax_qlm, transfi, fal_leg2=None):
     """Returns the noise mean-field response to the spin-0 noise variance map
 
     Args:
