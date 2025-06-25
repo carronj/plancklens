@@ -417,7 +417,7 @@ def _get_response(qes, source, cls_cmb, fal_leg1, lmax_qlm, fal_leg2=None):
 
     return RGG, RCC, RGC, RCG
 
-def get_nmf_response(qe_key, lmax_ivf, cls_weight, fal_leg1, lmax_qlm):
+def get_nmf_response(qe_key, lmax_ivf, cls_weight, fal, transf, lmax_qlm):
     """Returns the noise mean-field response to the spin-0 noise variance map
 
     Args:
@@ -431,13 +431,14 @@ def get_nmf_response(qe_key, lmax_ivf, cls_weight, fal_leg1, lmax_qlm):
 
     Note:
         This has never been tested !
-        
+
     """
     qes = get_qes(qe_key, lmax_ivf, cls_weight)
-    return _get_nmf_response(qes, fal_leg1, lmax_qlm)
+    transfi = _clinv(transf)
+    return _get_nmf_response(qes, fal, lmax_qlm, transfi)
 
 
-def _get_nmf_response(qes, fal_leg1, lmax_qlm, fal_leg2=None):
+def _get_nmf_response(qes, fal_leg1, lmax_qlm, transfi):
     """Returns the noise mean-field response to the spin-0 noise variance map
 
     Args:
@@ -463,8 +464,8 @@ def _get_nmf_response(qes, fal_leg1, lmax_qlm, fal_leg2=None):
                 for t2 in [-s2]:
                     FB = uspin.get_spin_matrix(ti, t2, fal_leg2)
                     if np.any(FB):
-                        clA = ut.joincls([qe.leg_a.cl, FA])
-                        clB = ut.joincls([qe.leg_b.cl, FB])
+                        clA = ut.joincls([qe.leg_a.cl, FA, transfi])
+                        clB = ut.joincls([qe.leg_b.cl, FB, transfi])
                         Rpr_st = uspin.wignerc(clA, clB, so, s2, to, t2, lmax_out=lmax_qlm)
                         sgn = (-1) ** (so + to + s2 + t2)
                         prefac = qe.cL(Ls)
