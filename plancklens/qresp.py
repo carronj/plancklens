@@ -36,7 +36,6 @@ from __future__ import print_function
 import os
 import numpy as np
 import pickle as pk
-from scipy.special import gammaln
 
 from plancklens import utils as ut, utils_spin as uspin, utils_qe as uqe
 from plancklens.helpers import mpi, sql
@@ -418,6 +417,60 @@ def _get_response(qes, source, cls_cmb, fal_leg1, lmax_qlm, fal_leg2=None):
 
     return RGG, RCC, RGC, RCG
 
+def get_nmf_response(qe_key, lmax_ivf, cls_weight, fal_leg1, lmax_qlm):
+    """Returns the noise mean-field response to the spin-0 noise variance map
+
+    Args:
+        qe_key (str): quadratic estimator key (e.g., ptt, p_p, ... )
+        fal_leg1 (dict): filtering cls for the first leg.
+        lmax_qlm (int): responses are calculated up to this multipole.
+        fal_leg2 (dict, optional): Same as *fal_leg1* but for the second leg, if different.
+
+    Returns:
+        RGG: response array for the spin-0 noise variance map.
+
+    Note:
+        This has never been tested !
+        
+    """
+    qes = get_qes(qe_key, lmax_ivf, cls_weight)
+    return _get_nmf_response(qes, fal_leg1, lmax_qlm)
+
+
+def _get_nmf_response(qes, fal_leg1, lmax_qlm, fal_leg2=None):
+    """Returns the noise mean-field response to the spin-0 noise variance map
+
+    Args:
+        qes (list): list of quadratic estimators.
+        fal_leg1 (dict): filtering cls for the first leg.
+        lmax_qlm (int): responses are calculated up to this multipole.
+        fal_leg2 (dict, optional): Same as *fal_leg1* but for the second leg, if different.
+
+    Returns:
+        RGG: response array for the spin-0 noise variance map.
+
+
+    """
+    fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
+    RGG = np.zeros(lmax_qlm + 1, dtype=float)
+    Ls  = np.arange(lmax_qlm + 1, dtype=int)
+    for qe in qes:
+        si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
+        so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
+        for s2 in ([0, 2, -2]):
+            FA = uspin.get_spin_matrix(si, s2, fal_leg1)
+            if np.any(FA):
+                for t2 in [-s2]:
+                    FB = uspin.get_spin_matrix(ti, t2, fal_leg2)
+                    if np.any(FB):
+                        clA = ut.joincls([qe.leg_a.cl, FA])
+                        clB = ut.joincls([qe.leg_b.cl, FB])
+                        Rpr_st = uspin.wignerc(clA, clB, so, s2, to, t2, lmax_out=lmax_qlm)
+                        sgn = (-1) ** (so + to + s2 + t2)
+                        prefac = qe.cL(Ls)
+                        RGG += prefac * sgn * Rpr_st
+
+    return RGG
 
 def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, retterms=False):
     """Deflection-induced mean-field response calculation.
@@ -500,3 +553,29 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, retterms=False):
     for term in terms.values():
         term *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
     return (GL, CL) if not retterms else (GL, CL, terms)
+
+def kernels(qe_key, L, l1, l2, cls, verbose=False):
+    """Some harmonic space kernels
+
+       This returns f_{l1l2L} / [ _sF^{\pm} * sqrt((2l1 + 1)(2l2 + 1)(2L + 1)/4\pi) ]
+
+       where _sF^{\pm} is defined as in the spherical bispectrum expansion paper
+
+       With a bit of luck the signs are correct
+
+    """
+    if verbose and 'eb' in qe_key and np.any(cls.get('bb', [0.])):
+        print('kernels Warning: using _eb with non-zero bb spec input')
+    if qe_key in ['ftt']:
+        return cls['tt'][l1] + cls['tt'][l2]
+    if qe_key[0] in ['p']:
+        wL, w1, w2 = L * (L + 1.), l1 * (l1 + 1.), l2 * (l2 + 1.)
+        if qe_key in ['ptt', 'pee']:
+           return 0.5 *(wL - w1 + w2) * cls[qe_key[1:]][l2] + 0.5 * (wL - w2 + w1) * cls[qe_key[1:]][l1]
+        if qe_key in ['p_eb']:
+            return 0.5j * (wL + w1 - w2) * cls['ee'][l1]
+    if qe_key in ['a_eb']:
+        return -2 * cls['ee'][l1]
+    if qe_key in ['aee']:
+        return -2j * (cls['ee'][l1] - cls['ee'][l2])
+    assert 0, qe_key + ' not yet implemented'
