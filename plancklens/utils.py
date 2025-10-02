@@ -314,7 +314,7 @@ def camb_clfile(fname, lmax=None):
 
     """
     cols = np.loadtxt(fname).transpose()
-    ell = np.int_(cols[0])
+    ell = cols[0].astype(int)
     if lmax is None: lmax = ell[-1]
     assert ell[-1] >= lmax, (ell[-1], lmax)
     cls = {k : np.zeros(lmax + 1, dtype=float) for k in ['tt', 'ee', 'bb', 'te']}
