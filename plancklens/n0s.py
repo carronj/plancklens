@@ -89,7 +89,7 @@ def get_N0(beam_fwhm=1.4, nlev_t: float | np.ndarray = 5., nlev_p: np.ndarray = 
             nlev_b = nlev_p
 
     # If nlev_p is single number
-    elif isinstance(nlev_p, (float, int, np.float, np.int)):
+    elif isinstance(nlev_p, (float, int)):
         nlev_e = nlev_p
         nlev_b = nlev_p
     else:
@@ -313,7 +313,7 @@ def get_N0_iter(qe_key: str, nlev_t: float | np.ndarray, nlev_p: float | np.ndar
             nlev_b = nlev_p
 
     # If nlev_p is single number
-    elif isinstance(nlev_p, (float, int, np.float, np.int)):
+    elif isinstance(nlev_p, (float, int)):
         nlev_e = nlev_p
         nlev_b = nlev_p
     else:
