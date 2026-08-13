@@ -1,4 +1,0 @@
-numpy
-healpy
-six
-scipy

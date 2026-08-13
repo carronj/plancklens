@@ -1,0 +1,4 @@
+include plancklens/wigners/*.so
+include plancklens/n1/*.so
+include plancklens/data/cls/*.dat
+include plancklens/data/cls/*.ini

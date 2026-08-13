@@ -31,7 +31,7 @@ def get_blbubc(bin_type):
         bins_l = np.arange(1, 11)
         bins_u = bins_l
     elif '_' in bin_type:
-        edges = np.int_(bin_type.split('_'))
+        edges = np.array(bin_type.split('_'), dtype=int)
         bins_l = edges[:-1]
         bins_u = edges[1:] - 1
         bins_u[-1] += 1

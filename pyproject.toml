@@ -1,0 +1,37 @@
+[build-system]
+requires = [
+    "scikit-build-core",
+    "numpy"
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "plancklens"
+version = "0.1.0"
+dependencies = [
+    "numpy",
+    "healpy",
+    "six",
+    "scipy",
+]
+description = "Planck lensing python pipeline"
+readme = "README.md"
+authors = [
+    {name = "Julien Carron", email = "to.jcarron@gmail.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.urls]
+"Homepage" = "https://github.com/carronj/plancklens"
+"Bug Tracker" = "https://github.com/carronj/plancklens/issues"
+
+[tool.scikit-build]
+wheel.packages = ["plancklens", "plancklens/n1", "plancklens/wigners"]
