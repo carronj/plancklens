@@ -79,7 +79,7 @@ class cinv_t(cinv):
         super(cinv_t, self).__init__(lib_dir, lmax)
 
 
-        if rescal_cl in ['default', None]:
+        if not isinstance(rescal_cl, np.ndarray) and rescal_cl in ['default', None]:
             default_rescal = True
             rescal_cl = np.sqrt(np.arange(lmax + 1, dtype=float) * np.arange(1, lmax + 2, dtype=float) / 2. / np.pi)
         else:
@@ -540,6 +540,16 @@ class library_cinv_sepTP(filt_simple.library_sepTP):
 
         mpi.barrier()
         utils.hash_check(pk.load(open(os.path.join(lib_dir, "filt_hash.pk"), 'rb')), self.hashdict(), fn=os.path.join(lib_dir, "filt_hash.pk"))
+
+    def __call__(self, maps:dict):
+        ret_alms = dict()
+        if 't' in maps:
+            ret_alms['t'] = self._apply_ivf_t(maps['t'])
+        if 'qu' in maps:
+            ret_alms['qu'] = self._apply_ivf_p(maps['qu'])
+        if 'p' in maps:
+            ret_alms['p'] = self._apply_ivf_p(maps['p'])
+        return ret_alms
 
     def hashdict(self):
         return {'cinv_t': self.cinv_t.hashdict(),

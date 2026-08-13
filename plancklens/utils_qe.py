@@ -19,9 +19,10 @@ class qeleg:
     def __add__(self, other):
         assert self.spin_in == other.spin_in and self.spin_ou == other.spin_ou
         lmax = max(self.get_lmax(), other.get_lmax())
-        cl = np.zeros(lmax + 1, dtype=float)
-        cl[:len(self.cl)] += self.cl
-        cl[:len(other.cl)] += other.cl
+        dtype = complex if np.any([np.iscomplex(self.cl), np.iscomplex(other.cl)]) else float
+        cl = np.zeros(lmax + 1, dtype=dtype)
+        cl[:len(self.cl)] += self.cl.astype(dtype, copy=False)
+        cl[:len(other.cl)] += other.cl.astype(dtype, copy=False)
         return qeleg(self.spin_in, self.spin_ou, cl)
 
     def copy(self):

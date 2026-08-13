@@ -43,7 +43,7 @@ double precision function wf(k, l1x, l2x, l1y, l2y, l1abs, l2abs, cltt, clte, cl
         sin2p = 2d0 * (l2x * l1x + l2y * l1y) * (-l2y * l1x + l2x * l1y)/ ((l2x ** 2 + l2y ** 2) * (l1x ** 2 + l1y **2))
         wf = (clee(l2abs) * ((l2x + l1x) * l2x + (l2y + l1y) * l2y)) * sin2p
 
-    else if ((k == 'pbb') .or. k =='xbb') then
+    else if ((k == 'pbb') .or. (k =='xbb') .or. (k == 'abb') .or. (k == 'att')) then
         wf = 0d0
 
     else if (k == 'xtt') then
@@ -82,6 +82,18 @@ double precision function wf(k, l1x, l2x, l1y, l2y, l1abs, l2abs, cltt, clte, cl
         !Note clBB absent here. If adding it, note Hu astro-ph/0111606 paper has the wrong sign in front of ClBB.
         sin2p = 2d0 * (l2x * l1x + l2y * l1y) * (-l2y * l1x + l2x * l1y)/ ((l2x ** 2 + l2y ** 2) * (l1x ** 2 + l1y **2))
         wf = (clee(l2abs) * (-(l2y + l1y) * l2x + (l2x + l1x) * l2y)) * sin2p
+
+    else if (k == 'aee') then
+        sin2p = 2d0 * (l1x * l2x + l1y * l2y) * (-l1y * l2x + l1x * l2y)/ ((l1x ** 2 + l1y ** 2) * (l2x ** 2 + l2y **2))
+        wf = -2d0 * sin2p * (clee(l1abs) - clee(l2abs))
+
+    else if (k == 'aeb') then
+        cos2p = 2d0 * (l1x * l2x + l1y * l2y) ** 2 / ( (l1x ** 2 + l1y ** 2) * (l2x ** 2 + l2y ** 2) ) - 1.
+        wf = -2d0 * cos2p * clee(l1abs)
+
+    else if (k == 'abe') then
+        cos2p = 2d0 * (l1x * l2x + l1y * l2y) ** 2 / ( (l1x ** 2 + l1y ** 2) * (l2x ** 2 + l2y ** 2) ) - 1.
+        wf = -2d0 * cos2p * clee(l2abs)
 
     else if (k == 'stt') then
         wf = 1d0

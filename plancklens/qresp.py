@@ -36,7 +36,6 @@ from __future__ import print_function
 import os
 import numpy as np
 import pickle as pk
-from scipy.special import gammaln
 
 from plancklens import utils as ut, utils_spin as uspin, utils_qe as uqe
 from plancklens.helpers import mpi, sql
@@ -85,7 +84,7 @@ def get_qes(qe_key, lmax, cls_weight, lmax2=None, transf=None):
             return uqe.qe_simplify(uqe.qe_proj(qes, qe_key[2], qe_key[3]) + uqe.qe_proj(qes, qe_key[3], qe_key[2]))
         else:
             assert 0, 'qe key %s  not recognized'%qe_key
-    elif qe_key in ['ntt']:
+    elif qe_key in ['ntt', 'n']:
         lega = uqe.qeleg(0, 0, 1   * _clinv(transf[:lmax + 1]))
         legb = uqe.qeleg(0, 0, 0.5 * _clinv(transf[:lmax + 1]))  # Weird norm to match PS case for no beam
         qes = [uqe.qe(lega, legb, lambda L: np.ones(len(L), dtype=float))]
@@ -156,6 +155,7 @@ def get_covresp(source, s1, s2, cls, lmax, transf=None):
         return s_source, prR, mrR, cL_scal
     elif source in ['ntt', 'n']:
         assert transf is not None
+        cond = s1 == 0 and s2 == 0
         cL_scal =  lambda ell : np.ones(len(ell), dtype=float)
         assert 0, 'dont think this parametrization works here'
         return s_source, prR, mrR, cL_scal
@@ -169,9 +169,9 @@ def qe_spin_data(qe_key):
         unordered list of unique spins (>= 0) input to the estimator, and the spin-1 qe key.
 
     """
-    if qe_key in ['ntt']:
+    if qe_key in ['ntt', 'n']:
         return 0, 'G', [0], 'n'
-    qes = get_qes(qe_key, 10, {k:np.ones(11 + 4, dtype=float) for k in ['tt', 'te', 'ee', 'bb']}) #Hack
+    qes = get_qes(qe_key.split('_bh_')[0], 10, {k:np.ones(11 + 4, dtype=float) for k in ['tt', 'te', 'ee', 'bb']}) #Hack
     spins_out = [qe.leg_a.spin_ou + qe.leg_b.spin_ou for qe in qes]
     spins_in = np.unique(np.abs([qe.leg_a.spin_in for qe in qes] + [qe.leg_b.spin_in for qe in qes]))
     assert len(np.unique(spins_out)) == 1, spins_out
@@ -315,7 +315,7 @@ def get_response(qe_key, lmax_ivf, source, cls_weight, cls_cmb, fal, fal_leg2=No
 def _get_response_custom(qe_key, qes, source, fal_leg1, lmax_qlm, fal_leg2=None, transf=None):
     """Customized response code for selected keys """
     fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
-    if 'tt' in qe_key and source in ['n', 'ntt']:
+    if source in ['n', 'ntt']:
         assert transf is not None
         # mask source keys does not fit under original parametrization scheme of plancklens
         # here source has spin 0 and qe can have any spin
@@ -330,7 +330,7 @@ def _get_response_custom(qe_key, qes, source, fal_leg1, lmax_qlm, fal_leg2=None,
             so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
             s_qe  = abs(so + to)
             s_source = 0
-            assert (si, ti) == (0, 0)
+            #assert (si, ti) == (0, 0)
             s2, t2 = (0, 0) # Temperature only noise maps
             FA = uspin.get_spin_matrix(si, s2, fal_leg1)
             FB = uspin.get_spin_matrix(ti, t2, fal_leg2)
@@ -417,6 +417,61 @@ def _get_response(qes, source, cls_cmb, fal_leg1, lmax_qlm, fal_leg2=None):
 
     return RGG, RCC, RGC, RCG
 
+def get_nmf_response(qe_key, lmax_ivf, cls_weight, fal, transf, lmax_qlm):
+    """Returns the noise mean-field response to the spin-0 noise variance map
+
+    Args:
+        qe_key (str): quadratic estimator key (e.g., ptt, p_p, ... )
+        fal (dict): filtering cls
+        lmax_qlm (int): responses are calculated up to this multipole.
+        transf: beam transfer function (or other transfer function) of the CMB map
+
+    Returns:
+        RGG: response array for the spin-0 noise variance map.
+
+    Note:
+        This has never been tested !
+
+    """
+    qes = get_qes(qe_key, lmax_ivf, cls_weight)
+    transfi = _clinv(transf)
+    return _get_nmf_response(qes, fal, lmax_qlm, transfi)
+
+
+def _get_nmf_response(qes, fal_leg1, lmax_qlm, transfi, fal_leg2=None):
+    """Returns the noise mean-field response to the spin-0 noise variance map
+
+    Args:
+        qes (list): list of quadratic estimators.
+        fal_leg1 (dict): filtering cls for the first leg.
+        lmax_qlm (int): responses are calculated up to this multipole.
+        fal_leg2 (dict, optional): Same as *fal_leg1* but for the second leg, if different.
+
+    Returns:
+        RGG: response array for the spin-0 noise variance map.
+
+
+    """
+    fal_leg2 = fal_leg1 if fal_leg2 is None else fal_leg2
+    RGG = np.zeros(lmax_qlm + 1, dtype=float)
+    Ls  = np.arange(lmax_qlm + 1, dtype=int)
+    for qe in qes:
+        si, ti = (qe.leg_a.spin_in, qe.leg_b.spin_in)
+        so, to = (qe.leg_a.spin_ou, qe.leg_b.spin_ou)
+        for s2 in ([0, 2, -2]):
+            FA = uspin.get_spin_matrix(si, s2, fal_leg1)
+            if np.any(FA):
+                for t2 in [-s2]:
+                    FB = uspin.get_spin_matrix(ti, t2, fal_leg2)
+                    if np.any(FB):
+                        clA = ut.joincls([qe.leg_a.cl, FA, transfi])
+                        clB = ut.joincls([qe.leg_b.cl, FB, transfi])
+                        Rpr_st = uspin.wignerc(clA, clB, so, s2, to, t2, lmax_out=lmax_qlm)
+                        sgn = (-1) ** (so + to + s2 + t2)
+                        prefac = qe.cL(Ls)
+                        RGG += prefac * sgn * Rpr_st
+
+    return RGG
 
 def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, retterms=False):
     """Deflection-induced mean-field response calculation.
@@ -499,3 +554,29 @@ def get_mf_resp(qe_key, cls_cmb, cls_ivfs, lmax_qe, lmax_out, retterms=False):
     for term in terms.values():
         term *= 0.25 * np.arange(lmax_out + 1) * np.arange(1, lmax_out + 2)
     return (GL, CL) if not retterms else (GL, CL, terms)
+
+def kernels(qe_key, L, l1, l2, cls, verbose=False):
+    """Some harmonic space kernels
+
+       This returns f_{l1l2L} / [ _sF^{\pm} * sqrt((2l1 + 1)(2l2 + 1)(2L + 1)/4\pi) ]
+
+       where _sF^{\pm} is defined as in the spherical bispectrum expansion paper
+
+       With a bit of luck the signs are correct
+
+    """
+    if verbose and 'eb' in qe_key and np.any(cls.get('bb', [0.])):
+        print('kernels Warning: using _eb with non-zero bb spec input')
+    if qe_key in ['ftt']:
+        return cls['tt'][l1] + cls['tt'][l2]
+    if qe_key[0] in ['p']:
+        wL, w1, w2 = L * (L + 1.), l1 * (l1 + 1.), l2 * (l2 + 1.)
+        if qe_key in ['ptt', 'pee']:
+           return 0.5 *(wL - w1 + w2) * cls[qe_key[1:]][l2] + 0.5 * (wL - w2 + w1) * cls[qe_key[1:]][l1]
+        if qe_key in ['p_eb']:
+            return 0.5j * (wL + w1 - w2) * cls['ee'][l1]
+    if qe_key in ['a_eb']:
+        return -2 * cls['ee'][l1]
+    if qe_key in ['aee']:
+        return -2j * (cls['ee'][l1] - cls['ee'][l2])
+    assert 0, qe_key + ' not yet implemented'
