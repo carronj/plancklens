@@ -265,7 +265,7 @@ def get_N0_iter(qe_key: str, nlev_t: float | np.ndarray, nlev_p: float | np.ndar
             this requires camb python package for the lensed spectra calc.
 
      """
-    assert qe_key in ['p_p', 'p', 'ptt'], qe_key
+    assert qe_key in ['p_p', 'p', 'ptt', 'pee', 'p_eb'], qe_key
     try:
         from camb.correlations import lensed_cls
     except ImportError:
@@ -326,7 +326,7 @@ def get_N0_iter(qe_key: str, nlev_t: float | np.ndarray, nlev_p: float | np.ndar
         datnoise_cls = dict()
         if qe_key in ['ptt', 'p']:
             datnoise_cls['tt'] = (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
-        if qe_key in ['p_p', 'p']:
+        if qe_key in ['p_p', 'p', 'pee', 'p_eb']:
             datnoise_cls['ee'] = (nlev_e * np.pi / 180. / 60.) ** 2 * transfi2
             datnoise_cls['bb'] = (nlev_b * np.pi / 180. / 60.) ** 2 * transfi2
     N0s_biased = []
@@ -353,7 +353,8 @@ def get_N0_iter(qe_key: str, nlev_t: float | np.ndarray, nlev_p: float | np.ndar
         dls_unl_true, cldd_true = cls2dls(cls_unl_dat)
         dls_unl_fid, cldd_fid = cls2dls(cls_unl_fid)
         if it == 0:
-            rho_sqd_phi = rho_sqd_ext
+            rho_sqd_phi = np.zeros(len(cldd_true))
+            rho_sqd_phi[:lmax_qlm + 1] = rho_sqd_ext
         else:
             # The cross-correlation coefficient is identical for the Rfid-biased QE or the rescaled one
             rho_sqd_phi = np.zeros(len(cldd_true))
@@ -390,7 +391,7 @@ def get_N0_iter(qe_key: str, nlev_t: float | np.ndarray, nlev_p: float | np.ndar
         if qe_key in ['ptt', 'p']:
             fal['tt'] = cls_filt['tt'][:lmax_ivf + 1] + (nlev_t * np.pi / 180. / 60.) ** 2 * transfi2
             dat_delcls['tt'] = cls_plen_true['tt'][:lmax_ivf + 1] + datnoise_cls['tt'][:lmax_ivf + 1]
-        if qe_key in ['p_p', 'p']:
+        if qe_key in ['p_p', 'p', 'pee', 'p_eb']:
             fal['ee'] = cls_filt['ee'][:lmax_ivf + 1] + (nlev_e * np.pi / 180. / 60.) ** 2 * transfi2
             fal['bb'] = cls_filt['bb'][:lmax_ivf + 1] + (nlev_b * np.pi / 180. / 60.) ** 2 * transfi2
             dat_delcls['ee'] = cls_plen_true['ee'][:lmax_ivf + 1] + datnoise_cls['ee']
