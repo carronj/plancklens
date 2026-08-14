@@ -42,7 +42,7 @@ class multigrid_chain:
                                                              stages=stages, lmax=lmax, nside=nside, chain=self))
         self.bstage = stages[0]  # these are the pre_ops called in cd_solve
 
-    def solve(self, soltn, tpn_map, apply_fini='', dot_op=None):
+    def solve(self, soltn, tpn_map, apply_fini='', dot_op=None, fwd_op=None):
         assert hasattr(self.opfilt, 'apply_fini%s' % apply_fini)
         finifunc = getattr(self.opfilt, 'apply_fini%s' % apply_fini)
         if apply_fini != '':
@@ -61,7 +61,8 @@ class multigrid_chain:
         monitor = cd_monitors.monitor_basic(dot_op, logger=logger, iter_max=self.bstage.iter_max,
                                         eps_min=self.bstage.eps_min, d0=dot_op(tpn_alm, tpn_alm))
 
-        fwd_op = self.opfilt.fwd_op(self.s_cls, self.n_inv_filt)
+        if fwd_op is None:
+            fwd_op = self.opfilt.fwd_op(self.s_cls, self.n_inv_filt)
 
         cd_solve.cd_solve(soltn, tpn_alm,
                           fwd_op, self.bstage.pre_ops, dot_op, monitor,
